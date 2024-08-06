@@ -32,9 +32,9 @@ func (widget *Workspace) Build(
 
 	box := tview.NewFlex().
 		SetDirection(tview.FlexRowCSS).
-		AddItem(treeWidget.Element, 0, 1, true).
-		AddItem(suitesArea, 0, 2, false).
-		AddItem(producerWidget.Element, 0, 3, false)
+		AddItem(treeWidget.Element, 0, 2, true).
+		AddItem(suitesArea, 0, 3, false).
+		AddItem(producerWidget.Element, 0, 4, false)
 	widget.Element = box
 	return box
 }
