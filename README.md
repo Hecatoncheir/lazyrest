@@ -1,7 +1,7 @@
 # lazyrest
-## Parse `.http` files with Tree-sitter and send http requests.
+Parse `.http` files with Tree-sitter and send http requests.
 
-### Preview
+## Preview
 
 ![preview](preview.png)
 
@@ -14,7 +14,7 @@ brew install mingw-w64
 env GOOS="windows" GOARCH="amd64" CGO_ENABLED="1" CC="x86_64-w64-mingw32-gcc" go build
 ```
 
-### Navigation
+## Navigation
 - [x] Mouse support
 - [x] `q` or `Ctrl+C` for close program
 - [x] `j` & `k` file navigation
