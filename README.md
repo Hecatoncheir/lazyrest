@@ -28,4 +28,5 @@ env GOOS="windows" GOARCH="amd64" CGO_ENABLED="1" CC="x86_64-w64-mingw32-gcc" go
 - [ ] `Ctrl+h/j/k/l` navigation
 - [ ] Update Footer area when suite select
 - [ ] Search files
-- [ ] Search in text for Suite & Produce areas
+- [ ] Search in text for Suite & Producer areas
+- [ ] Add progress bar to Producer area
