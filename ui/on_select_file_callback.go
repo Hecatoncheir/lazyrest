@@ -7,6 +7,9 @@ import (
 
 func onSelectFileCallback(applicationWidget *Application) tree.OnSelectFileCallbackType {
 	return func(file finder.File) {
+		footerWidget := applicationWidget.Footer
+		footerWidget.SelectFile(file)
+
 		suitesWidget := applicationWidget.Suites
 		suitesWidget.ChangeSuitesFromFile(file)
 		suitesElement := suitesWidget.Element
