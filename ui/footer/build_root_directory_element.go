@@ -16,7 +16,13 @@ func buildRootDirectoryElement(
 	element tview.Primitive,
 	size int,
 ) {
-	rootDirectoryPathText := fmt.Sprintf("%v", rootDirectoryPath)
+	marginLeft := 1
+	rootDirectoryPathText := ""
+	for range marginLeft {
+		rootDirectoryPathText += " "
+	}
+
+	rootDirectoryPathText += fmt.Sprintf("%v", rootDirectoryPath)
 
 	rootDirectoryPathTheme := footerTheme.RootDirectoryPath
 	rootDirectoryStyle := tcell.Style{}.
@@ -30,5 +36,6 @@ func buildRootDirectoryElement(
 		SetBackgroundColor(rootDirectoryPathTheme.Background)
 	rootDirectoryPathView.Box = rootDirectoryPathBox
 
-	return rootDirectoryPathView, len(rootDirectoryPathText)
+	marginRight := 1
+	return rootDirectoryPathView, len(rootDirectoryPathText) + marginRight
 }

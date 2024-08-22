@@ -77,6 +77,14 @@ func NewDefault() Theme {
 				ArrowBackground: color.Color("#504945").ToTerminal(),
 				ArrowForeground: color.Color("#bdae93").ToTerminal(),
 			},
+			SelectedFileName: SelectedFileNameTheme{
+				RootDirectoryArrowBackground: color.Color("#fbf1c7").ToTerminal(),
+				RootDirectoryArrowForeground: color.Color("#bdae93").ToTerminal(),
+				Background:                   color.Color("#fbf1c7").ToTerminal(),
+				Foreground:                   color.Color("#504945").ToTerminal(),
+				ArrowBackground:              color.Color("#504945").ToTerminal(),
+				ArrowForeground:              color.Color("#fbf1c7").ToTerminal(),
+			},
 		},
 	}
 	return theme

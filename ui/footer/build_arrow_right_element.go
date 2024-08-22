@@ -23,5 +23,6 @@ func buildArrowRightElement(
 	arrowRightView := tview.NewTextView().
 		SetText(arrowRightText).
 		SetTextStyle(arrowRightStyle)
-	return arrowRightView, 1
+	marginRight := 2
+	return arrowRightView, marginRight
 }

@@ -21,10 +21,10 @@ func (widget *Footer) SelectFile(file finder.File) {
 		false,
 	)
 
-	selectedFileNameTheme := footerTheme.RootDirectoryPath
+	selectedFileNameTheme := footerTheme.SelectedFileName
 	rootDirectoryArrowRightElement, rootDirectoryArrowRightElementSize := buildArrowRightElement(
-		selectedFileNameTheme.ArrowBackground,
-		selectedFileNameTheme.ArrowForeground,
+		selectedFileNameTheme.RootDirectoryArrowBackground,
+		selectedFileNameTheme.RootDirectoryArrowForeground,
 	)
 	element.AddItem(
 		rootDirectoryArrowRightElement,

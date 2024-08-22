@@ -12,7 +12,7 @@ import (
 
 func buildSelectedFileElement(
 	file finder.File,
-	selectedFileNameTheme theme.RootDirectoryPathTheme,
+	selectedFileNameTheme theme.SelectedFileNameTheme,
 ) (
 	element tview.Primitive,
 	size int,
@@ -31,5 +31,6 @@ func buildSelectedFileElement(
 		SetBackgroundColor(selectedFileNameTheme.Background)
 	selectedFileNameView.Box = rootDirectoryNameBox
 
-	return selectedFileNameView, len(selectedFileNameText)
+	marginRight := 1
+	return selectedFileNameView, len(selectedFileNameText) + marginRight
 }
