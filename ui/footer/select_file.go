@@ -12,7 +12,6 @@ func (widget *Footer) SelectFile(file finder.File) {
 
 	parameters := widget.Parameters
 	footerTheme := parameters.Theme.Footer
-	selectedFileNameTheme := footerTheme.RootDirectoryPath
 
 	rootDirectoryDirectoryElement, rootDirectoryDirectoryElementSize := buildRootDirectoryElement(parameters.RootDirectoryPath, footerTheme)
 	element.AddItem(
@@ -22,11 +21,11 @@ func (widget *Footer) SelectFile(file finder.File) {
 		false,
 	)
 
+	selectedFileNameTheme := footerTheme.RootDirectoryPath
 	rootDirectoryArrowRightElement, rootDirectoryArrowRightElementSize := buildArrowRightElement(
 		selectedFileNameTheme.ArrowBackground,
 		selectedFileNameTheme.ArrowForeground,
 	)
-	widget.rootDirectoryArrowRightElement = rootDirectoryArrowRightElement
 	element.AddItem(
 		rootDirectoryArrowRightElement,
 		rootDirectoryArrowRightElementSize,
@@ -35,7 +34,6 @@ func (widget *Footer) SelectFile(file finder.File) {
 	)
 
 	selectedFileElement, selectedFileElementSize := buildSelectedFileElement(file, selectedFileNameTheme)
-	widget.selectedFileElement = selectedFileElement
 	element.AddItem(
 		selectedFileElement,
 		selectedFileElementSize,
@@ -47,7 +45,6 @@ func (widget *Footer) SelectFile(file finder.File) {
 		selectedFileNameTheme.ArrowBackground,
 		selectedFileNameTheme.ArrowForeground,
 	)
-	widget.selectedFileElementArrowRightElement = selectedFileElementArrowRightElement
 	element.AddItem(
 		selectedFileElementArrowRightElement,
 		selectedFileElementArrowRightElementSize,
