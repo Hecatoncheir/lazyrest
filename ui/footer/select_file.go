@@ -8,12 +8,20 @@ import (
 
 func (widget *Footer) SelectFile(file finder.File) {
 	element := widget.Element.(*tview.Flex)
-	element.RemoveItem(widget.selectedFileElement)
+	element.Clear()
 
 	parameters := widget.Parameters
-	selectedFileNameTheme := parameters.Theme.Footer.RootDirectoryPath
+	footerTheme := parameters.Theme.Footer
+	selectedFileNameTheme := footerTheme.RootDirectoryPath
 
-	element.RemoveItem(widget.rootDirectoryArrowRightElement)
+	rootDirectoryDirectoryElement, rootDirectoryDirectoryElementSize := buildRootDirectoryElement(parameters.RootDirectoryPath, footerTheme)
+	element.AddItem(
+		rootDirectoryDirectoryElement,
+		rootDirectoryDirectoryElementSize,
+		0,
+		false,
+	)
+
 	rootDirectoryArrowRightElement, rootDirectoryArrowRightElementSize := buildArrowRightElement(
 		selectedFileNameTheme.ArrowBackground,
 		selectedFileNameTheme.ArrowForeground,
@@ -31,6 +39,18 @@ func (widget *Footer) SelectFile(file finder.File) {
 	element.AddItem(
 		selectedFileElement,
 		selectedFileElementSize,
+		0,
+		false,
+	)
+
+	selectedFileElementArrowRightElement, selectedFileElementArrowRightElementSize := buildArrowRightElement(
+		selectedFileNameTheme.ArrowBackground,
+		selectedFileNameTheme.ArrowForeground,
+	)
+	widget.selectedFileElementArrowRightElement = selectedFileElementArrowRightElement
+	element.AddItem(
+		selectedFileElementArrowRightElement,
+		selectedFileElementArrowRightElementSize,
 		0,
 		false,
 	)

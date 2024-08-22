@@ -23,5 +23,5 @@ func buildArrowRightElement(
 	arrowRightView := tview.NewTextView().
 		SetText(arrowRightText).
 		SetTextStyle(arrowRightStyle)
-	return arrowRightView, len(arrowRightText)
+	return arrowRightView, 1
 }

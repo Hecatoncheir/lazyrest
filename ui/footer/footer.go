@@ -10,11 +10,12 @@ func New() Footer {
 }
 
 type Footer struct {
-	Parameters                     Parameters
-	Element                        tview.Primitive
-	rootDirectoryElement           tview.Primitive
-	rootDirectoryArrowRightElement tview.Primitive
-	selectedFileElement            tview.Primitive
+	Parameters                           Parameters
+	Element                              tview.Primitive
+	rootDirectoryElement                 tview.Primitive
+	rootDirectoryArrowRightElement       tview.Primitive
+	selectedFileElement                  tview.Primitive
+	selectedFileElementArrowRightElement tview.Primitive
 }
 
 func (widget *Footer) Build(parameters Parameters) tview.Primitive {
