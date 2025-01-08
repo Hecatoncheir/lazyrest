@@ -10,14 +10,31 @@ func New() Footer {
 }
 
 type Footer struct {
-	Element tview.Primitive
+	Parameters Parameters
+	Element    tview.Primitive
 }
 
 func (widget *Footer) Build(parameters Parameters) tview.Primitive {
-	rootDirectoryPath := buildRootDirectoryPath(parameters)
+	widget.Parameters = parameters
+
+	rootDirectoryPath := parameters.RootDirectoryPath
+	footerTheme := parameters.Theme.Footer
+
+	rootDirectoryElement, rootDirectoryElementSize := buildRootDirectoryElement(
+		rootDirectoryPath,
+		footerTheme,
+	)
+
+	rootDirectoryPathTheme := footerTheme.RootDirectoryPath
+	rootDirectoryArrowRightElement, rootDirectoryArrowRightElementSize := buildArrowRightElement(
+		rootDirectoryPathTheme.ArrowBackground,
+		rootDirectoryPathTheme.ArrowForeground,
+	)
 
 	layout := tview.NewFlex().
-		AddItem(rootDirectoryPath, 0, 1, true)
+		SetDirection(tview.FlexRowCSS).
+		AddItem(rootDirectoryElement, rootDirectoryElementSize, 0, false).
+		AddItem(rootDirectoryArrowRightElement, rootDirectoryArrowRightElementSize, 0, false)
 
 	theme := parameters.Theme.Footer
 	layout.Box = tview.NewBox().
