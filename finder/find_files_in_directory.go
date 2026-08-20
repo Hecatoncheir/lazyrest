@@ -3,6 +3,7 @@ package finder
 import (
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 func FindFilesInDirectory(directoryPath, extension string) (Directory, error) {
@@ -35,7 +36,7 @@ func FindFilesInDirectory(directoryPath, extension string) (Directory, error) {
 			directory.Directories = append(directory.Directories, directoryWithFiles)
 		} else {
 			entityExtension := filepath.Ext(entityName)
-			if entityExtension != extension {
+			if !strings.EqualFold(entityExtension, extension) {
 				continue
 			}
 			file := File{

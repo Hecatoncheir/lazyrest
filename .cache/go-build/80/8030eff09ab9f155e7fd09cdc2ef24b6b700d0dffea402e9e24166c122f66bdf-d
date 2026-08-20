@@ -1,0 +1,16 @@
+# test log
+open nonexistent/path/for/test
+getenv TMPDIR
+open /var/folders/_1/7nw1lhnj6l938mf0ff613r4c0000gn/T/test_finder_2238926480/file1.http
+open /var/folders/_1/7nw1lhnj6l938mf0ff613r4c0000gn/T/test_finder_2238926480/sub/file2.http
+open /var/folders/_1/7nw1lhnj6l938mf0ff613r4c0000gn/T/test_finder_2238926480/readme.txt
+open /var/folders/_1/7nw1lhnj6l938mf0ff613r4c0000gn/T/test_finder_2238926480/other/ignore.txt
+open /var/folders/_1/7nw1lhnj6l938mf0ff613r4c0000gn/T/test_finder_2238926480
+open /var/folders/_1/7nw1lhnj6l938mf0ff613r4c0000gn/T/test_finder_2238926480/other
+open /var/folders/_1/7nw1lhnj6l938mf0ff613r4c0000gn/T/test_finder_2238926480/sub
+open /var/folders/_1/7nw1lhnj6l938mf0ff613r4c0000gn/T
+getenv TMPDIR
+open /var/folders/_1/7nw1lhnj6l938mf0ff613r4c0000gn/T/test_finder_nofile_237162423/sub/wrong.txt
+open /var/folders/_1/7nw1lhnj6l938mf0ff613r4c0000gn/T/test_finder_nofile_237162423
+open /var/folders/_1/7nw1lhnj6l938mf0ff613r4c0000gn/T/test_finder_nofile_237162423/sub
+open /var/folders/_1/7nw1lhnj6l938mf0ff613r4c0000gn/T

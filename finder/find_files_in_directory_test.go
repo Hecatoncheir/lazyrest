@@ -43,11 +43,15 @@ func TestFindFilesInDirectory_Basic(t *testing.T) {
 	// Create target files
 	targetFile1 := filepath.Join(tempDir, "file1.http")
 	targetFile2 := filepath.Join(subDir, "file2.http")
+	targetFileUpper := filepath.Join(tempDir, "file3.HTTP")
+
 	// Create irrelevant files
 	otherFile1 := filepath.Join(tempDir, "readme.txt")
 	otherFile2 := filepath.Join(otherDir, "ignore.txt")
+
 	os.WriteFile(targetFile1, []byte("content"), 0644)
 	os.WriteFile(targetFile2, []byte("content"), 0644)
+	os.WriteFile(targetFileUpper, []byte("content"), 0644)
 	os.WriteFile(otherFile1, []byte("content"), 0644)
 	os.WriteFile(otherFile2, []byte("content"), 0644)
 
@@ -76,13 +80,13 @@ func TestFindFilesInDirectory_Basic(t *testing.T) {
 		t.Errorf("Expected 1 non-empty directory (sub), got %d. Directories found: %+v", len(actualDir.Directories), actualDir.Directories)
 	}
 	
-	// Проверяем, что найденные файлы корректны (total 2)
-	expectedFilesCount := 2
+	// Проверяем, что найденные файлы корректны (total 3)
+	expectedFilesCount := 3
 	if len(allFiles) != expectedFilesCount {
 		t.Errorf("Expected %d files in total, got %d. Files found: %+v", expectedFilesCount, len(allFiles), allFiles)
 	}
 	
-	// Проверяем, что оба файла были найдены и пути правильные
+	// Проверяем, что все три файла были найдены и пути правильные
 	foundPaths := make(map[string]bool)
 	for _, file := range allFiles {
 		foundPaths[file.Path] = true
@@ -92,6 +96,9 @@ func TestFindFilesInDirectory_Basic(t *testing.T) {
 	}
 	if !foundPaths[targetFile2] {
 		t.Errorf("Did not find the expected file: %s", targetFile2)
+	}
+	if !foundPaths[filepath.Join(tempDir, "file3.HTTP")] {
+		t.Errorf("Did not find the expected uppercase file: %s", filepath.Join(tempDir, "file3.HTTP"))
 	}
 
 	// Убедимся, что 'readme.txt' и 'ignore.txt' проигнорированы.

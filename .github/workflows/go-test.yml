@@ -1,8 +1,9 @@
-name: Go Tests
+name: Go Tests and Release
 
-on: 
+on:
   push:
     branches: [ "main" ]
+    tags: [ 'v*' ]
   pull_request:
     branches: [ "main" ]
 
@@ -11,6 +12,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0 # Important to fetch all history for changelog parsing
+
       - name: Set up Go
         uses: actions/setup-go@v3
         with:
@@ -25,3 +29,35 @@ jobs:
 
       - name: Build Project
         run: go build -v ./...
+
+  release:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Extract Changelog
+        id: changelog
+        run: |
+          # Get the current tag (e.g., v0.1.0)
+          TAG=${GITHUB_REF#refs/tags/}
+          # Search for the section in CHANGELOG.md starting with ## [tag] 
+          # and extract everything until the next ## section or end of file
+          CHANGELOG=$(sed -n "/## \[$TAG\]/,/## \[/p" CHANGELOG.md | sed '1d;$d')
+          # Escape special characters for GH output
+          echo "body<<EOF" >> $GITHUB_OUTPUT
+          echo "$CHANGELOG" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          body: ${{ steps.changelog.outputs.body }}
+          generate_release_notes: false # We are providing our own from changelog
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
