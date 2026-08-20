@@ -27,7 +27,7 @@ func (widget *Suites) ChangeSuitesFromFile(file finder.File) {
 
 	for _, suite := range suites {
 		theme := widget.theme
-		element.AddItem(suite.Method()+" "+suite.Uri(), suite.Body(), 0, func() {
+		element.AddItem(suite.Method+" "+suite.Uri, suite.Body, 0, func() {
 			widget.onSuiteSelectCallback(suite)
 		}).
 			SetWrapAround(true).

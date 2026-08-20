@@ -22,9 +22,9 @@ func NewFromSuite(suite parser.HttpSuite) Runner {
 }
 
 func (runner *Runner) Execute() (Response, error) {
-	method := runner.suite.Method()
-	url := runner.suite.Uri()
-	requestBody := runner.suite.Body()
+	method := runner.suite.Method
+	url := runner.suite.Uri
+	requestBody := runner.suite.Body
 	requestBodyReader := bytes.NewBuffer([]byte(requestBody))
 
 	request, err := http.NewRequest(method, url, requestBodyReader)
@@ -32,11 +32,11 @@ func (runner *Runner) Execute() (Response, error) {
 		return Response{}, err
 	}
 
-	bodyType := runner.suite.BodyType()
+	bodyType := runner.suite.BodyType
 	value := fmt.Sprintf("%v; charset=utf-8", bodyType)
 	request.Header.Add("Content-Type", value)
 
-	requestHeader := runner.suite.Header()
+	requestHeader := runner.suite.Header
 	for key, value := range requestHeader {
 		if key == "Content-Type" && !strings.Contains(value, "charset") {
 			updatedValue := ""

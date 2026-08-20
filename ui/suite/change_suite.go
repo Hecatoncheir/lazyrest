@@ -13,10 +13,10 @@ func (widget *Suite) ChangeSuite(suite http.HttpSuite) {
 	text := fmt.Sprintf(
 		"Request: %v %v\n"+
 			"Body(%v): %v",
-		suite.Method(),
-		suite.Uri(),
-		suite.BodyType(),
-		suite.Body(),
+		suite.Method,
+		suite.Uri,
+		suite.BodyType,
+		suite.Body,
 	)
 	theme := widget.theme
 	element.

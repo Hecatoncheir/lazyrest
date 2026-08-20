@@ -15,24 +15,24 @@ func getSuite(source []byte, node *sitter.Node) (HttpSuite, error) {
 
 		switch child.Type() {
 		case "method":
-			suite.method = value
+			suite.Method = value
 		case "target_url":
-			suite.uri = value
+			suite.Uri = value
 		case "header":
 			key, value, isFound := strings.Cut(value, ":")
 			if !isFound {
 				continue
 			}
-			suite.header[key] = value
+			suite.Header[key] = value
 		case "xml_body":
-			suite.bodyType = "xml"
-			suite.body = value
+			suite.BodyType = "xml"
+			suite.Body = value
 		case "json_body":
-			suite.bodyType = "json"
-			suite.body = value
+			suite.BodyType = "json"
+			suite.Body = value
 		case "graphql_body":
-			suite.bodyType = "graphql"
-			suite.body = value
+			suite.BodyType = "graphql"
+			suite.Body = value
 		}
 	}
 

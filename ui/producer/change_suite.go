@@ -14,20 +14,9 @@ func (widget *Producer) ChangeSuite(suite http.HttpSuite) {
 	runner := runner.NewFromSuite(suite)
 	response, err := runner.Execute()
 	if err != nil {
-		text = fmt.Sprintf(
-			"Response error:\n" +
-				"%v\n" +
-				err.Error(),
-		)
+		text = fmt.Sprintf("Response error:\n%v\n%v", "error", err.Error())
 	} else {
-		text = fmt.Sprintf(
-			"Response:\n"+
-				"Body:\n"+
-				"%v\n\n"+
-				"%v\n",
-			response.Body,
-			response.ToMiniString(),
-		)
+		text = fmt.Sprintf("Response:\nBody:\n%v\n\n%v\n", response.Body, response.ToMiniString())
 	}
 
 	widget.suite = suite
