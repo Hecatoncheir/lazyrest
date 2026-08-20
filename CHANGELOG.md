@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
-## [0.2.0] - 2026-08-21
+## [v0.2.0] - 2026-08-21
 ### Added
 - Case-insensitive extension matching in `finder` package
 
