@@ -1,6 +1,7 @@
 package http
 
 import (
+	"log"
 	"strings"
 	sitter "github.com/smacker/go-tree-sitter"
 )
@@ -17,6 +18,7 @@ func getSuites(source []byte, tree sitter.Tree) ([]HttpSuite, error) {
 		if nodeType == "request" {
 			suite, err := getSuite(source, node)
 			if err != nil {
+				log.Printf("Error parsing suite at index %d: %v", i, err)
 				continue
 			}
 			suites = append(suites, suite)
@@ -25,6 +27,8 @@ func getSuites(source []byte, tree sitter.Tree) ([]HttpSuite, error) {
 			if lastSuite.Body == "" {
 				lastSuite.Body = strings.TrimSpace(node.Content(source))
 			}
+		} else if nodeType == "ERROR" {
+			log.Printf("Error node found at index %d: %q", i, node.Content(source))
 		}
 	}
 

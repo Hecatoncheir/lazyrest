@@ -88,7 +88,7 @@ func (widget *Producer) ChangeSuite(suite http.HttpSuite) {
 					respColor = "green"
 				} else if strings.HasPrefix(response.Code, "3") {
 					respColor = "yellow"
-				} else if strings.HasPrefix(response.Code, "4") || strings.HasPrefix(response.Code, "5") {
+				} else if strings.HasPrefix(response.Code, "4") || strings.HasPrefix(response.Code, "5") || response.Code == "FAILED" {
 					respColor = "red"
 				} else {
 					respColor = "white"
