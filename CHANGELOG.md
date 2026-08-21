@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v0.2.8] - 2024-05-23
+### Fixed
+- Resolved build failure in `ui/footer` caused by an invalid type assertion.
+- Corrected argument types in `finder` and `ui/tree` tests to match function signatures.
+
 ## [v0.2.7] - 2024-05-23
 ### Fixed
 - Build failure in `ui/footer` due to incorrect type assertion.
