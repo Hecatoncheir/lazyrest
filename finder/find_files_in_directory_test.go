@@ -104,33 +104,45 @@ func TestFindFilesInDirectory_Basic(t *testing.T) {
 	// Убедимся, что 'readme.txt' и 'ignore.txt' проигнорированы.
 }
 
-func TestFindFilesInDirectory_NoMatchingFiles(t *testing.T) {
-	// 1. Setup
-	tempDir, err := os.MkdirTemp("", "test_finder_nofile_")
+func TestFindFilesInDirectory_DotsInNames(t *testing.T) {
+	tempDir, err := os.MkdirTemp("", "test_dots_")
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer os.RemoveAll(tempDir)
 
-	// Create directories with non-matching files
-	subDir := filepath.Join(tempDir, "sub")
-	os.Mkdir(subDir, 0755)
-	os.WriteFile(filepath.Join(subDir, "wrong.txt"), []byte("content"), 0644)
+	targetFile := filepath.Join(tempDir, "my.test.file.http")
+	os.WriteFile(targetFile, []byte("content"), 0644)
 
-	// 2. Execution
 	actualDir, err := FindFilesInDirectory(tempDir, ".http")
 	if err != nil {
-		t.Fatalf("FindFilesInDirectory failed unexpectedly: %v", err)
+		t.Fatalf("FindFilesInDirectory failed: %v", err)
 	}
 
-	// 3. Assertions
-	if len(actualDir.Files) != 0 {
-		t.Errorf("Expected 0 files, got %d", len(actualDir.Files))
+	if len(actualDir.Files) != 1 {
+		t.Errorf("Expected 1 file, got %d", len(actualDir.Files))
+	} else if actualDir.Files[0].Name != "my.test.file.http" {
+		t.Errorf("Expected filename my.test.file.http, got %s", actualDir.Files[0].Name)
 	}
-	// Проверяем, что все найденные поддиректории не содержат файлов
-	for _, dir := range actualDir.Directories {
-		if len(dir.Files) != 0 {
-			t.Errorf("Expected sub-directory %s to have 0 files, but found %d", dir.Name, len(dir.Files))
-		}
+}
+
+func TestFindFilesInDirectory_ExtensionWithoutDot(t *testing.T) {
+	tempDir, err := os.MkdirTemp("", "test_no_dot_")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(tempDir)
+
+	targetFile := filepath.Join(tempDir, "file.http")
+	os.WriteFile(targetFile, []byte("content"), 0644)
+
+	// Searching with "http" instead of ".http"
+	actualDir, err := FindFilesInDirectory(tempDir, "http")
+	if err != nil {
+		t.Fatalf("FindFilesInDirectory failed: %v", err)
+	}
+
+	if len(actualDir.Files) != 0 {
+		t.Errorf("Expected 0 files when searching with extension without dot, got %d", len(actualDir.Files))
 	}
 }

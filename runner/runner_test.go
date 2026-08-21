@@ -1,6 +1,7 @@
 package runner
 
 import (
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -56,8 +57,7 @@ func TestExecute_Success(t *testing.T) {
 
 	// Изменяем URI в нашем моке, чтобы он соответствовал тесту
 	mockSuite.Uri = testServer.URL + "/api"
-	runner.suite = mockSuite // Manually update for the test if possible, or re-instantiate
-	runner = NewFromSuite(mockSuite)
+	runner = NewFromSuite(mockSuite) 
 
 	// 2. Execution
 	response, err := runner.Execute()
@@ -92,5 +92,54 @@ func TestExecute_Error(t *testing.T) {
 	// 3. Assertions
 	if err == nil {
 		t.Error("Ожидали ошибку сетевого соединения, но получили nil")
+	}
+}
+
+func TestExecute_WithBodyAndHeaders(t *testing.T) {
+	testJSON := `{"key": "value"}`
+	mockSuite := parser.HttpSuite{
+		Method:   "POST",
+		Uri:      "http://test.com/api/post",
+		Body:     testJSON,
+		BodyType: "json",
+		Header:   map[string]string{"X-Custom-Header": "CustomValue"},
+	}
+	runner := NewFromSuite(mockSuite)
+
+	testServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Check Method
+		if r.Method != "POST" {
+			t.Errorf("Expected POST, got %s", r.Method)
+		}
+		// Check Body
+		body, _ := io.ReadAll(r.Body)
+		if string(body) != testJSON {
+			t.Errorf("Expected body %s, got %s", testJSON, string(body))
+		}
+		// Check Header
+		if r.Header.Get("X-Custom-Header") != "CustomValue" {
+			t.Errorf("Expected header X-Custom-Header: CustomValue, got %s", r.Header.Get("X-Custom-Header"))
+		}
+		// Check Content-Type (the runner adds charset=utf-8)
+		contentType := r.Header.Get("Content-Type")
+		if !strings.Contains(contentType, "application/json") || !strings.Contains(contentType, "charset=utf-8") {
+			t.Errorf("Expected Content-Type to contain application/json and charset=utf-8, got %s", contentType)
+		}
+
+		w.WriteHeader(http.StatusCreated)
+		w.Write([]byte("created"))
+	}))
+	defer testServer.Close()
+
+	mockSuite.Uri = testServer.URL + "/api/post"
+	runner = NewFromSuite(mockSuite)
+
+	response, err := runner.Execute()
+
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+	if response.Code != "201 Created" {
+		t.Errorf("Expected 201 Created, got %s", response.Code)
 	}
 }

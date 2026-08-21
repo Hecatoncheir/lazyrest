@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v0.2.3] - 2026-08-21
+### Fixed
+- HTTP parser tests to match tree-sitter grammar requirements.
+
+### Added
+- Enhanced test coverage for `finder` and `runner` packages.
+- Improved `Content-Type` handling in `runner` package.
+- Unit tests for `runner.Response`.
+
 ## [v0.2.2] - 2026-08-21
 ### Added
 - Asynchronous HTTP requests in the Producer component to prevent UI freezing.

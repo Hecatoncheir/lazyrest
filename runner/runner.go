@@ -15,10 +15,9 @@ type Runner struct {
 }
 
 func NewFromSuite(suite parser.HttpSuite) Runner {
-	runner := Runner{
+	return Runner{
 		suite: suite,
 	}
-	return runner
 }
 
 func (runner *Runner) Execute() (Response, error) {
@@ -33,21 +32,33 @@ func (runner *Runner) Execute() (Response, error) {
 	}
 
 	bodyType := runner.suite.BodyType
-	value := fmt.Sprintf("%v; charset=utf-8", bodyType)
-	request.Header.Add("Content-Type", value)
+	contentType := ""
+	switch bodyType {
+	case "json":
+		contentType = "application/json"
+	case "xml":
+		contentType = "application/xml"
+	case "graphql":
+		contentType = "application/graphql"
+	default:
+		contentType = bodyType // Fallback to what's provided
+	}
+
+	if contentType != "" && contentType != "raw" {
+		value := fmt.Sprintf("%v; charset=utf-8", contentType)
+		request.Header.Add("Content-Type", value)
+	}
 
 	requestHeader := runner.suite.Header
 	for key, value := range requestHeader {
-		if key == "Content-Type" && !strings.Contains(value, "charset") {
-			updatedValue := ""
-			if strings.Contains(value, ";") {
-				updatedValue = fmt.Sprintf("%v charset=utf-8", value)
-			} else {
-				updatedValue = fmt.Sprintf("%v; charset=utf-8", value)
-			}
-			request.Header.Add("Content-Type", updatedValue)
+		// If Content-Type is already set by bodyType, we should be careful not to duplicate or conflict.
+		// However, the user might want to override it via headers.
+		if strings.EqualFold(key, "Content-Type") {
+			// If already set from bodyType, and user provided one, we use the user's one.
+			request.Header.Set("Content-Type", value)
+		} else {
+			request.Header.Add(key, value)
 		}
-		request.Header.Add(key, value)
 	}
 
 	client := http.Client{
@@ -64,7 +75,7 @@ func (runner *Runner) Execute() (Response, error) {
 
 	responseBody, err := io.ReadAll(result.Body)
 	if err != nil {
-		return Response{}, nil
+		return Response{}, err
 	}
 
 	diff := end.Sub(begin)

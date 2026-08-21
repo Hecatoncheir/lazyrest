@@ -2,7 +2,6 @@ package http
 
 import (
 	"strings"
-
 	sitter "github.com/smacker/go-tree-sitter"
 )
 
@@ -11,19 +10,20 @@ func getSuite(source []byte, node *sitter.Node) (HttpSuite, error) {
 
 	for i := 0; i < int(node.ChildCount()); i++ {
 		child := node.Child(i)
+		nodeType := child.Type()
 		value := child.Content(source)
 
-		switch child.Type() {
+		switch nodeType {
 		case "method":
 			suite.Method = value
 		case "target_url":
 			suite.Uri = value
 		case "header":
-			key, value, isFound := strings.Cut(value, ":")
+			key, val, isFound := strings.Cut(value, ":")
 			if !isFound {
 				continue
 			}
-			suite.Header[key] = value
+			suite.Header[strings.TrimSpace(key)] = strings.TrimSpace(val)
 		case "xml_body":
 			suite.BodyType = "xml"
 			suite.Body = value

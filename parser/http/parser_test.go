@@ -6,10 +6,6 @@ import (
 	"testing"
 )
 
-// NOTE: Due to the deep dependency on the external tree-sitter bindings and actual file reads,
-// these tests require a complex setup (e.g., mocking the sitter library).
-// Here, we focus on testing the public API flow: GetSuitesFromFile, simulating the necessary file read.
-
 func TestGetSuitesFromFile_Success(t *testing.T) {
 	// 1. Setup: Создаем временный файл с имитацией *.http содержимого.
 	tempDir, err := os.MkdirTemp("", "test_parser_")
@@ -43,8 +39,6 @@ GET http://example.com/api/status
 	}
 	defer parser.Reset()
 
-	// В реальном тесте здесь бы требовалась мокировка getTree,
-	// но мы полагаемся на работоспособность всей цепочки.
 	suites, err := parser.GetSuitesFromFile(testFilePath)
 	if err != nil {
 		t.Fatalf("Ошибка при получении наборов запросов: %v", err)
@@ -52,13 +46,57 @@ GET http://example.com/api/status
 
 	// 3. Assertions
 	if len(suites) != 3 {
-		t.Errorf("Ожидалось 3 набора запросов (one suite, one test, one another suite), получено %d", len(suites))
+		t.Errorf("Ожидалось 3 набора запросов, получено %d", len(suites))
 	}
 
-	// Проверяем, что хотя бы одно поле заполнено для каждого набора запросов
 	for i, s := range suites {
 		if s.Method == "" || s.Uri == "" {
 			t.Errorf("Набор запросов %d имеет пустые method или uri", i)
+		}
+	}
+}
+
+func TestGetSuitesFromFile_BodyTypes(t *testing.T) {
+	tempDir, _ := os.MkdirTemp("", "test_body_")
+	defer os.RemoveAll(tempDir)
+	testFilePath := filepath.Join(tempDir, "bodies.http")
+
+	mockContent := `GET http://example.com/json
+{
+"key": "val"
+}
+
+POST http://example.com/xml
+<?xml version="1.0"?>
+<tag>
+</tag>
+
+GET http://example.com/graphql
+query {
+user { id }
+}
+`
+	os.WriteFile(testFilePath, []byte(mockContent), 0644)
+
+	parser, _ := NewParser()
+	defer parser.Reset()
+
+	suites, err := parser.GetSuitesFromFile(testFilePath)
+	if err != nil {
+		t.Fatalf("Error: %v", err)
+	}
+
+	if len(suites) != 3 {
+		t.Fatalf("Expected 3 suites, got %d", len(suites))
+	}
+
+	expectedTypes := []string{"json", "xml", "graphql"}
+	for i, s := range suites {
+		if s.BodyType != expectedTypes[i] {
+			t.Errorf("Suite %d: expected body type %s, got %s", i, expectedTypes[i], s.BodyType)
+		}
+		if s.Body == "" {
+			t.Errorf("Suite %d: expected non-empty body", i)
 		}
 	}
 }
@@ -67,7 +105,6 @@ func TestGetSuitesFromFile_FileNotFound(t *testing.T) {
 	parser, _ := NewParser()
 	defer parser.Reset()
 	
-	// Ожидаем отказ из-за несуществующего файла
 	_, err := parser.GetSuitesFromFile("non_existent_file.http")
 	if err == nil {
 		t.Error("Expected file not found error, but got nil")
