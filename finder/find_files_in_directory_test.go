@@ -16,7 +16,7 @@ func TestFailingOnReadDir(t *testing.T) {
 	
 	// Create a path unlikely to exist or readable to force an error on os.ReadDir
 	badPath := filepath.Join("nonexistent", "path", "for", "test")
-	dir, err := FindFilesInDirectory(badPath, ".http")
+	dir, err := FindFilesInDirectory(badPath, []string{".http"})
 
 	if err == nil {
 		t.Errorf("Expected an error when reading a non-existent directory, but got nil")
@@ -56,7 +56,7 @@ func TestFindFilesInDirectory_Basic(t *testing.T) {
 	os.WriteFile(otherFile2, []byte("content"), 0644)
 
 	// 2. Execution: Call the function under test
-	actualDir, err := FindFilesInDirectory(tempDir, ".http")
+	actualDir, err := FindFilesInDirectory(tempDir, []string{".http"})
 	if err != nil {
 		t.Fatalf("FindFilesInDirectory failed unexpectedly: %v", err)
 	}
@@ -114,7 +114,7 @@ func TestFindFilesInDirectory_DotsInNames(t *testing.T) {
 	targetFile := filepath.Join(tempDir, "my.test.file.http")
 	os.WriteFile(targetFile, []byte("content"), 0644)
 
-	actualDir, err := FindFilesInDirectory(tempDir, ".http")
+	actualDir, err := FindFilesInDirectory(tempDir, []string{".http"})
 	if err != nil {
 		t.Fatalf("FindFilesInDirectory failed: %v", err)
 	}
@@ -137,7 +137,7 @@ func TestFindFilesInDirectory_ExtensionWithoutDot(t *testing.T) {
 	os.WriteFile(targetFile, []byte("content"), 0644)
 
 	// Searching with "http" instead of ".http"
-	actualDir, err := FindFilesInDirectory(tempDir, "http")
+	actualDir, err := FindFilesInDirectory(tempDir, []string{"http"})
 	if err != nil {
 		t.Fatalf("FindFilesInDirectory failed: %v", err)
 	}

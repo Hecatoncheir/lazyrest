@@ -37,14 +37,12 @@ func (widget *Footer) Build(parameters Parameters) tview.Primitive {
 		rootDirectoryPathTheme.Foreground,
 	)
 
-	suiteText := tview.NewTextView().
-		SetTextAlign(1).
-		SetTextColor(footerTheme.SuiteForeground).
-		SetBackgroundColor(footerTheme.Background)
+	suiteText := tview.NewTextView()
+	suiteText.SetTextAlign(1)
+	suiteText.SetTextColor(footerTheme.SuiteForeground)
+	suiteText.SetBackgroundColor(footerTheme.Background)
 
-	if tv, ok := suiteText.(*tview.TextView); ok {
-		widget.suiteElement = tv
-	}
+	widget.suiteElement = suiteText
 
 	layout := tview.NewFlex().
 		SetDirection(tview.FlexColumnCSS).

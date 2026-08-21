@@ -14,7 +14,7 @@ import (
 func newMockParams(root string) Parameters {
 	return Parameters{
 		RootDirectoryPath: root,
-		FilesExtension:    ".http",
+		FilesExtension:    []string{".http"},
 		Theme: theme.Theme{
 			Tree: theme.TreeTheme{
 				Border:          tcell.ColorBlue,
