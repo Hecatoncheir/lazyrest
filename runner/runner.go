@@ -10,6 +10,24 @@ import (
 	"time"
 )
 
+type ProgressCallback func(current, total int64)
+
+type progressReader struct {
+	r        io.Reader
+	total    int64
+	current  int64
+	callback ProgressCallback
+}
+
+func (pr *progressReader) Read(p []byte) (n int, err error) {
+	n, err = pr.r.Read(p)
+	pr.current += int64(n)
+	if pr.callback != nil && pr.total > 0 {
+		pr.callback(pr.current, pr.total)
+	}
+	return n, err
+}
+
 type Runner struct {
 	suite parser.HttpSuite
 }
@@ -20,7 +38,7 @@ func NewFromSuite(suite parser.HttpSuite) Runner {
 	}
 }
 
-func (runner *Runner) Execute() (Response, error) {
+func (runner *Runner) Execute(onProgress ProgressCallback) (Response, error) {
 	method := runner.suite.Method
 	url := runner.suite.Uri
 	requestBody := runner.suite.Body
@@ -61,19 +79,27 @@ func (runner *Runner) Execute() (Response, error) {
 		}
 	}
 
-	client := http.Client{
-		// Timeout: time.Duration(3 * time.Minute),
-	}
+	client := http.Client{}
 	begin := time.Now()
 	result, err := client.Do(request)
-	end := time.Now()
 	if err != nil {
 		return Response{}, err
 	}
+	end := time.Now()
 
 	defer result.Body.Close()
 
-	responseBody, err := io.ReadAll(result.Body)
+	total := int64(result.ContentLength)
+	var bodyReader io.Reader = result.Body
+	if onProgress != nil && total > 0 {
+		bodyReader = &progressReader{
+			r:        result.Body,
+			total:    total,
+			callback: onProgress,
+		}
+	}
+
+	responseBody, err := io.ReadAll(bodyReader)
 	if err != nil {
 		return Response{}, err
 	}

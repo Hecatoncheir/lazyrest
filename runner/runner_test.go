@@ -60,7 +60,7 @@ func TestExecute_Success(t *testing.T) {
 	runner = NewFromSuite(mockSuite) 
 
 	// 2. Execution
-	response, err := runner.Execute()
+	response, err := runner.Execute(nil)
 
 	// 3. Assertions
 	if err != nil {
@@ -87,7 +87,7 @@ func TestExecute_Error(t *testing.T) {
 	runner := NewFromSuite(mockSuite)
 
 	// 2. Execution
-	_, err := runner.Execute()
+	_, err := runner.Execute(nil)
 
 	// 3. Assertions
 	if err == nil {
@@ -134,7 +134,7 @@ func TestExecute_WithBodyAndHeaders(t *testing.T) {
 	mockSuite.Uri = testServer.URL + "/api/post"
 	runner = NewFromSuite(mockSuite)
 
-	response, err := runner.Execute()
+	response, err := runner.Execute(nil)
 
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
