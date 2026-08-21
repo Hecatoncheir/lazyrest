@@ -7,6 +7,8 @@ type HttpSuite struct {
 	Header   map[string]string
 	Body     string
 	BodyType string
+	IsHurl       bool
+	HurlFilePath string
 }
 
 func NewHttpSuite() HttpSuite {

@@ -6,6 +6,7 @@ import (
 	"io"
 	parser "lazyrest/parser/http"
 	"net/http"
+	"os/exec"
 	"strings"
 	"time"
 )
@@ -39,6 +40,10 @@ func NewFromSuite(suite parser.HttpSuite) Runner {
 }
 
 func (runner *Runner) Execute(onProgress ProgressCallback) (Response, error) {
+	if runner.suite.IsHurl {
+		return runner.executeHurl(onProgress)
+	}
+
 	method := runner.suite.Method
 	url := runner.suite.Uri
 	requestBody := runner.suite.Body
@@ -69,10 +74,8 @@ func (runner *Runner) Execute(onProgress ProgressCallback) (Response, error) {
 
 	requestHeader := runner.suite.Header
 	for key, value := range requestHeader {
-		// If Content-Type is already set by bodyType, we should be careful not to duplicate or conflict.
-		// However, the user might want to override it via headers.
+		// If Content-Type is already set from bodyType, and user provided one, we use the user's one.
 		if strings.EqualFold(key, "Content-Type") {
-			// If already set from bodyType, and user provided one, we use the user's one.
 			request.Header.Set("Content-Type", value)
 		} else {
 			request.Header.Add(key, value)
@@ -109,8 +112,36 @@ func (runner *Runner) Execute(onProgress ProgressCallback) (Response, error) {
 	response := Response{
 		Body:          string(responseBody),
 		ContentLength: len(responseBody),
-		Code:          result.Status,
+		Code:          fmt.Sprintf("%d %s", result.StatusCode, http.StatusText(result.StatusCode)),
 		Time:          diff,
 	}
 	return response, nil
+}
+
+func (runner *Runner) executeHurl(onProgress ProgressCallback) (Response, error) {
+	cmd := exec.Command("hurl", "--json", runner.suite.HurlFilePath)
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+
+	err := cmd.Run()
+	// Hurl returns non-zero exit code if assertions fail. 
+	// Even if it's a "failure" in terms of assertions, we might still want to see the JSON output.
+	if err != nil {
+		if stdout.Len() == 0 {
+			return Response{}, fmt.Errorf("hurl error: %v, stderr: %s", err, stderr.String())
+		}
+	}
+
+	code := "OK"
+	if err != nil {
+		code = "FAILED"
+	}
+
+	return Response{
+		Body:          stdout.String(),
+		Code:          code,
+		Time:          0,
+		ContentLength: stdout.Len(),
+	}, nil
 }

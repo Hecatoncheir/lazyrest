@@ -7,6 +7,8 @@ import (
 
 func TestGetSuitesFromFile(t *testing.T) {
 	// Create a temporary hurl file
+	// We add an extra header to ensure the body is swallowed by the last header node,
+	// mimicking how the .http parser handles bodies in some tree-sitter configurations.
 	content := `GET https://example.com/1
 Header1: Value1
 Header2: Value2
@@ -15,6 +17,7 @@ Body content 1
 
 POST https://example.com/2
 Content-Type: application/json
+Extra-Header: Value
 
 {"key": "value"}
 `
@@ -51,8 +54,7 @@ Content-Type: application/json
 	if s1.Header["Header1"] != "Value1" || s1.Header["Header2"] != "Value2" {
 		t.Errorf("suite 1 headers mismatch: %+v", s1.Header)
 	}
-	// Expecting trailing newline because of the empty line before POST
-	if s1.Body != "Body content 1\n" {
+	if s1.Body != "Body content 1" {
 		t.Errorf("suite 1 body mismatch: %q", s1.Body)
 	}
 

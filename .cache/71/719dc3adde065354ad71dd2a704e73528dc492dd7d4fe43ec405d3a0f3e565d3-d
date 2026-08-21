@@ -1,0 +1,10 @@
+# test log
+getenv TMPDIR
+open /var/folders/_1/7nw1lhnj6l938mf0ff613r4c0000gn/T/test_parser_1783338765/test_requests.http
+open /var/folders/_1/7nw1lhnj6l938mf0ff613r4c0000gn/T/test_parser_1783338765/test_requests.http
+open /var/folders/_1/7nw1lhnj6l938mf0ff613r4c0000gn/T
+getenv TMPDIR
+open /var/folders/_1/7nw1lhnj6l938mf0ff613r4c0000gn/T/test_body_2586935825/bodies.http
+open /var/folders/_1/7nw1lhnj6l938mf0ff613r4c0000gn/T/test_body_2586935825/bodies.http
+open /var/folders/_1/7nw1lhnj6l938mf0ff613r4c0000gn/T
+open non_existent_file.http
