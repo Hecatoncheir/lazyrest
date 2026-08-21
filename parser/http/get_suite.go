@@ -1,7 +1,6 @@
 package http
 
 import (
-	"fmt"
 	"strings"
 	sitter "github.com/smacker/go-tree-sitter"
 )
@@ -13,7 +12,6 @@ func getSuite(source []byte, node *sitter.Node) (HttpSuite, error) {
 		child := node.Child(i)
 		nodeType := child.Type()
 		value := child.Content(source)
-		fmt.Printf("DEBUG: nodeType=%s, value=%q\n", nodeType, value)
 
 		switch nodeType {
 		case "method":
