@@ -1,9 +1,0 @@
-./application.go
-./on_input_callback.go
-./on_producer_escape.go
-./on_select_file_callback.go
-./on_suite_escape.go
-./on_suite_run.go
-./on_suite_select.go
-./on_suites_escape.go
-./ui.go

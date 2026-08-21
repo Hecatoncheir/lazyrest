@@ -1,8 +1,0 @@
-./build_directory_node.go
-./build_directory_tree.go
-./build_file_node.go
-./build_no_files_found.go
-./build_tree.go
-./on_node_selected_callback.go
-./parameters.go
-./tree.go

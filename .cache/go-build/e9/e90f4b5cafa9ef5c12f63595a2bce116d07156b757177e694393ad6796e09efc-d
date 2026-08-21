@@ -1,9 +1,0 @@
-./build_arrow_right_element.go
-./build_root_directory_element.go
-./build_selected_file_element.go
-./deselect_file.go
-./deselect_suite.go
-./footer.go
-./parameters.go
-./select_file.go
-./select_suite.go

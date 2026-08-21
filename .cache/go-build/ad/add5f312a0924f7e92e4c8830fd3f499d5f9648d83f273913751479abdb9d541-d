@@ -1,8 +1,0 @@
-# test log
-getenv TMPDIR
-open /var/folders/_1/7nw1lhnj6l938mf0ff613r4c0000gn/T/test_tree_build_1776938831/sub/test.http
-open /var/folders/_1/7nw1lhnj6l938mf0ff613r4c0000gn/T/test_tree_build_1776938831
-open /var/folders/_1/7nw1lhnj6l938mf0ff613r4c0000gn/T/test_tree_build_1776938831/sub
-open /var/folders/_1/7nw1lhnj6l938mf0ff613r4c0000gn/T
-getenv TMPDIR
-open /var/folders/_1/7nw1lhnj6l938mf0ff613r4c0000gn/T/test_tree_empty_346270771

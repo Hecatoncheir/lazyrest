@@ -1,7 +1,0 @@
-./get_parser.go
-./get_suite.go
-./get_suites.go
-./get_tree.go
-./http_suite.go
-./parser.go
-./parser_test.go
