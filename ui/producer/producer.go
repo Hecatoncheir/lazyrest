@@ -17,10 +17,12 @@ type Producer struct {
 	theme            theme.ProducerTheme
 	suite            http.HttpSuite
 	onEscapeCallback OnEscapeCallbackType
+	app              *tview.Application
 }
 
 func (widget *Producer) Build(parameters Parameters) tview.Primitive {
 	widget.onEscapeCallback = parameters.OnEscapeCallback
+	widget.app = parameters.App
 	theme := parameters.Theme.Producer
 	widget.theme = theme
 

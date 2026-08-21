@@ -55,6 +55,7 @@ func Run(rootDirectoryPath string) error {
 	producerParameters := producer.Parameters{
 		Theme:            uiTheme,
 		OnEscapeCallback: onProducerEscape(&applicationWidget),
+		App:              applicationElement,
 	}
 	producerWidget.Build(producerParameters)
 	applicationWidget.Producer = producerWidget

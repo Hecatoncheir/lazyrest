@@ -2,7 +2,9 @@
 
 All notable changes to this project will be documented in this file.
 
-## [Unreleased]
+## [v0.2.2] - 2026-08-21
+### Added
+- Asynchronous HTTP requests in the Producer component to prevent UI freezing.
 
 ## [v0.2.1] - 2026-08-21
 ### Fixed
