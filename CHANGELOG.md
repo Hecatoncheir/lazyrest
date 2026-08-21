@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v0.2.4] - 2026-08-21
+### Added
+- Progress bar indicator in the Producer area during network requests to provide visual feedback.
+
 ## [v0.2.3] - 2026-08-21
 ### Fixed
 - HTTP parser tests to match tree-sitter grammar requirements.
