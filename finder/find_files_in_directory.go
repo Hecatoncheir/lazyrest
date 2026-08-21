@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-func FindFilesInDirectory(directoryPath, extension string) (Directory, error) {
+func FindFilesInDirectory(directoryPath string, extensions []string) (Directory, error) {
 	_, directoryName := filepath.Split(directoryPath)
 
 	directory := Directory{
@@ -26,7 +26,7 @@ func FindFilesInDirectory(directoryPath, extension string) (Directory, error) {
 		entityPath := filepath.Join(directory.Path, entityName)
 
 		if entity.IsDir() {
-			directoryWithFiles, err := FindFilesInDirectory(entityPath, extension)
+			directoryWithFiles, err := FindFilesInDirectory(entityPath, extensions)
 			if err != nil {
 				continue
 			}
@@ -36,7 +36,14 @@ func FindFilesInDirectory(directoryPath, extension string) (Directory, error) {
 			directory.Directories = append(directory.Directories, directoryWithFiles)
 		} else {
 			entityExtension := filepath.Ext(entityName)
-			if !strings.EqualFold(entityExtension, extension) {
+			matched := false
+			for _, ext := range extensions {
+				if strings.EqualFold(entityExtension, ext) {
+					matched = true
+					break
+				}
+			}
+			if !matched {
 				continue
 			}
 			file := File{

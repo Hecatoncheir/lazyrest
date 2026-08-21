@@ -2,7 +2,9 @@ package suites
 
 import (
 	"lazyrest/finder"
+	"lazyrest/parser/hurl"
 	"lazyrest/parser/http"
+	"strings"
 
 	"github.com/rivo/tview"
 )
@@ -13,12 +15,25 @@ func (widget *Suites) ChangeSuitesFromFile(file finder.File) {
 	element := widget.Element.(*tview.List)
 	element.Clear()
 
-	parser, err := http.NewParser()
-	if err != nil {
-		element.AddItem(err.Error(), "", '0', nil)
+	var suites []http.HttpSuite
+	var err error
+
+	if strings.HasSuffix(file.Path, ".hurl") {
+		parser, pErr := hurl.NewParser()
+		if pErr != nil {
+			err = pErr
+		} else {
+			suites, err = parser.GetSuitesFromFile(file.Path)
+		}
+	} else {
+		parser, pErr := http.NewParser()
+		if pErr != nil {
+			err = pErr
+		} else {
+			suites, err = parser.GetSuitesFromFile(file.Path)
+		}
 	}
 
-	suites, err := parser.GetSuitesFromFile(file.Path)
 	if err != nil {
 		element.AddItem(err.Error(), "", '0', nil)
 	}

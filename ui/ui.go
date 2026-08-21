@@ -19,12 +19,12 @@ func Run(rootDirectoryPath string) error {
 	applicationElement := applicationWidget.Build()
 
 	// HttpFilesTree
-	httpFilesExtension := ".http"
+	httpFilesExtensions := []string{".http", ".hurl"}
 	httpFilesTreeWidget := tree.New()
 	httpFilesTreeParameters := tree.Parameters{
 		RootDirectoryPath:    rootDirectoryPath,
 		Theme:                uiTheme,
-		FilesExtension:       httpFilesExtension,
+		FilesExtension:       httpFilesExtensions,
 		OnSelectFileCallback: onSelectFileCallback(&applicationWidget),
 	}
 	httpFilesTreeElement := httpFilesTreeWidget.Build(httpFilesTreeParameters)
