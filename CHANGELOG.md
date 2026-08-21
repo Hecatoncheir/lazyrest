@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v0.2.9] - 2026-08-21
+### Fixed
+- Resolved Hurl test failures.
+- Cleaned up repository by removing untracked `.cache` files.
+
 ## [v0.2.8] - 2024-05-23
 ### Fixed
 - Resolved build failure in `ui/footer` caused by an invalid type assertion.
