@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v0.2.7] - 2024-05-23
+### Fixed
+- Build failure in `ui/footer` due to incorrect type assertion.
+- Test failures in `finder` and `ui/tree` due to incorrect argument types.
+
 ## [v0.2.6] - 2024-05-23
 ### Added
 - Enhanced navigation using `Ctrl+h/j/k/l` keys for area switching.
