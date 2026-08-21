@@ -71,6 +71,7 @@ func NewDefault() Theme {
 		Footer: FooterTheme{
 			Background: color.Color("#504945").ToTerminal(),
 			Foreground: color.Color("#bdae93").ToTerminal(),
+			SuiteForeground: color.Color("#bdae93").ToTerminal(),
 			RootDirectoryPath: RootDirectoryPathTheme{
 				Background:      color.Color("#bdae93").ToTerminal(),
 				Foreground:      color.Color("#504945").ToTerminal(),

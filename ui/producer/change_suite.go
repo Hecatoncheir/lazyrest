@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"lazyrest/parser/http"
 	"lazyrest/runner"
+	"strings"
 
 	"github.com/rivo/tview"
 )
@@ -55,7 +56,7 @@ func (widget *Producer) ChangeSuite(suite http.HttpSuite) {
 	// Run in background
 	go func() {
 		r := runner.NewFromSuite(suite)
-		
+
 		// Start executing with progress callback
 		response, err := r.Execute(func(current, total int64) {
 			widget.app.QueueUpdateDraw(func() {
@@ -67,9 +68,38 @@ func (widget *Producer) ChangeSuite(suite http.HttpSuite) {
 		widget.app.QueueUpdateDraw(func() {
 			var text string
 			if err != nil {
-				text = fmt.Sprintf("Response error:\n%v\n%v", "error", err.Error())
+				text = fmt.Sprintf("[red]Response error:[white]\n%v", err.Error())
 			} else {
-				text = fmt.Sprintf("Response:\nBody:\n%v\n\n%v\n", response.Body, response.ToMiniString())
+				// Format Request
+				var reqBuilder strings.Builder
+				reqBuilder.WriteString("[yellow]Request:[white]\n")
+				reqBuilder.WriteString(fmt.Sprintf("%s %s\n", suite.Method, suite.Uri))
+				for k, v := range suite.Header {
+					reqBuilder.WriteString(fmt.Sprintf("%s: %s\n", k, v))
+				}
+				if suite.Body != "" {
+					reqBuilder.WriteString("\n[yellow]Body:[white]\n")
+					reqBuilder.WriteString(suite.Body)
+				}
+
+				// Format Response
+				var respColor string
+				if strings.HasPrefix(response.Code, "2") {
+					respColor = "green"
+				} else if strings.HasPrefix(response.Code, "3") {
+					respColor = "yellow"
+				} else if strings.HasPrefix(response.Code, "4") || strings.HasPrefix(response.Code, "5") {
+					respColor = "red"
+				} else {
+					respColor = "white"
+				}
+
+				reqPart := reqBuilder.String()
+				sep := "\n" + strings.Repeat("─", 40) + "\n" // Using unicode dash for better look
+				respPart := fmt.Sprintf("[%s]Response:[white]\n%s\n\n%s",
+					respColor, response.ToMiniString(), response.Body)
+
+				text = reqPart + sep + respPart
 			}
 
 			element.
