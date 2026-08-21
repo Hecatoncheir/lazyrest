@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v0.2.6] - 2024-05-23
+### Added
+- Enhanced navigation using `Ctrl+h/j/k/l` keys for area switching.
+- Status color indication in the Producer (green for 2xx, yellow for 3xx, red for 4xx/5xx).
+- Improved visual separation and request details display in the Producer area.
+- Automatic footer update when switching suites.
+
 ## [v0.2.5] - 2026-08-21
 ### Added
 - Support for `.hurl` files in the file tree and parser.
