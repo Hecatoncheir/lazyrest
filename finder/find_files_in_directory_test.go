@@ -1,10 +1,22 @@
 package finder
 
 import (
+	"context"
+	"errors"
 	"os"
 	"path/filepath"
 	"testing"
 )
+
+func TestFindFilesInDirectoryContext_Cancelled(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	_, err := FindFilesInDirectoryContext(ctx, t.TempDir(), []string{".http"})
+	if !errors.Is(err, context.Canceled) {
+		t.Fatalf("expected context cancellation, got %v", err)
+	}
+}
 
 // TestFailingOnReadDir checks that the function correctly returns an error if os.ReadDir fails.
 func TestFailingOnReadDir(t *testing.T) {

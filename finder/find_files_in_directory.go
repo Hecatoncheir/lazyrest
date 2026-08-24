@@ -1,6 +1,7 @@
 package finder
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -17,6 +18,13 @@ var ignoredDirectories = map[string]struct{}{
 }
 
 func FindFilesInDirectory(directoryPath string, extensions []string) (Directory, error) {
+	return FindFilesInDirectoryContext(context.Background(), directoryPath, extensions)
+}
+
+func FindFilesInDirectoryContext(ctx context.Context, directoryPath string, extensions []string) (Directory, error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
 	directoryPath = filepath.Clean(directoryPath)
 	directoryName := filepath.Base(directoryPath)
 
@@ -27,6 +35,9 @@ func FindFilesInDirectory(directoryPath string, extensions []string) (Directory,
 		Files:       []File{},
 		Warnings:    []string{},
 	}
+	if err := ctx.Err(); err != nil {
+		return directory, err
+	}
 
 	entities, err := os.ReadDir(directoryPath)
 	if err != nil {
@@ -34,6 +45,9 @@ func FindFilesInDirectory(directoryPath string, extensions []string) (Directory,
 	}
 
 	for _, entity := range entities {
+		if err := ctx.Err(); err != nil {
+			return directory, err
+		}
 		entityName := entity.Name()
 		entityPath := filepath.Join(directory.Path, entityName)
 
@@ -41,8 +55,11 @@ func FindFilesInDirectory(directoryPath string, extensions []string) (Directory,
 			if _, ignored := ignoredDirectories[entityName]; ignored {
 				continue
 			}
-			directoryWithFiles, err := FindFilesInDirectory(entityPath, extensions)
+			directoryWithFiles, err := FindFilesInDirectoryContext(ctx, entityPath, extensions)
 			if err != nil {
+				if ctx.Err() != nil {
+					return directory, ctx.Err()
+				}
 				directory.Warnings = append(directory.Warnings, fmt.Sprintf("%s: %v", entityPath, err))
 				continue
 			}

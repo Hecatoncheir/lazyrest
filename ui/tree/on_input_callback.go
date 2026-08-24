@@ -43,6 +43,11 @@ func onInputCallback(widget *Tree) func(event *tcell.EventKey) *tcell.EventKey {
 		case 'N':
 			widget.moveToMatch(-1)
 			return nil
+		case 'r':
+			if widget.onReloadCallback != nil {
+				widget.onReloadCallback()
+			}
+			return nil
 		}
 		return event
 	}
@@ -53,11 +58,7 @@ func (widget *Tree) updateSearch() {
 	if !ok {
 		return
 	}
-	title := "Files"
-	if widget.searchMode || widget.searchQuery != "" {
-		title += " /" + widget.searchQuery
-	}
-	element.SetTitle(title)
+	widget.updateTitle()
 	widget.searchMatches = nil
 	widget.searchIndex = 0
 	if widget.searchQuery == "" {
@@ -68,6 +69,21 @@ func (widget *Tree) updateSearch() {
 	if len(widget.searchMatches) > 0 {
 		element.SetCurrentNode(widget.searchMatches[0])
 	}
+}
+
+func (widget *Tree) updateTitle() {
+	element, ok := widget.Element.(*tview.TreeView)
+	if !ok {
+		return
+	}
+	title := "Files"
+	if widget.reloading {
+		title += " — reloading"
+	}
+	if widget.searchMode || widget.searchQuery != "" {
+		title += " /" + widget.searchQuery
+	}
+	element.SetTitle(title)
 }
 
 func collectMatchingNodes(node *tview.TreeNode, query string, matches *[]*tview.TreeNode) bool {

@@ -29,10 +29,12 @@ type Producer struct {
 	cancelRun        context.CancelFunc
 	history          []HistoryEntry
 	historyIndex     int
+	historyVisible   bool
 	currentText      string
 	searchMode       bool
 	searchQuery      string
 	runnerConfig     runner.Config
+	bodyViewMode     BodyViewMode
 }
 
 func (widget *Producer) StartRun() (context.Context, uint64) {
@@ -66,6 +68,12 @@ func (widget *Producer) FinishRun(runID uint64) bool {
 	return true
 }
 
+func (widget *Producer) IsRunning() bool {
+	widget.runMutex.Lock()
+	defer widget.runMutex.Unlock()
+	return widget.cancelRun != nil
+}
+
 func (widget *Producer) CancelActive() {
 	widget.runMutex.Lock()
 	defer widget.runMutex.Unlock()
@@ -80,6 +88,7 @@ func (widget *Producer) Build(parameters Parameters) tview.Primitive {
 	widget.onEscapeCallback = parameters.OnEscapeCallback
 	widget.app = parameters.App
 	widget.runnerConfig = parameters.RunnerConfig
+	widget.bodyViewMode = BodyViewPretty
 	theme := parameters.Theme.Producer
 	widget.theme = theme
 
@@ -127,5 +136,6 @@ func (widget *Producer) Build(parameters Parameters) tview.Primitive {
 	element.Box = box
 
 	widget.Element = element
+	widget.updateTitle()
 	return element
 }

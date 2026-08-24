@@ -16,3 +16,17 @@ func TestFooterKeepsSuiteAfterFileSelection(t *testing.T) {
 		t.Fatalf("unexpected suite breadcrumb: %q", got)
 	}
 }
+
+func TestFooterShowsSelectedEnvironment(t *testing.T) {
+	widget := New()
+	widget.Build(Parameters{
+		RootDirectoryPath: "/workspace",
+		EnvironmentName:   "development",
+		Theme:             theme.NewDefault(),
+	})
+	widget.UpdateSuite("List users")
+
+	if got := widget.suiteElement.GetText(true); got != " Env: development Suite: List users" {
+		t.Fatalf("unexpected environment breadcrumb: %q", got)
+	}
+}

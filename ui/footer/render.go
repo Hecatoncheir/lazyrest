@@ -33,9 +33,14 @@ func (widget *Footer) render() {
 	suiteText.SetTextAlign(tview.AlignLeft)
 	suiteText.SetTextColor(footerTheme.SuiteForeground)
 	suiteText.SetBackgroundColor(footerTheme.Background)
-	if widget.suiteName != "" {
-		suiteText.SetText(" Suite: " + widget.suiteName)
+	status := ""
+	if widget.Parameters.EnvironmentName != "" {
+		status += " Env: " + widget.Parameters.EnvironmentName
 	}
+	if widget.suiteName != "" {
+		status += " Suite: " + widget.suiteName
+	}
+	suiteText.SetText(status)
 	widget.suiteElement = suiteText
 	layout.AddItem(suiteText, 0, 1, false)
 }

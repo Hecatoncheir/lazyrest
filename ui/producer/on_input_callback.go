@@ -1,6 +1,7 @@
 package producer
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/gdamore/tcell/v2"
@@ -49,6 +50,9 @@ func onInputCallback(widget *Producer) func(event *tcell.EventKey) *tcell.EventK
 		case ']':
 			widget.showHistory(1)
 			return nil
+		case 'p':
+			widget.toggleBodyView()
+			return nil
 		}
 		return event
 	}
@@ -56,11 +60,7 @@ func onInputCallback(widget *Producer) func(event *tcell.EventKey) *tcell.EventK
 
 func (widget *Producer) updateSearch() {
 	element := widget.Element.(*tview.TextView)
-	title := "Producer"
-	if widget.searchMode || widget.searchQuery != "" {
-		title += " /" + widget.searchQuery
-	}
-	element.SetTitle(title)
+	widget.updateTitle()
 	if widget.searchQuery == "" {
 		return
 	}
@@ -70,4 +70,16 @@ func (widget *Producer) updateSearch() {
 	}
 	row := strings.Count(widget.currentText[:index], "\n")
 	element.ScrollTo(row, 0)
+}
+
+func (widget *Producer) updateTitle() {
+	element := widget.Element.(*tview.TextView)
+	title := "Producer [" + widget.bodyViewMode.String() + "]"
+	if widget.historyVisible && len(widget.history) > 0 {
+		title += fmt.Sprintf(" history %d/%d", widget.historyIndex+1, len(widget.history))
+	}
+	if widget.searchMode || widget.searchQuery != "" {
+		title += " /" + widget.searchQuery
+	}
+	element.SetTitle(title)
 }

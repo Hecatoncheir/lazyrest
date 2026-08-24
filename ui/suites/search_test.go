@@ -1,6 +1,7 @@
 package suites
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/Hecatoncheir/lazyrest/parser/http"
@@ -20,5 +21,21 @@ func TestRenderFiltersSuites(t *testing.T) {
 
 	if count := widget.Element.(*tview.List).GetItemCount(); count != 1 {
 		t.Fatalf("expected one filtered request, got %d", count)
+	}
+}
+
+func TestRenderRedactsEnvironmentSecrets(t *testing.T) {
+	widget := New()
+	widget.Build(Parameters{Theme: theme.NewDefault(), OnEscapeCallback: func() {}, OnSuiteSelectCallbackType: func(http.HttpSuite) {}})
+	widget.suites = []http.HttpSuite{{
+		Name:         "GET https://example.com/private-token",
+		Body:         `{"token":"private-token"}`,
+		SecretValues: []string{"private-token"},
+	}}
+	widget.render()
+
+	mainText, secondaryText := widget.Element.(*tview.List).GetItemText(0)
+	if strings.Contains(mainText+secondaryText, "private-token") {
+		t.Fatalf("secret was rendered in Suites: %q %q", mainText, secondaryText)
 	}
 }

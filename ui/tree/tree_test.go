@@ -1,6 +1,8 @@
 package tree
 
 import (
+	"context"
+	"errors"
 	"os"
 	"path/filepath"
 	"testing"
@@ -93,5 +95,62 @@ func TestCollectMatchingNodes(t *testing.T) {
 	}
 	if !directory.IsExpanded() || !root.IsExpanded() {
 		t.Fatal("parents of the match were not expanded")
+	}
+}
+
+func TestReloadInputInvokesCallback(t *testing.T) {
+	called := false
+	widget := New()
+	parameters := newMockParams(t.TempDir())
+	parameters.OnReloadCallback = func() { called = true }
+	widget.Build(parameters)
+
+	event := tcell.NewEventKey(tcell.KeyRune, 'r', tcell.ModNone)
+	if returned := onInputCallback(widget)(event); returned != nil {
+		t.Fatal("reload event was not consumed")
+	}
+	if !called {
+		t.Fatal("reload callback was not invoked")
+	}
+}
+
+func TestApplyScanResultPreservesSelectedFile(t *testing.T) {
+	tempDir := t.TempDir()
+	filePath := filepath.Join(tempDir, "request.http")
+	if err := os.WriteFile(filePath, []byte("GET https://example.com"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	widget := New()
+	widget.Build(newMockParams(tempDir))
+	element := widget.Element.(*tview.TreeView)
+	selected := findFileNode(element.GetRoot(), filePath)
+	if selected == nil {
+		t.Fatal("fixture file is missing from the tree")
+	}
+	element.SetCurrentNode(selected)
+
+	result := widget.Scan(context.Background())
+	widget.ApplyScanResult(result)
+	if got := currentFilePath(element.GetCurrentNode()); got != filePath {
+		t.Fatalf("selected file was not preserved: got %q, want %q", got, filePath)
+	}
+}
+
+func TestStartReloadCancelsPreviousReload(t *testing.T) {
+	widget := New()
+	firstContext, firstID := widget.StartReload()
+	secondContext, secondID := widget.StartReload()
+
+	if !errors.Is(firstContext.Err(), context.Canceled) {
+		t.Fatalf("previous reload was not cancelled: %v", firstContext.Err())
+	}
+	if widget.IsCurrentReload(firstID) || !widget.IsCurrentReload(secondID) {
+		t.Fatal("current reload identifier was not updated")
+	}
+
+	widget.CancelReload()
+	if !errors.Is(secondContext.Err(), context.Canceled) {
+		t.Fatalf("active reload was not cancelled: %v", secondContext.Err())
 	}
 }

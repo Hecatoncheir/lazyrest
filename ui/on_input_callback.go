@@ -14,10 +14,12 @@ func onInputCallback(application *Application) onInputCallbackType {
 			return event
 		}
 		// handle 'q' to quit
-		if event.Rune() == 'q' {
+		if event.Rune() == 'q' || event.Key() == tcell.KeyCtrlC {
 			application.Producer.CancelActive()
+			application.Suites.CancelLoad()
+			application.HttpFilesTree.CancelReload()
 			applicationElement.Stop()
-			return event
+			return nil
 		}
 
 		// Terminals commonly report Ctrl+h as Backspace.

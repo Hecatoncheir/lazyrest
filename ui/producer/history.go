@@ -2,11 +2,13 @@ package producer
 
 import (
 	"fmt"
-	"github.com/Hecatoncheir/lazyrest/parser/http"
-	"github.com/Hecatoncheir/lazyrest/runner"
+	nethttp "net/http"
 	"slices"
 	"strings"
 	"time"
+
+	"github.com/Hecatoncheir/lazyrest/parser/http"
+	"github.com/Hecatoncheir/lazyrest/runner"
 
 	"github.com/rivo/tview"
 )
@@ -17,22 +19,22 @@ type HistoryEntry struct {
 	Suite     http.HttpSuite
 	Response  runner.Response
 	Err       error
-	Rendered  string
 	CreatedAt time.Time
 }
 
-func (widget *Producer) addHistory(suite http.HttpSuite, response runner.Response, err error, rendered string) {
+func (widget *Producer) addHistory(suite http.HttpSuite, response runner.Response, err error) {
 	widget.history = append(widget.history, HistoryEntry{
 		Suite:     suite,
 		Response:  response,
 		Err:       err,
-		Rendered:  rendered,
 		CreatedAt: time.Now(),
 	})
 	if len(widget.history) > maxHistoryEntries {
 		widget.history = widget.history[len(widget.history)-maxHistoryEntries:]
 	}
 	widget.historyIndex = len(widget.history) - 1
+	widget.historyVisible = false
+	widget.updateTitle()
 }
 
 func (widget *Producer) showHistory(delta int) {
@@ -47,8 +49,9 @@ func (widget *Producer) showHistory(delta int) {
 		widget.historyIndex = len(widget.history) - 1
 	}
 	entry := widget.history[widget.historyIndex]
-	widget.setText(entry.Rendered)
-	widget.Element.(*tview.TextView).SetTitle(fmt.Sprintf("Producer history %d/%d", widget.historyIndex+1, len(widget.history)))
+	widget.historyVisible = true
+	widget.setText(renderExecutionResultWithMode(entry.Suite, entry.Response, entry.Err, widget.bodyViewMode))
+	widget.updateTitle()
 }
 
 func (widget *Producer) setText(text string) {
@@ -57,13 +60,17 @@ func (widget *Producer) setText(text string) {
 }
 
 func renderExecutionResult(suite http.HttpSuite, response runner.Response, err error) string {
+	return renderExecutionResultWithMode(suite, response, err, BodyViewPretty)
+}
+
+func renderExecutionResultWithMode(suite http.HttpSuite, response runner.Response, err error, mode BodyViewMode) string {
 	if err != nil {
-		return "[red]Response error:[white]\n" + tview.Escape(err.Error())
+		return "[red]Response error:[white]\n" + tview.Escape(redactSecrets(err.Error(), suite.SecretValues))
 	}
 
 	var request strings.Builder
 	request.WriteString("[yellow]Request:[white]\n")
-	request.WriteString(tview.Escape(fmt.Sprintf("%s %s\n", suite.Method, suite.Uri)))
+	request.WriteString(tview.Escape(fmt.Sprintf("%s %s\n", suite.Method, redactSecrets(suite.Uri, suite.SecretValues))))
 
 	headerKeys := make([]string, 0, len(suite.Header))
 	for key := range suite.Header {
@@ -71,15 +78,18 @@ func renderExecutionResult(suite http.HttpSuite, response runner.Response, err e
 	}
 	slices.Sort(headerKeys)
 	for _, key := range headerKeys {
+		displayKey := redactSecrets(key, suite.SecretValues)
 		value := suite.Header[key]
 		if isSensitiveHeader(key) {
 			value = "<redacted>"
+		} else {
+			value = redactSecrets(value, suite.SecretValues)
 		}
-		request.WriteString(tview.Escape(fmt.Sprintf("%s: %s\n", key, value)))
+		request.WriteString(tview.Escape(fmt.Sprintf("%s: %s\n", displayKey, value)))
 	}
 	if suite.Body != "" {
 		request.WriteString("\n[yellow]Body:[white]\n")
-		request.WriteString(tview.Escape(suite.Body))
+		request.WriteString(tview.Escape(redactSecrets(suite.Body, suite.SecretValues)))
 	}
 
 	responseColor := "white"
@@ -93,12 +103,46 @@ func renderExecutionResult(suite http.HttpSuite, response runner.Response, err e
 	}
 
 	separator := "\n" + strings.Repeat("─", 40) + "\n"
-	responseText := fmt.Sprintf("[%s]Response:[white]\n%s\n\n%s",
+	var responseDetails strings.Builder
+	responseDetails.WriteString(response.ToMiniString())
+	if response.Protocol != "" {
+		responseDetails.WriteString("Protocol: " + response.Protocol + "\n")
+	}
+	if len(response.Header) > 0 {
+		responseDetails.WriteString("\nHeaders:\n")
+		responseDetails.WriteString(renderHeaders(response.Header, suite.SecretValues))
+	}
+	body := redactSecrets(formatResponseBody(response, mode), suite.SecretValues)
+	responseText := fmt.Sprintf("[%s]Response:[white]\n%s\n%s",
 		responseColor,
-		tview.Escape(response.ToMiniString()),
-		tview.Escape(response.Body),
+		tview.Escape(responseDetails.String()),
+		tview.Escape(body),
 	)
 	return request.String() + separator + responseText
+}
+
+func renderHeaders(headers nethttp.Header, secretValues []string) string {
+	keys := make([]string, 0, len(headers))
+	for key := range headers {
+		keys = append(keys, key)
+	}
+	slices.Sort(keys)
+	var output strings.Builder
+	for _, key := range keys {
+		displayKey := redactSecrets(key, secretValues)
+		value := strings.Join(headers.Values(key), ", ")
+		if isSensitiveHeader(key) {
+			value = "<redacted>"
+		} else {
+			value = redactSecrets(value, secretValues)
+		}
+		output.WriteString(fmt.Sprintf("%s: %s\n", displayKey, value))
+	}
+	return output.String()
+}
+
+func redactSecrets(value string, secrets []string) string {
+	return http.RedactSecrets(value, secrets)
 }
 
 func isSensitiveHeader(name string) bool {

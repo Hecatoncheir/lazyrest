@@ -14,9 +14,9 @@ func (widget *Suite) ChangeSuite(suite http.HttpSuite) {
 		"Request: %v %v\n"+
 			"Body(%v): %v",
 		suite.Method,
-		suite.Uri,
+		suite.Redact(suite.Uri),
 		suite.BodyType,
-		suite.Body,
+		suite.Redact(suite.Body),
 	)
 	theme := widget.theme
 	element.

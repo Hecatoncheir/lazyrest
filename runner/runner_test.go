@@ -51,7 +51,8 @@ func TestExecute_Success(t *testing.T) {
 				StatusCode:    http.StatusOK,
 				Body:          io.NopCloser(strings.NewReader(testBody)),
 				ContentLength: int64(len(testBody)),
-				Header:        make(http.Header),
+				Header:        http.Header{"Content-Type": []string{"application/json"}, "X-Trace-Id": []string{"trace-123"}},
+				Proto:         "HTTP/2.0",
 			}, nil
 		})},
 	})
@@ -69,6 +70,9 @@ func TestExecute_Success(t *testing.T) {
 	}
 	if !strings.Contains(response.Body, "Success response") {
 		t.Errorf("Ожидаемое тело письма отсутствовало: %s", response.Body)
+	}
+	if response.Header.Get("X-Trace-ID") != "trace-123" || response.Protocol != "HTTP/2.0" {
+		t.Fatalf("response metadata was not preserved: %+v", response)
 	}
 }
 

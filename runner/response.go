@@ -2,6 +2,7 @@ package runner
 
 import (
 	"fmt"
+	"net/http"
 	"time"
 
 	"github.com/hako/durafmt"
@@ -13,6 +14,8 @@ type Response struct {
 	ContentLength int
 	Body          string
 	Truncated     bool
+	Header        http.Header
+	Protocol      string
 }
 
 // Response code: 200 (OK); Time: 7035ms (7 s 35 ms); Content length: 389 bytes (389 B)

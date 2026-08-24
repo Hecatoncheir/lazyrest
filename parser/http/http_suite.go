@@ -9,6 +9,7 @@ type HttpSuite struct {
 	BodyType     string
 	IsHurl       bool
 	HurlFilePath string
+	SecretValues []string
 }
 
 func NewHttpSuite() HttpSuite {

@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v0.4.0] - 2026-08-24
+### Added
+- Cancellable background suite parsing and file-tree reloads with stale-result protection.
+- Public/private HTTP environment profiles with recursive variables and secret redaction.
+- HTTP response headers, protocol metadata, and Pretty/Raw JSON or XML rendering.
+
+### Changed
+- Parser diagnostics now report recursive variable cycles.
+- Project licensing changed from GPL-3.0 to MIT.
+
 ## [v0.3.2] - 2026-08-24
 ### Changed
 - Updated `Ctrl+h/j/k/l` focus navigation between Files, Suites, Suite, and Producer.

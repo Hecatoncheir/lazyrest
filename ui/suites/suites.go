@@ -1,6 +1,9 @@
 package suites
 
 import (
+	"context"
+	"sync"
+
 	"github.com/Hecatoncheir/lazyrest/parser/http"
 	"github.com/Hecatoncheir/lazyrest/ui/theme"
 
@@ -25,11 +28,16 @@ type Suites struct {
 	searchMode            bool
 	onEscapeCallback      OnEscapeCallbackType
 	onSuiteSelectCallback OnSuiteSelectCallbackType
+	parseOptions          http.ParseOptions
+	loadMutex             sync.Mutex
+	loadID                uint64
+	cancelLoad            context.CancelFunc
 }
 
 func (widget *Suites) Build(parameters Parameters) tview.Primitive {
 	widget.onEscapeCallback = parameters.OnEscapeCallback
 	widget.onSuiteSelectCallback = parameters.OnSuiteSelectCallbackType
+	widget.parseOptions = parameters.ParseOptions
 
 	theme := parameters.Theme.Suites
 	widget.theme = theme

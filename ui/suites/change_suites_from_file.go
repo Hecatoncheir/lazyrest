@@ -2,55 +2,113 @@ package suites
 
 import (
 	"context"
-	"github.com/Hecatoncheir/lazyrest/finder"
-	"github.com/Hecatoncheir/lazyrest/parser/http"
-	"github.com/Hecatoncheir/lazyrest/parser/hurl"
 	"path/filepath"
 	"strings"
 
+	"github.com/Hecatoncheir/lazyrest/finder"
+	"github.com/Hecatoncheir/lazyrest/parser/http"
+	"github.com/Hecatoncheir/lazyrest/parser/hurl"
 	"github.com/rivo/tview"
 )
 
 type OnSuiteSelectCallbackType func(suite http.HttpSuite)
 
-func (widget *Suites) ChangeSuitesFromFile(file finder.File) {
+type LoadResult struct {
+	Suites      []http.HttpSuite
+	Diagnostics []http.Diagnostic
+	Err         error
+}
+
+func (widget *Suites) StartLoad() (context.Context, uint64) {
+	widget.loadMutex.Lock()
+	defer widget.loadMutex.Unlock()
+	if widget.cancelLoad != nil {
+		widget.cancelLoad()
+	}
+	widget.loadID++
+	ctx, cancel := context.WithCancel(context.Background())
+	widget.cancelLoad = cancel
+	return ctx, widget.loadID
+}
+
+func (widget *Suites) IsCurrentLoad(loadID uint64) bool {
+	widget.loadMutex.Lock()
+	defer widget.loadMutex.Unlock()
+	return widget.loadID == loadID
+}
+
+func (widget *Suites) FinishLoad(loadID uint64) bool {
+	widget.loadMutex.Lock()
+	defer widget.loadMutex.Unlock()
+	if widget.loadID != loadID {
+		return false
+	}
+	if widget.cancelLoad != nil {
+		widget.cancelLoad()
+		widget.cancelLoad = nil
+	}
+	return true
+}
+
+func (widget *Suites) CancelLoad() {
+	widget.loadMutex.Lock()
+	defer widget.loadMutex.Unlock()
+	widget.loadID++
+	if widget.cancelLoad != nil {
+		widget.cancelLoad()
+		widget.cancelLoad = nil
+	}
+}
+
+func (widget *Suites) ShowLoading(file finder.File) {
 	element := widget.Element.(*tview.List)
 	element.Clear()
+	element.SetTitle("Suites — loading " + file.Name)
+	element.AddItem("Loading...", file.Path, 0, nil)
 	widget.searchQuery = ""
 	widget.searchMode = false
+}
 
-	var suites []http.HttpSuite
-	var diagnostics []http.Diagnostic
-	var err error
+func (widget *Suites) LoadSuitesFromFile(ctx context.Context, file finder.File) LoadResult {
+	if err := ctx.Err(); err != nil {
+		return LoadResult{Err: err}
+	}
 
 	if strings.EqualFold(filepath.Ext(file.Path), ".hurl") {
 		parser, pErr := hurl.NewParser()
 		if pErr != nil {
-			err = pErr
-		} else {
-			suites, err = parser.GetSuitesFromFile(file.Path)
+			return LoadResult{Err: pErr}
 		}
-	} else {
-		parser, pErr := http.NewParser()
-		if pErr != nil {
-			err = pErr
-		} else {
-			defer parser.Close()
-			result, parseErr := parser.ParseFile(context.Background(), file.Path)
-			suites = result.Suites
-			diagnostics = result.Diagnostics
-			err = parseErr
+		suites, err := parser.GetSuitesFromFile(file.Path)
+		if err == nil {
+			err = ctx.Err()
 		}
+		return LoadResult{Suites: suites, Err: err}
 	}
 
+	parser, err := http.NewParser()
 	if err != nil {
-		element.AddItem("Error: "+err.Error(), "", 0, nil)
+		return LoadResult{Err: err}
+	}
+	defer parser.Close()
+	result, err := parser.ParseFileWithOptions(ctx, file.Path, widget.parseOptions)
+	return LoadResult{Suites: result.Suites, Diagnostics: result.Diagnostics, Err: err}
+}
+
+func (widget *Suites) ApplyLoadResult(result LoadResult) {
+	element := widget.Element.(*tview.List)
+	element.Clear()
+	widget.searchQuery = ""
+	widget.searchMode = false
+	if result.Err != nil {
+		element.SetTitle("Suites")
+		element.AddItem("Error: "+result.Err.Error(), "", 0, nil)
 		widget.suites = nil
 		widget.diagnostics = nil
 		return
 	}
 
-	widget.suites = suites
-	widget.diagnostics = diagnostics
+	widget.suites = result.Suites
+	widget.diagnostics = result.Diagnostics
 	widget.render()
 }

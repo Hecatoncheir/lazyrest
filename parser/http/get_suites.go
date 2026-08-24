@@ -1,16 +1,20 @@
 package http
 
 import (
+	"maps"
 	"strings"
 
 	sitter "github.com/smacker/go-tree-sitter"
 )
 
-func getSuites(source []byte, tree *sitter.Tree) ([]HttpSuite, []Diagnostic) {
+func getSuites(source []byte, tree *sitter.Tree, options ParseOptions) ([]HttpSuite, []Diagnostic) {
 	suites := []HttpSuite{}
 	diagnostics := []Diagnostic{}
 	pendingName := ""
-	variables := make(map[string]string)
+	variables := maps.Clone(options.Variables)
+	if variables == nil {
+		variables = make(map[string]string)
+	}
 
 	rootNode := tree.RootNode()
 
@@ -40,8 +44,13 @@ func getSuites(source []byte, tree *sitter.Tree) ([]HttpSuite, []Diagnostic) {
 				suite.Name = pendingName
 				pendingName = ""
 			}
-			for _, name := range resolveSuiteVariables(&suite, variables) {
+			resolution := resolveSuiteVariables(&suite, variables)
+			suite.SecretValues = resolveSecretVariables(options.SecretVariables, variables)
+			for _, name := range resolution.Missing {
 				diagnostics = append(diagnostics, newDiagnostic(node, "undefined variable: "+name))
+			}
+			for _, cycle := range resolution.Cycles {
+				diagnostics = append(diagnostics, newDiagnostic(node, "cyclic variable reference: "+cycle))
 			}
 			if suite.Name == "" {
 				suite.Name = strings.TrimSpace(suite.Method + " " + suite.Uri)

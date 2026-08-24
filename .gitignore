@@ -5,6 +5,7 @@ pkg/
 .cache/
 .idea/
 /lazyrest
+http-client.private.env.json
 *.exe
 *.exe~
 *.dll

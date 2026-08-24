@@ -28,11 +28,11 @@ func (widget *Suites) render() {
 		}
 
 		theme := widget.theme
-		label := suite.Name
+		label := suite.Redact(suite.Name)
 		if label == "" {
-			label = suite.Method + " " + suite.Uri
+			label = suite.Method + " " + suite.Redact(suite.Uri)
 		}
-		element.AddItem(label, suite.Body, 0, func() {
+		element.AddItem(label, suite.Redact(suite.Body), 0, func() {
 			widget.onSuiteSelectCallback(suite)
 		}).
 			SetWrapAround(true).

@@ -38,6 +38,7 @@ func (widget *Producer) ChangeSuite(suite http.HttpSuite) {
 	widget.suite = suite
 	widget.searchMode = false
 	widget.searchQuery = ""
+	widget.historyVisible = false
 	ctx, runID := widget.StartRun()
 	element := widget.Element.(*tview.TextView)
 	theme := widget.theme
@@ -49,7 +50,7 @@ func (widget *Producer) ChangeSuite(suite http.HttpSuite) {
 		SetTitleColor(theme.TitleFocus).
 		SetBorderColor(theme.BorderFocus).
 		SetBackgroundColor(theme.BackgroundFocus)
-	element.SetTitle("Producer")
+	widget.updateTitle()
 	widget.currentText = "Running request..."
 
 	// Set focus so the user sees it working
@@ -76,8 +77,8 @@ func (widget *Producer) ChangeSuite(suite http.HttpSuite) {
 			if !widget.FinishRun(runID) {
 				return
 			}
-			text := renderExecutionResult(suite, response, err)
-			widget.addHistory(suite, response, err, text)
+			widget.addHistory(suite, response, err)
+			text := renderExecutionResultWithMode(suite, response, err, widget.bodyViewMode)
 
 			element.
 				Clear().

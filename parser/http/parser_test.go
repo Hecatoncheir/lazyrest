@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 )
@@ -162,5 +163,77 @@ X-Missing: {{missing}}
 	}
 	if !foundMissing {
 		t.Errorf("expected missing-variable diagnostic, got %+v", result.Diagnostics)
+	}
+}
+
+func TestParseFileWithOptions_EnvironmentSecretsAndNestedVariables(t *testing.T) {
+	tempDir := t.TempDir()
+	filePath := filepath.Join(tempDir, "environment.http")
+	content := `@version = "v1"
+GET {{baseUrl}}/{{version}}/users
+Authorization: Bearer {{token}}
+`
+	if err := os.WriteFile(filePath, []byte(content), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	parser, err := NewParser()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer parser.Close()
+
+	result, err := parser.ParseFileWithOptions(context.Background(), filePath, ParseOptions{
+		Variables: map[string]string{
+			"host":    "api.example.com",
+			"baseUrl": "https://{{host}}",
+			"token":   "private-token",
+		},
+		SecretVariables: []string{"token"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(result.Suites) != 1 {
+		t.Fatalf("expected one request, got %d", len(result.Suites))
+	}
+	suite := result.Suites[0]
+	if suite.Uri != "https://api.example.com/v1/users" {
+		t.Fatalf("unexpected resolved URI: %q", suite.Uri)
+	}
+	if suite.Header["Authorization"] != "Bearer private-token" {
+		t.Fatalf("unexpected resolved secret header: %q", suite.Header["Authorization"])
+	}
+	if !slices.Contains(suite.SecretValues, "private-token") {
+		t.Fatalf("resolved secret was not marked for redaction: %#v", suite.SecretValues)
+	}
+}
+
+func TestParseFileWithOptions_ReportsVariableCycle(t *testing.T) {
+	tempDir := t.TempDir()
+	filePath := filepath.Join(tempDir, "cycle.http")
+	if err := os.WriteFile(filePath, []byte("GET {{first}}\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	parser, err := NewParser()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer parser.Close()
+	result, err := parser.ParseFileWithOptions(context.Background(), filePath, ParseOptions{
+		Variables: map[string]string{"first": "{{second}}", "second": "{{first}}"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	found := false
+	for _, diagnostic := range result.Diagnostics {
+		if strings.Contains(diagnostic.Message, "cyclic variable reference") {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatalf("expected cycle diagnostic, got %+v", result.Diagnostics)
 	}
 }

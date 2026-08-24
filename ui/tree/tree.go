@@ -1,7 +1,12 @@
 package tree
 
 import (
+	"context"
+	"fmt"
+	"sync"
+
 	"github.com/Hecatoncheir/lazyrest/finder"
+	"github.com/Hecatoncheir/lazyrest/ui/theme"
 
 	"github.com/rivo/tview"
 )
@@ -13,6 +18,14 @@ type Tree struct {
 	searchQuery          string
 	searchMatches        []*tview.TreeNode
 	searchIndex          int
+	rootDirectoryPath    string
+	filesExtension       []string
+	theme                theme.TreeTheme
+	onReloadCallback     func()
+	reloading            bool
+	reloadMutex          sync.Mutex
+	reloadID             uint64
+	cancelReload         context.CancelFunc
 }
 
 func New() *Tree {
@@ -26,8 +39,12 @@ func (widget *Tree) IsSearching() bool {
 func (widget *Tree) Build(parameters Parameters) tview.Primitive {
 	onSelectFileCallback := parameters.OnSelectFileCallback
 	widget.onSelectFileCallback = onSelectFileCallback
+	widget.onReloadCallback = parameters.OnReloadCallback
+	widget.rootDirectoryPath = parameters.RootDirectoryPath
+	widget.filesExtension = append([]string(nil), parameters.FilesExtension...)
 
 	theme := parameters.Theme.Tree
+	widget.theme = theme
 	box := tview.NewBox().
 		SetBorder(true).
 		SetBorderColor(theme.Border).
@@ -51,32 +68,124 @@ func (widget *Tree) Build(parameters Parameters) tview.Primitive {
 			SetBorderColor(theme.Border)
 	})
 
-	rootDirectotyPath := parameters.RootDirectoryPath
-	extensions := parameters.FilesExtension
-	directoriesWithFiles, err := finder.FindFilesInDirectory(
-		rootDirectotyPath,
-		extensions,
-	)
-	if err != nil {
-		element := buildNoFilesFound(
-			rootDirectotyPath,
-			theme,
-		)
-		element.SetText("Unable to scan directory: " + err.Error())
-		element.Box = box
-		widget.Element = element
-		return element
-	}
-
-	element := buildTree(
-		directoriesWithFiles,
-		theme,
-		onSelectFileCallback,
-	)
+	element := tview.NewTreeView()
 	element.Box = box
 	element.SetInputCapture(onInputCallback(widget))
-
 	widget.Element = element
+	result := widget.Scan(context.Background())
+	widget.ApplyScanResult(result)
 
 	return element
+}
+
+type ScanResult struct {
+	Directory finder.Directory
+	Err       error
+}
+
+func (widget *Tree) StartReload() (context.Context, uint64) {
+	widget.reloadMutex.Lock()
+	defer widget.reloadMutex.Unlock()
+	if widget.cancelReload != nil {
+		widget.cancelReload()
+	}
+	widget.reloadID++
+	ctx, cancel := context.WithCancel(context.Background())
+	widget.cancelReload = cancel
+	return ctx, widget.reloadID
+}
+
+func (widget *Tree) IsCurrentReload(reloadID uint64) bool {
+	widget.reloadMutex.Lock()
+	defer widget.reloadMutex.Unlock()
+	return widget.reloadID == reloadID
+}
+
+func (widget *Tree) FinishReload(reloadID uint64) bool {
+	widget.reloadMutex.Lock()
+	defer widget.reloadMutex.Unlock()
+	if widget.reloadID != reloadID {
+		return false
+	}
+	if widget.cancelReload != nil {
+		widget.cancelReload()
+		widget.cancelReload = nil
+	}
+	return true
+}
+
+func (widget *Tree) CancelReload() {
+	widget.reloadMutex.Lock()
+	defer widget.reloadMutex.Unlock()
+	widget.reloadID++
+	if widget.cancelReload != nil {
+		widget.cancelReload()
+		widget.cancelReload = nil
+	}
+}
+
+func (widget *Tree) Scan(ctx context.Context) ScanResult {
+	directory, err := finder.FindFilesInDirectoryContext(ctx, widget.rootDirectoryPath, widget.filesExtension)
+	return ScanResult{Directory: directory, Err: err}
+}
+
+func (widget *Tree) ShowReloading() {
+	widget.reloading = true
+	widget.updateTitle()
+}
+
+func (widget *Tree) ApplyScanResult(result ScanResult) {
+	element := widget.Element.(*tview.TreeView)
+	selectedPath := currentFilePath(element.GetCurrentNode())
+	widget.reloading = false
+
+	if result.Err != nil {
+		root := tview.NewTreeNode(fmt.Sprintf("Unable to scan directory: %v", result.Err)).
+			SetSelectable(false).
+			SetColor(widget.theme.Node.Foreground)
+		element.SetRoot(root).SetCurrentNode(root)
+		widget.updateTitle()
+		return
+	}
+
+	newTree := buildTree(result.Directory, widget.theme, widget.onSelectFileCallback)
+	root := newTree.GetRoot()
+	element.SetRoot(root).SetSelectedFunc(onNodeSelectedCallback(widget.onSelectFileCallback))
+	if selectedPath != "" {
+		if selectedNode := findFileNode(root, selectedPath); selectedNode != nil {
+			element.SetCurrentNode(selectedNode)
+		} else {
+			element.SetCurrentNode(root)
+		}
+	} else {
+		element.SetCurrentNode(root)
+	}
+	widget.updateSearch()
+}
+
+func currentFilePath(node *tview.TreeNode) string {
+	if node == nil {
+		return ""
+	}
+	file, ok := node.GetReference().(finder.File)
+	if !ok {
+		return ""
+	}
+	return file.Path
+}
+
+func findFileNode(node *tview.TreeNode, path string) *tview.TreeNode {
+	if node == nil {
+		return nil
+	}
+	if currentFilePath(node) == path {
+		return node
+	}
+	for _, child := range node.GetChildren() {
+		if match := findFileNode(child, path); match != nil {
+			node.SetExpanded(true)
+			return match
+		}
+	}
+	return nil
 }

@@ -11,6 +11,6 @@ func onSuiteSelect(application *Application) func(suite http.HttpSuite) {
 		suiteElement := application.Suite.Element
 		applicationElement.SetFocus(suiteElement)
 
-		application.Footer.UpdateSuite(suite.Name)
+		application.Footer.UpdateSuite(suite.Redact(suite.Name))
 	}
 }

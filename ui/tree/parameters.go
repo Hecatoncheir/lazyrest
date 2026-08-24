@@ -7,4 +7,5 @@ type Parameters struct {
 	FilesExtension       []string
 	Theme                theme.Theme
 	OnSelectFileCallback OnSelectFileCallbackType
+	OnReloadCallback     func()
 }

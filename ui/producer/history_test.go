@@ -3,8 +3,9 @@ package producer
 import (
 	"context"
 	"errors"
-	"github.com/Hecatoncheir/lazyrest/parser/http"
+	parserhttp "github.com/Hecatoncheir/lazyrest/parser/http"
 	"github.com/Hecatoncheir/lazyrest/runner"
+	nethttp "net/http"
 	"strings"
 	"testing"
 )
@@ -29,8 +30,51 @@ func TestStartRunCancelsPreviousRun(t *testing.T) {
 	}
 }
 
+func TestRenderExecutionResult_IncludesResponseMetadataAndRedactsSecrets(t *testing.T) {
+	suite := parserhttp.HttpSuite{
+		Method:       "GET",
+		Uri:          "https://example.com?token=secret-value",
+		SecretValues: []string{"secret-value"},
+	}
+	response := runner.Response{
+		Code:     "200 OK",
+		Protocol: "HTTP/2.0",
+		Header: nethttp.Header{
+			"Content-Type": []string{"application/json"},
+			"Set-Cookie":   []string{"session=secret-value"},
+		},
+		Body: `{"token":"secret-value","ok":true}`,
+	}
+
+	text := renderExecutionResult(suite, response, nil)
+	if !strings.Contains(text, "HTTP/2.0") || !strings.Contains(text, "Content-Type: application/json") {
+		t.Fatalf("response metadata is missing: %q", text)
+	}
+	if strings.Contains(text, "secret-value") {
+		t.Fatalf("secret value was rendered: %q", text)
+	}
+	if !strings.Contains(text, "Set-Cookie: <redacted>") {
+		t.Fatalf("sensitive response header was not redacted: %q", text)
+	}
+}
+
+func TestFormatResponseBody_PrettyAndRawJSON(t *testing.T) {
+	response := runner.Response{
+		Header: nethttp.Header{"Content-Type": []string{"application/json"}},
+		Body:   `{"ok":true,"items":[1,2]}`,
+	}
+
+	pretty := formatResponseBody(response, BodyViewPretty)
+	if !strings.Contains(pretty, "\n  \"items\"") {
+		t.Fatalf("JSON was not formatted: %q", pretty)
+	}
+	if raw := formatResponseBody(response, BodyViewRaw); raw != response.Body {
+		t.Fatalf("raw body changed: %q", raw)
+	}
+}
+
 func TestRenderExecutionResult_RedactsSensitiveHeaders(t *testing.T) {
-	suite := http.HttpSuite{
+	suite := parserhttp.HttpSuite{
 		Method: "GET",
 		Uri:    "https://example.com",
 		Header: map[string]string{

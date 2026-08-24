@@ -9,6 +9,18 @@ import (
 
 var variablePattern = regexp.MustCompile(`\{\{\s*([A-Za-z_][A-Za-z0-9_.-]*)\s*\}\}`)
 
+type VariableResolution struct {
+	Missing []string
+	Cycles  []string
+}
+
+type variableResolver struct {
+	variables map[string]string
+	cache     map[string]string
+	missing   map[string]struct{}
+	cycles    map[string]struct{}
+}
+
 func parseVariableDeclaration(content string) (string, string, bool) {
 	content = strings.TrimSpace(content)
 	content = strings.TrimPrefix(content, "@")
@@ -27,32 +39,81 @@ func parseVariableDeclaration(content string) (string, string, bool) {
 	return name, value, true
 }
 
-func resolveSuiteVariables(suite *HttpSuite, variables map[string]string) []string {
-	missingSet := make(map[string]struct{})
-	resolve := func(value string) string {
-		return variablePattern.ReplaceAllStringFunc(value, func(match string) string {
-			parts := variablePattern.FindStringSubmatch(match)
-			name := parts[1]
-			if replacement, ok := variables[name]; ok {
-				return replacement
-			}
-			missingSet[name] = struct{}{}
-			return match
-		})
+func newVariableResolver(variables map[string]string) *variableResolver {
+	return &variableResolver{
+		variables: variables,
+		cache:     make(map[string]string),
+		missing:   make(map[string]struct{}),
+		cycles:    make(map[string]struct{}),
 	}
+}
 
-	suite.Uri = resolve(suite.Uri)
-	suite.Body = resolve(suite.Body)
+func (resolver *variableResolver) resolveText(value string, stack []string) string {
+	return variablePattern.ReplaceAllStringFunc(value, func(match string) string {
+		parts := variablePattern.FindStringSubmatch(match)
+		return resolver.resolveName(parts[1], stack)
+	})
+}
+
+func (resolver *variableResolver) resolveName(name string, stack []string) string {
+	if value, ok := resolver.cache[name]; ok {
+		return value
+	}
+	for index, current := range stack {
+		if current == name {
+			cycle := append(slices.Clone(stack[index:]), name)
+			resolver.cycles[strings.Join(cycle, " -> ")] = struct{}{}
+			return "{{" + name + "}}"
+		}
+	}
+	raw, ok := resolver.variables[name]
+	if !ok {
+		resolver.missing[name] = struct{}{}
+		return "{{" + name + "}}"
+	}
+	value := resolver.resolveText(raw, append(stack, name))
+	resolver.cache[name] = value
+	return value
+}
+
+func resolveSuiteVariables(suite *HttpSuite, variables map[string]string) VariableResolution {
+	resolver := newVariableResolver(variables)
+	suite.Uri = resolver.resolveText(suite.Uri, nil)
+	suite.Body = resolver.resolveText(suite.Body, nil)
 	resolvedHeaders := make(map[string]string, len(suite.Header))
 	for key, value := range suite.Header {
-		resolvedHeaders[resolve(key)] = resolve(value)
+		resolvedHeaders[resolver.resolveText(key, nil)] = resolver.resolveText(value, nil)
 	}
 	suite.Header = resolvedHeaders
 
-	missing := make([]string, 0, len(missingSet))
-	for name := range missingSet {
-		missing = append(missing, name)
+	result := VariableResolution{
+		Missing: make([]string, 0, len(resolver.missing)),
+		Cycles:  make([]string, 0, len(resolver.cycles)),
 	}
-	slices.Sort(missing)
-	return missing
+	for name := range resolver.missing {
+		result.Missing = append(result.Missing, name)
+	}
+	for cycle := range resolver.cycles {
+		result.Cycles = append(result.Cycles, cycle)
+	}
+	slices.Sort(result.Missing)
+	slices.Sort(result.Cycles)
+	return result
+}
+
+func resolveSecretVariables(names []string, variables map[string]string) []string {
+	resolver := newVariableResolver(variables)
+	values := make(map[string]struct{})
+	for _, name := range names {
+		value := resolver.resolveName(name, nil)
+		if value != "" && !variablePattern.MatchString(value) {
+			values[value] = struct{}{}
+		}
+	}
+	result := make([]string, 0, len(values))
+	for value := range values {
+		result = append(result, value)
+	}
+	slices.Sort(result)
+	return result
 }

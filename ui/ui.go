@@ -1,7 +1,6 @@
 package ui
 
 import (
-	"github.com/Hecatoncheir/lazyrest/runner"
 	"github.com/Hecatoncheir/lazyrest/ui/footer"
 	"github.com/Hecatoncheir/lazyrest/ui/layout"
 	"github.com/Hecatoncheir/lazyrest/ui/producer"
@@ -12,7 +11,7 @@ import (
 	"github.com/Hecatoncheir/lazyrest/ui/workspace"
 )
 
-func Run(rootDirectoryPath string, runnerConfig runner.Config) error {
+func Run(rootDirectoryPath string, config Config) error {
 	uiTheme := theme.NewDefault()
 
 	// Application
@@ -27,6 +26,7 @@ func Run(rootDirectoryPath string, runnerConfig runner.Config) error {
 		Theme:                uiTheme,
 		FilesExtension:       httpFilesExtensions,
 		OnSelectFileCallback: onSelectFileCallback(applicationWidget),
+		OnReloadCallback:     onReloadFiles(applicationWidget),
 	}
 	httpFilesTreeElement := httpFilesTreeWidget.Build(httpFilesTreeParameters)
 	applicationWidget.HttpFilesTree = httpFilesTreeWidget
@@ -47,6 +47,7 @@ func Run(rootDirectoryPath string, runnerConfig runner.Config) error {
 		Theme:                     uiTheme,
 		OnEscapeCallback:          onSuitesEscape(applicationWidget),
 		OnSuiteSelectCallbackType: onSuiteSelect(applicationWidget),
+		ParseOptions:              config.ParseOptions,
 	}
 	suitesWidget.Build(suitesParameters)
 	applicationWidget.Suites = suitesWidget
@@ -57,7 +58,7 @@ func Run(rootDirectoryPath string, runnerConfig runner.Config) error {
 		Theme:            uiTheme,
 		OnEscapeCallback: onProducerEscape(applicationWidget),
 		App:              applicationElement,
-		RunnerConfig:     runnerConfig,
+		RunnerConfig:     config.Runner,
 	}
 	producerWidget.Build(producerParameters)
 	applicationWidget.Producer = producerWidget
@@ -82,6 +83,7 @@ func Run(rootDirectoryPath string, runnerConfig runner.Config) error {
 	footerParameters := footer.Parameters{
 		RootDirectoryPath: rootDirectoryPath,
 		Theme:             uiTheme,
+		EnvironmentName:   config.EnvironmentName,
 	}
 	footerWidget.Build(footerParameters)
 	applicationWidget.Footer = footerWidget
