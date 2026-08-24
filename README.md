@@ -18,7 +18,7 @@
 - Immediate TUI startup with background environment loading and recursive `.http` / `.hurl` discovery.
 - Tree-sitter parsing with a dedicated diagnostics window and named requests.
 - Public/private environment profiles plus recursive `{{variable}}` substitution.
-- Cancellable HTTP and Hurl execution with a timeout and bounded response bodies.
+- Cancellable HTTP and Hurl execution with an animated progress bar, timeout, and bounded response bodies.
 - Response headers, protocol metadata, and Pretty/Raw JSON or XML bodies.
 - File/request/response search and an in-memory history of the last 50 runs.
 - Mouse and Vim-style keyboard navigation.

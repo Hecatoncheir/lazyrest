@@ -2,14 +2,19 @@ package ui
 
 import (
 	"context"
+	"io"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
 	"github.com/Hecatoncheir/lazyrest/environment"
 	"github.com/Hecatoncheir/lazyrest/finder"
+	parserhttp "github.com/Hecatoncheir/lazyrest/parser/http"
+	"github.com/Hecatoncheir/lazyrest/runner"
 	"github.com/Hecatoncheir/lazyrest/ui/tree"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
@@ -98,6 +103,63 @@ func TestTUIDiagnosticsAndHelpWorkflow(t *testing.T) {
 	waitFor(t, "closed overlay", func() bool {
 		return application.Model.Snapshot().Overlay == OverlayNone
 	})
+}
+
+func TestTUIProducerAnimatesProgressWhileWaiting(t *testing.T) {
+	release := make(chan struct{})
+	var releaseOnce sync.Once
+	releaseRequest := func() {
+		releaseOnce.Do(func() { close(release) })
+	}
+	client := &http.Client{Transport: uiRoundTripFunc(func(request *http.Request) (*http.Response, error) {
+		select {
+		case <-release:
+		case <-request.Context().Done():
+			return nil, request.Context().Err()
+		}
+		return &http.Response{
+			StatusCode:    http.StatusOK,
+			Header:        http.Header{"Content-Type": []string{"application/json"}},
+			Body:          io.NopCloser(strings.NewReader(`{"ok":true}`)),
+			ContentLength: 11,
+			Proto:         "HTTP/1.1",
+		}, nil
+	})}
+	defer releaseRequest()
+
+	application := BuildApplication(t.TempDir(), Config{
+		Runner: runner.Config{Client: client, Timeout: 2 * time.Second},
+	})
+	screen, _ := runTestApplication(t, application)
+	application.Element.QueueUpdateDraw(func() {
+		onSuiteRun(application)(parserhttp.HttpSuite{
+			Name:   "Slow request",
+			Method: http.MethodGet,
+			Uri:    "https://example.test/slow",
+			Header: map[string]string{},
+		})
+	})
+
+	waitFor(t, "initial progress bar", func() bool {
+		text := applicationText(application, screen)
+		return strings.Contains(text, "Running request") && strings.Contains(text, "====>")
+	})
+	firstFrame := applicationText(application, screen)
+	waitFor(t, "animated progress bar", func() bool {
+		text := applicationText(application, screen)
+		return strings.Contains(text, "Running request") && text != firstFrame
+	})
+
+	releaseRequest()
+	waitFor(t, "completed request", func() bool {
+		return application.Model.Snapshot().Request.Phase == PhaseReady
+	})
+}
+
+type uiRoundTripFunc func(*http.Request) (*http.Response, error)
+
+func (roundTrip uiRoundTripFunc) RoundTrip(request *http.Request) (*http.Response, error) {
+	return roundTrip(request)
 }
 
 func runTestApplication(t *testing.T, application *Application) (tcell.SimulationScreen, <-chan error) {

@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v0.5.1] - 2026-08-24
+### Changed
+- Producer now displays an animated progress bar while connecting and waiting for a response, then switches to byte or percentage progress while reading the body.
+
 ## [v0.5.0] - 2026-08-24
 ### Added
 - Neovim and LazyVim terminal integration examples in the README.
