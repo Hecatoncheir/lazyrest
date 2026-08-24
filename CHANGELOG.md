@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v0.3.1] - 2026-08-24
+### Changed
+- README preview now includes the screenshot, animated demo, and full MOV recording.
+
+### Removed
+- Unused root-level Hurl scratch files and the unused Hurl source submodule.
+- Empty footer source files.
+
 ## [v0.3.0] - 2026-08-24
 ### Added
 - Cancellable request execution with configurable timeouts and response-size limits.

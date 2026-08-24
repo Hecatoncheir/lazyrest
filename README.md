@@ -2,7 +2,13 @@
 
 `lazyrest` is a terminal UI for discovering and running requests from `.http` and `.hurl` files.
 
-![lazyrest preview](preview.png)
+## Preview
+
+![lazyrest screenshot](preview.png)
+
+![lazyrest demo](preview.gif)
+
+[Watch the full MOV preview](preview.mov)
 
 ## Features
 
