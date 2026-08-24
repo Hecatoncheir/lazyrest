@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v0.3.2] - 2026-08-24
+### Changed
+- Updated `Ctrl+h/j/k/l` focus navigation between Files, Suites, Suite, and Producer.
+
 ## [v0.3.1] - 2026-08-24
 ### Changed
 - README preview now includes the screenshot, animated demo, and full MOV recording.

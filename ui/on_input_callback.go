@@ -20,54 +20,53 @@ func onInputCallback(application *Application) onInputCallbackType {
 			return event
 		}
 
-		// handle Ctrl+h/j/k/l for navigation
-		if event.Modifiers() == tcell.ModCtrl {
+		// Terminals commonly report Ctrl+h as Backspace.
+		navigationKey := event.Key()
+		isNavigationKey := event.Modifiers()&tcell.ModCtrl != 0
+		if navigationKey == tcell.KeyBackspace {
+			navigationKey = tcell.KeyCtrlH
+			isNavigationKey = true
+		}
+
+		// Handle Ctrl+h/j/k/l for navigation.
+		if isNavigationKey {
 			focused := applicationElement.GetFocus()
 			if focused == nil {
 				return event
 			}
 
 			var target tview.Primitive
-			switch event.Rune() {
-			case 'h': // Left
-				if focused == application.Suite.Element {
-					target = application.Suites.Element
-				} else if focused == application.Footer.Element {
-					target = application.HttpFilesTree.Element
-				}
-			case 'l': // Right
-				if focused == application.Suites.Element {
-					target = application.Suite.Element
-				} else if isWorkspaceElement(focused, application) {
-					target = application.Footer.Element
-				}
-			case 'k': // Up
-				if focused == application.Suite.Element || focused == application.Suites.Element {
+			switch navigationKey {
+			case tcell.KeyCtrlH:
+				if focused == application.Suites.Element || focused == application.Suite.Element {
 					target = application.HttpFilesTree.Element
 				} else if focused == application.Producer.Element {
+					target = application.Suite.Element
+				}
+			case tcell.KeyCtrlJ:
+				if focused == application.Suites.Element {
+					target = application.Suite.Element
+				}
+			case tcell.KeyCtrlK:
+				if focused == application.Suite.Element {
 					target = application.Suites.Element
 				}
-			case 'j': // Down
+			case tcell.KeyCtrlL:
 				if focused == application.HttpFilesTree.Element {
 					target = application.Suites.Element
 				} else if focused == application.Suite.Element || focused == application.Suites.Element {
 					target = application.Producer.Element
 				}
+			default:
+				return event
 			}
 
 			if target != nil {
 				applicationElement.SetFocus(target)
-				return event
 			}
+			return nil
 		}
 
 		return event
 	}
-}
-
-func isWorkspaceElement(focused tview.Primitive, app *Application) bool {
-	return focused == app.HttpFilesTree.Element ||
-		focused == app.Suites.Element ||
-		focused == app.Suite.Element ||
-		focused == app.Producer.Element
 }

@@ -76,7 +76,19 @@ Sensitive headers such as `Authorization`, cookies, API keys, tokens, and secret
 - `j` / `k` or arrows: move and scroll.
 - `Enter`: select a file/request or execute the selected request.
 - `Esc`: go back; in the response pane it also cancels the active run.
-- `Ctrl+h/j/k/l`: move between areas.
+- `Ctrl+h/j/k/l`: move between areas according to the following map:
+
+| Focused area | Shortcut | Destination |
+| --- | --- | --- |
+| Files | `Ctrl+l` | Suites |
+| Suites | `Ctrl+h` | Files |
+| Suites | `Ctrl+j` | Suite |
+| Suites | `Ctrl+l` | Producer |
+| Suite | `Ctrl+h` | Files |
+| Suite | `Ctrl+k` | Suites |
+| Suite | `Ctrl+l` | Producer |
+| Producer | `Ctrl+h` | Suite |
+
 - `/`: search in the focused Files, Suites, or Producer area; `Enter` finishes entering the query.
 - `n` / `N`: next/previous matching file.
 - `[` / `]`: previous/next response history entry.
