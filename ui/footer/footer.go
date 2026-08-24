@@ -11,6 +11,7 @@ type Footer struct {
 	Element              tview.Primitive
 	rootDirectoryElement *tview.TextView
 	suiteElement         *tview.TextView
+	statusElement        *tview.TextView
 	selectedFile         *finder.File
 	suiteName            string
 	status               string
@@ -23,7 +24,7 @@ func New() *Footer {
 func (widget *Footer) Build(parameters Parameters) tview.Primitive {
 	widget.Parameters = parameters
 
-	layout := tview.NewFlex().SetDirection(tview.FlexColumnCSS)
+	layout := tview.NewFlex().SetDirection(tview.FlexRowCSS)
 
 	theme := parameters.Theme.Footer
 	layout.Box = tview.NewBox().

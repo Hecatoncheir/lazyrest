@@ -23,6 +23,7 @@ type Producer struct {
 	theme            theme.ProducerTheme
 	suite            http.HttpSuite
 	onEscapeCallback OnEscapeCallbackType
+	onProgress       func(current, total int64)
 	onRunFinished    func(error)
 	app              *tview.Application
 	runMutex         sync.Mutex
@@ -87,6 +88,7 @@ func (widget *Producer) CancelActive() {
 
 func (widget *Producer) Build(parameters Parameters) tview.Primitive {
 	widget.onEscapeCallback = parameters.OnEscapeCallback
+	widget.onProgress = parameters.OnProgressCallback
 	widget.onRunFinished = parameters.OnRunFinishedCallback
 	widget.app = parameters.App
 	widget.runnerConfig = parameters.RunnerConfig

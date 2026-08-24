@@ -37,6 +37,23 @@ func (widget *Tree) IsSearching() bool {
 	return widget.searchMode
 }
 
+func (widget *Tree) OpenCurrentFile() bool {
+	element, ok := widget.Element.(*tview.TreeView)
+	if !ok {
+		return false
+	}
+	node := element.GetCurrentNode()
+	if node == nil {
+		return false
+	}
+	file, ok := node.GetReference().(finder.File)
+	if !ok || widget.onSelectFileCallback == nil {
+		return false
+	}
+	widget.onSelectFileCallback(file)
+	return true
+}
+
 func (widget *Tree) Build(parameters Parameters) tview.Primitive {
 	onSelectFileCallback := parameters.OnSelectFileCallback
 	widget.onSelectFileCallback = onSelectFileCallback

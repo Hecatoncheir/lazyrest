@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	uiprogress "github.com/Hecatoncheir/lazyrest/ui/progress"
 	"github.com/rivo/tview"
 )
 
@@ -110,17 +111,30 @@ func (application *Application) refreshStatus() {
 	state := application.Model.Snapshot()
 	status := ""
 	switch {
+	case state.Request.Phase == PhaseLoading && state.Request.HasProgress:
+		application.stopFooterProgress()
+		application.Footer.UpdateStatus("Running " + uiprogress.Body(
+			state.Request.Current,
+			state.Request.Total,
+			footerProgressWidth,
+			footerProgressPulse,
+		))
+		return
 	case state.Request.Phase == PhaseLoading:
-		status = "Running..."
+		application.showFooterProgress("Running")
+		return
 	case state.Parser.Phase == PhaseLoading:
-		status = "Parsing..."
+		application.showFooterProgress("Parsing")
+		return
 	case state.Startup.Phase == PhaseLoading || state.Files.Phase == PhaseLoading:
-		status = "Loading..."
+		application.showFooterProgress("Loading")
+		return
 	case state.Startup.Phase == PhaseFailed || state.Files.Phase == PhaseFailed || state.Parser.Phase == PhaseFailed:
 		status = "Error — press d"
 	case len(state.Diagnostics) > 0:
 		status = fmt.Sprintf("%d diagnostics — press d", len(state.Diagnostics))
 	}
+	application.stopFooterProgress()
 	application.Footer.UpdateStatus(status)
 }
 
@@ -179,6 +193,7 @@ const helpText = `Global
 
 Files
   Enter          Open a directory or parse a request file
+  Ctrl+l         Parse the selected file and open Suites
   /              Search files
   n / N          Next / previous match
   r              Reload files in the background

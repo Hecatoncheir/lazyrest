@@ -23,3 +23,17 @@ func onRunFinished(application *Application) func(error) {
 		application.refreshStatus()
 	}
 }
+
+func onRunProgress(application *Application) func(current, total int64) {
+	return func(current, total int64) {
+		application.Model.update(func(state *State) {
+			if state.Request.Phase != PhaseLoading {
+				return
+			}
+			state.Request.Current = current
+			state.Request.Total = total
+			state.Request.HasProgress = true
+		})
+		application.refreshStatus()
+	}
+}

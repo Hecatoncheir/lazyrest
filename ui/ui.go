@@ -18,6 +18,7 @@ import (
 func Run(rootDirectoryPath string, config Config) error {
 	applicationWidget := BuildApplication(rootDirectoryPath, config)
 	applicationWidget.Start()
+	defer applicationWidget.stopFooterProgress()
 	return applicationWidget.Element.Run()
 }
 
@@ -78,6 +79,7 @@ func BuildApplication(rootDirectoryPath string, config Config) *Application {
 	producerParameters := producer.Parameters{
 		Theme:                 uiTheme,
 		OnEscapeCallback:      onProducerEscape(applicationWidget),
+		OnProgressCallback:    onRunProgress(applicationWidget),
 		OnRunFinishedCallback: onRunFinished(applicationWidget),
 		App:                   applicationElement,
 		RunnerConfig:          config.Runner,

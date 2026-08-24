@@ -17,8 +17,11 @@ const (
 )
 
 type TaskState struct {
-	Phase Phase
-	Error string
+	Phase       Phase
+	Error       string
+	Current     int64
+	Total       int64
+	HasProgress bool
 }
 
 type Overlay uint8

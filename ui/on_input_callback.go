@@ -97,6 +97,7 @@ func onInputCallback(application *Application) onInputCallbackType {
 				}
 			case tcell.KeyCtrlL:
 				if focused == application.HttpFilesTree.Element {
+					application.HttpFilesTree.OpenCurrentFile()
 					target = application.Suites.Element
 				} else if focused == application.Suite.Element || focused == application.Suites.Element {
 					target = application.Producer.Element
@@ -116,6 +117,7 @@ func onInputCallback(application *Application) onInputCallbackType {
 }
 
 func stopApplication(application *Application) {
+	application.stopFooterProgress()
 	application.Producer.CancelActive()
 	application.Suites.CancelLoad()
 	application.HttpFilesTree.CancelReload()

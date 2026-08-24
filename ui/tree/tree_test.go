@@ -114,6 +114,32 @@ func TestReloadInputInvokesCallback(t *testing.T) {
 	}
 }
 
+func TestOpenCurrentFileInvokesSelectionCallback(t *testing.T) {
+	tempDir := t.TempDir()
+	filePath := filepath.Join(tempDir, "request.http")
+	if err := os.WriteFile(filePath, []byte("GET https://example.com"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	var selected finder.File
+	parameters := newMockParams(tempDir)
+	parameters.OnSelectFileCallback = func(file finder.File) {
+		selected = file
+	}
+	widget := New()
+	widget.Build(parameters)
+	widget.ApplyScanResult(widget.Scan(context.Background()))
+	element := widget.Element.(*tview.TreeView)
+	element.SetCurrentNode(findFileNode(element.GetRoot(), filePath))
+
+	if !widget.OpenCurrentFile() {
+		t.Fatal("current file was not opened")
+	}
+	if selected.Path != filePath {
+		t.Fatalf("unexpected selected file: %+v", selected)
+	}
+}
+
 func TestApplyScanResultPreservesSelectedFile(t *testing.T) {
 	tempDir := t.TempDir()
 	filePath := filepath.Join(tempDir, "request.http")

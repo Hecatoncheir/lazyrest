@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v0.6.0] - 2026-08-24
+### Added
+- An animated footer progress bar for startup, parsing, and request execution, including byte or percentage progress when available.
+
+### Changed
+- Pressing `Ctrl+l` on a selected file now opens it before moving focus from Files to Suites.
+- The active Suite in the footer is now a matching-color powerline segment with a leading arrow.
+
 ## [v0.5.1] - 2026-08-24
 ### Changed
 - Producer now displays an animated progress bar while connecting and waiting for a response, then switches to byte or percentage progress while reading the body.

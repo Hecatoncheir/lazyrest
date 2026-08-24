@@ -39,6 +39,10 @@ type Application struct {
 	scanFiles       func(context.Context) tree.ScanResult
 	previousFocus   tview.Primitive
 	startOnce       sync.Once
+
+	footerProgressMutex  sync.Mutex
+	footerProgressCancel context.CancelFunc
+	footerProgressLabel  string
 }
 
 func (widget *Application) Build() *tview.Application {

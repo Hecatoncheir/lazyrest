@@ -2,13 +2,12 @@ package producer
 
 import (
 	"context"
-	"fmt"
-	"strings"
 	"sync"
 	"time"
 
 	"github.com/Hecatoncheir/lazyrest/parser/http"
 	"github.com/Hecatoncheir/lazyrest/runner"
+	uiprogress "github.com/Hecatoncheir/lazyrest/ui/progress"
 
 	"github.com/rivo/tview"
 )
@@ -20,41 +19,11 @@ const (
 )
 
 func formatProgressBar(current, total int64) string {
-	if total <= 0 {
-		frame := int(current / 1024)
-		return fmt.Sprintf("%s %d bytes", formatIndeterminateProgressBar(frame), current)
-	}
-	percentage := float64(current) / float64(total) * 100
-	if percentage > 100 {
-		percentage = 100
-	}
-	if percentage < 0 {
-		percentage = 0
-	}
-	filled := int(percentage / 100 * progressBarWidth)
-	bar := strings.Repeat("=", filled) + strings.Repeat("-", progressBarWidth-filled)
-	return fmt.Sprintf("[%s] %.0f%%", bar, percentage)
+	return uiprogress.Body(current, total, progressBarWidth, progressPulseWidth)
 }
 
 func formatIndeterminateProgressBar(frame int) string {
-	travel := progressBarWidth - progressPulseWidth
-	cycle := travel * 2
-	position := frame % cycle
-	forward := position <= travel
-	if !forward {
-		position = cycle - position
-	}
-
-	bar := []byte(strings.Repeat("-", progressBarWidth))
-	for index := range progressPulseWidth {
-		bar[position+index] = '='
-	}
-	if forward {
-		bar[position+progressPulseWidth-1] = '>'
-	} else {
-		bar[position] = '<'
-	}
-	return "[" + string(bar) + "]"
+	return uiprogress.Indeterminate(frame, progressBarWidth, progressPulseWidth)
 }
 
 func runningRequestText(progress string) string {
@@ -136,6 +105,9 @@ func (widget *Producer) ChangeSuite(suite http.HttpSuite) {
 					return
 				}
 				widget.setText(runningRequestText(formatProgressBar(current, total)))
+				if widget.onProgress != nil {
+					widget.onProgress(current, total)
+				}
 			})
 		})
 		stopProgressAnimation()

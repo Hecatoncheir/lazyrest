@@ -41,6 +41,7 @@ func TestTUIRemainsInteractiveDuringBackgroundStartup(t *testing.T) {
 	waitFor(t, "startup loading state", func() bool {
 		return application.Model.Snapshot().Files.Phase == PhaseLoading
 	})
+	waitForScreenText(t, application, screen, "Loading [")
 
 	screen.InjectKey(tcell.KeyRune, '?', tcell.ModNone)
 	waitFor(t, "help during startup", func() bool {
@@ -81,7 +82,12 @@ func TestTUIDiagnosticsAndHelpWorkflow(t *testing.T) {
 		treeView.SetCurrentNode(node)
 		application.Element.SetFocus(treeView)
 	})
-	screen.InjectKey(tcell.KeyEnter, 0, tcell.ModNone)
+	screen.InjectKey(tcell.KeyCtrlL, 0, tcell.ModCtrl)
+	waitFor(t, "Ctrl+l file selection", func() bool {
+		state := application.Model.Snapshot()
+		return state.SelectedFile != nil && state.SelectedFile.Path == filePath &&
+			application.Element.GetFocus() == application.Suites.Element
+	})
 	waitFor(t, "parser diagnostics", func() bool {
 		state := application.Model.Snapshot()
 		return state.Parser.Phase == PhaseReady && len(state.Diagnostics) > 0
@@ -140,10 +146,9 @@ func TestTUIProducerAnimatesProgressWhileWaiting(t *testing.T) {
 		})
 	})
 
-	waitFor(t, "initial progress bar", func() bool {
-		text := applicationText(application, screen)
-		return strings.Contains(text, "Running request") && strings.Contains(text, "====>")
-	})
+	waitForScreenText(t, application, screen, "Running request")
+	waitForScreenText(t, application, screen, "====>")
+	waitForScreenText(t, application, screen, "Running [")
 	firstFrame := applicationText(application, screen)
 	waitFor(t, "animated progress bar", func() bool {
 		text := applicationText(application, screen)
@@ -175,6 +180,7 @@ func runTestApplication(t *testing.T, application *Application) (tcell.Simulatio
 		return strings.Contains(applicationText(application, screen), "Files")
 	})
 	t.Cleanup(func() {
+		application.stopFooterProgress()
 		application.Producer.CancelActive()
 		application.Suites.CancelLoad()
 		application.HttpFilesTree.CancelReload()
@@ -201,6 +207,20 @@ func waitFor(t *testing.T, description string, condition func() bool) {
 		time.Sleep(5 * time.Millisecond)
 	}
 	t.Fatalf("timed out waiting for %s", description)
+}
+
+func waitForScreenText(t *testing.T, application *Application, screen tcell.SimulationScreen, expected string) {
+	t.Helper()
+	var content string
+	deadline := time.Now().Add(3 * time.Second)
+	for time.Now().Before(deadline) {
+		content = applicationText(application, screen)
+		if strings.Contains(content, expected) {
+			return
+		}
+		time.Sleep(5 * time.Millisecond)
+	}
+	t.Fatalf("timed out waiting for screen text %q:\n%s", expected, content)
 }
 
 func simulationText(screen tcell.SimulationScreen) string {

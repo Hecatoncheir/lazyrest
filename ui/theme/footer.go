@@ -5,6 +5,7 @@ import "github.com/gdamore/tcell/v2"
 type FooterTheme struct {
 	Background        tcell.Color
 	Foreground        tcell.Color
+	SuiteBackground   tcell.Color
 	SuiteForeground   tcell.Color
 	RootDirectoryPath RootDirectoryPathTheme
 	SelectedFileName  SelectedFileNameTheme
