@@ -6,7 +6,6 @@ import (
 	"os"
 
 	"github.com/Hecatoncheir/lazyrest/environment"
-	parserhttp "github.com/Hecatoncheir/lazyrest/parser/http"
 	"github.com/Hecatoncheir/lazyrest/runner"
 	"github.com/Hecatoncheir/lazyrest/ui"
 )
@@ -25,26 +24,17 @@ func main() {
 		log.Fatal(err)
 	}
 
-	selectedEnvironment, err := environment.Load(rootDirectoryPath, environment.Config{
-		Name:        *environmentName,
-		PublicFile:  *environmentFile,
-		PrivateFile: *privateEnvironmentFile,
-	})
-	if err != nil {
-		log.Fatal(err)
-	}
-
 	err = ui.Run(rootDirectoryPath, ui.Config{
 		Runner: runner.Config{
 			Timeout:          *timeout,
 			MaxResponseBytes: *maxResponseBytes,
 			HurlExecutable:   *hurlExecutable,
 		},
-		ParseOptions: parserhttp.ParseOptions{
-			Variables:       selectedEnvironment.Values,
-			SecretVariables: selectedEnvironment.SecretVariables,
+		Environment: environment.Config{
+			Name:        *environmentName,
+			PublicFile:  *environmentFile,
+			PrivateFile: *privateEnvironmentFile,
 		},
-		EnvironmentName: selectedEnvironment.Name,
 	})
 	if err != nil {
 		log.Fatal(err)

@@ -1,0 +1,23 @@
+@baseUrl = "https://httpbin.org"
+
+# @name Send XML
+POST {{baseUrl}}/anything
+Accept: application/json
+Content-Type: application/xml
+
+<?xml version="1.0"?>
+<message>
+  <text>Hello from lazyrest</text>
+</message>
+
+# @name Send GraphQL
+POST {{baseUrl}}/anything
+Accept: application/json
+Content-Type: application/graphql
+
+query Example {
+  viewer {
+    id
+    name
+  }
+}

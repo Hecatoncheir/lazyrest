@@ -1,0 +1,16 @@
+@baseUrl = "https://httpbin.org"
+
+# @name Inspect request metadata
+GET {{baseUrl}}/get?source=lazyrest
+Accept: application/json
+X-Client: lazyrest
+
+# @name Create example resource
+POST {{baseUrl}}/anything
+Accept: application/json
+Content-Type: application/json
+
+{
+  "name": "lazyrest example",
+  "enabled": true
+}

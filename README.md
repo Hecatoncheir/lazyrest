@@ -15,8 +15,8 @@
 
 ## Features
 
-- Recursive `.http` and `.hurl` discovery with background reloads and common dependency directories ignored.
-- Tree-sitter parsing with visible diagnostics and named requests.
+- Immediate TUI startup with background environment loading and recursive `.http` / `.hurl` discovery.
+- Tree-sitter parsing with a dedicated diagnostics window and named requests.
 - Public/private environment profiles plus recursive `{{variable}}` substitution.
 - Cancellable HTTP and Hurl execution with a timeout and bounded response bodies.
 - Response headers, protocol metadata, and Pretty/Raw JSON or XML bodies.
@@ -172,6 +172,19 @@ Put secrets in `http-client.private.env.json`, which is ignored by Git:
 
 Use the values as `{{baseUrl}}` or `{{token}}` in `.http` files. Private values override public ones, while declarations inside an `.http` file override both. Undefined variables and reference cycles appear as parser diagnostics. Private values are redacted from requests, responses, errors, and history output.
 
+## Examples
+
+The [`example`](example) directory contains ready-to-run `.http` and `.hurl`
+files with named requests, variables, different body formats, assertions, and
+a multi-request Hurl workflow:
+
+```sh
+go run . example
+```
+
+The examples use the public `https://httpbin.org` test service and require
+internet access. Running `.hurl` examples also requires the `hurl` executable.
+
 ## Navigation
 
 - `j` / `k` or arrows: move and scroll.
@@ -195,12 +208,15 @@ Use the values as `{{baseUrl}}` or `{{token}}` in `.http` files. Private values 
 - `p`: toggle Pretty/Raw response bodies while Producer is focused.
 - `n` / `N`: next/previous matching file.
 - `[` / `]`: previous/next response history entry.
+- `d`: open parser, startup, and file-discovery diagnostics; press `d`, `q`, or `Esc` to close.
+- `?`: open the built-in keyboard reference; press `?`, `q`, or `Esc` to close.
 - `q` or `Ctrl+C`: quit.
 
 ## Development
 
 ```sh
 go test ./...
+go test ./ui -run TUI
 go vet ./...
 go build ./...
 ```

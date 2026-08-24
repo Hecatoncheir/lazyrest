@@ -104,11 +104,22 @@ func (widget *Suites) ApplyLoadResult(result LoadResult) {
 		element.SetTitle("Suites")
 		element.AddItem("Error: "+result.Err.Error(), "", 0, nil)
 		widget.suites = nil
-		widget.diagnostics = nil
+		widget.diagnosticCount = 0
 		return
 	}
 
 	widget.suites = result.Suites
-	widget.diagnostics = result.Diagnostics
+	widget.diagnosticCount = len(result.Diagnostics)
 	widget.render()
+}
+
+func (widget *Suites) Clear() {
+	widget.CancelLoad()
+	widget.suites = nil
+	widget.diagnosticCount = 0
+	widget.searchQuery = ""
+	widget.searchMode = false
+	if widget.Element != nil {
+		widget.render()
+	}
 }

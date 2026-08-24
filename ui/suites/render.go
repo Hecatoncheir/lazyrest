@@ -1,6 +1,7 @@
 package suites
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/rivo/tview"
@@ -14,18 +15,19 @@ func (widget *Suites) render() {
 	if widget.searchMode || widget.searchQuery != "" {
 		title += " /" + widget.searchQuery
 	}
+	if widget.diagnosticCount > 0 {
+		title += fmt.Sprintf(" — %d diagnostics [d]", widget.diagnosticCount)
+	}
 	element.SetTitle(title)
 
-	for _, diagnostic := range widget.diagnostics {
-		element.AddItem("Warning: "+diagnostic.String(), "", 0, nil)
-	}
-
 	query := strings.ToLower(widget.searchQuery)
+	visibleSuites := 0
 	for _, suite := range widget.suites {
 		searchable := strings.ToLower(strings.Join([]string{suite.Name, suite.Method, suite.Uri, suite.Body}, "\n"))
 		if query != "" && !strings.Contains(searchable, query) {
 			continue
 		}
+		visibleSuites++
 
 		theme := widget.theme
 		label := suite.Redact(suite.Name)
@@ -42,5 +44,8 @@ func (widget *Suites) render() {
 			SetSelectedTextColor(theme.SuiteFocusForeground).
 			SetSelectedBackgroundColor(theme.SuiteFocusBackground).
 			SetBackgroundColor(theme.SuiteBackground)
+	}
+	if visibleSuites == 0 && widget.diagnosticCount > 0 && query == "" {
+		element.AddItem("No runnable requests — press d for diagnostics", "", 0, nil)
 	}
 }

@@ -40,3 +40,11 @@ func (widget *Suite) ChangeSuite(suite http.HttpSuite) {
 			SetBackgroundColor(theme.Background)
 	})
 }
+
+func (widget *Suite) Clear() {
+	widget.suite = http.HttpSuite{}
+	if widget.Element == nil {
+		return
+	}
+	widget.Element.(*tview.TextView).Clear()
+}

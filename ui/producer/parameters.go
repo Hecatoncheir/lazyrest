@@ -7,8 +7,9 @@ import (
 )
 
 type Parameters struct {
-	Theme            theme.Theme
-	OnEscapeCallback OnEscapeCallbackType
-	App              *tview.Application
-	RunnerConfig     runner.Config
+	Theme                 theme.Theme
+	OnEscapeCallback      OnEscapeCallbackType
+	OnRunFinishedCallback func(error)
+	App                   *tview.Application
+	RunnerConfig          runner.Config
 }

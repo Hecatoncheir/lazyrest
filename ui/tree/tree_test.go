@@ -123,6 +123,7 @@ func TestApplyScanResultPreservesSelectedFile(t *testing.T) {
 
 	widget := New()
 	widget.Build(newMockParams(tempDir))
+	widget.ApplyScanResult(widget.Scan(context.Background()))
 	element := widget.Element.(*tview.TreeView)
 	selected := findFileNode(element.GetRoot(), filePath)
 	if selected == nil {

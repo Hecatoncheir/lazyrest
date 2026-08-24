@@ -40,6 +40,9 @@ func (widget *Footer) render() {
 	if widget.suiteName != "" {
 		status += " Suite: " + widget.suiteName
 	}
+	if widget.status != "" {
+		status += " " + widget.status
+	}
 	suiteText.SetText(status)
 	widget.suiteElement = suiteText
 	layout.AddItem(suiteText, 0, 1, false)

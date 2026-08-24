@@ -77,7 +77,9 @@ func (widget *Tree) updateTitle() {
 		return
 	}
 	title := "Files"
-	if widget.reloading {
+	if widget.loading {
+		title += " — loading"
+	} else if widget.reloading {
 		title += " — reloading"
 	}
 	if widget.searchMode || widget.searchQuery != "" {

@@ -1,6 +1,9 @@
 package ui
 
 import (
+	"context"
+
+	"github.com/Hecatoncheir/lazyrest/environment"
 	"github.com/Hecatoncheir/lazyrest/ui/footer"
 	"github.com/Hecatoncheir/lazyrest/ui/layout"
 	"github.com/Hecatoncheir/lazyrest/ui/producer"
@@ -9,14 +12,29 @@ import (
 	"github.com/Hecatoncheir/lazyrest/ui/theme"
 	"github.com/Hecatoncheir/lazyrest/ui/tree"
 	"github.com/Hecatoncheir/lazyrest/ui/workspace"
+	"github.com/rivo/tview"
 )
 
 func Run(rootDirectoryPath string, config Config) error {
+	applicationWidget := BuildApplication(rootDirectoryPath, config)
+	applicationWidget.Start()
+	return applicationWidget.Element.Run()
+}
+
+func BuildApplication(rootDirectoryPath string, config Config) *Application {
 	uiTheme := theme.NewDefault()
+	environmentName := config.Environment.Name
+	if environmentName == "" {
+		environmentName = config.EnvironmentName
+	}
 
 	// Application
 	applicationWidget := NewApplication()
 	applicationElement := applicationWidget.Build()
+	applicationWidget.Model = NewModel(rootDirectoryPath, environmentName)
+	applicationWidget.config = config
+	applicationWidget.theme = uiTheme
+	applicationWidget.loadEnvironment = environment.Load
 
 	// HttpFilesTree
 	httpFilesExtensions := []string{".http", ".hurl"}
@@ -30,6 +48,9 @@ func Run(rootDirectoryPath string, config Config) error {
 	}
 	httpFilesTreeElement := httpFilesTreeWidget.Build(httpFilesTreeParameters)
 	applicationWidget.HttpFilesTree = httpFilesTreeWidget
+	applicationWidget.scanFiles = func(ctx context.Context) tree.ScanResult {
+		return httpFilesTreeWidget.Scan(ctx)
+	}
 
 	// Suite
 	suiteWidget := suite.New()
@@ -55,10 +76,11 @@ func Run(rootDirectoryPath string, config Config) error {
 	// Producer
 	producerWidget := producer.New()
 	producerParameters := producer.Parameters{
-		Theme:            uiTheme,
-		OnEscapeCallback: onProducerEscape(applicationWidget),
-		App:              applicationElement,
-		RunnerConfig:     config.Runner,
+		Theme:                 uiTheme,
+		OnEscapeCallback:      onProducerEscape(applicationWidget),
+		OnRunFinishedCallback: onRunFinished(applicationWidget),
+		App:                   applicationElement,
+		RunnerConfig:          config.Runner,
 	}
 	producerWidget.Build(producerParameters)
 	applicationWidget.Producer = producerWidget
@@ -83,7 +105,7 @@ func Run(rootDirectoryPath string, config Config) error {
 	footerParameters := footer.Parameters{
 		RootDirectoryPath: rootDirectoryPath,
 		Theme:             uiTheme,
-		EnvironmentName:   config.EnvironmentName,
+		EnvironmentName:   environmentName,
 	}
 	footerWidget.Build(footerParameters)
 	applicationWidget.Footer = footerWidget
@@ -100,16 +122,15 @@ func Run(rootDirectoryPath string, config Config) error {
 		footerWidget,
 	)
 
+	pages := tview.NewPages().
+		AddPage("main", layoutElement, true, true)
+	applicationWidget.Pages = pages
+	applicationWidget.buildOverlays()
+
 	applicationElement.
-		SetRoot(layoutElement, true).
+		SetRoot(pages, true).
 		SetFocus(httpFilesTreeElement)
 
 	applicationElement.SetInputCapture(onInputCallback(applicationWidget))
-
-	err := applicationElement.Run()
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return applicationWidget
 }

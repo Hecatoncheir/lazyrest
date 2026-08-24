@@ -1,12 +1,14 @@
 package ui
 
 import (
-	"github.com/Hecatoncheir/lazyrest/parser/http"
+	"github.com/Hecatoncheir/lazyrest/environment"
+	parserhttp "github.com/Hecatoncheir/lazyrest/parser/http"
 	"github.com/Hecatoncheir/lazyrest/runner"
 )
 
 type Config struct {
 	Runner          runner.Config
-	ParseOptions    http.ParseOptions
+	ParseOptions    parserhttp.ParseOptions
 	EnvironmentName string
+	Environment     environment.Config
 }

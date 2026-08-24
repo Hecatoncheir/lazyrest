@@ -13,6 +13,7 @@ type Footer struct {
 	suiteElement         *tview.TextView
 	selectedFile         *finder.File
 	suiteName            string
+	status               string
 }
 
 func New() *Footer {
@@ -41,5 +42,10 @@ func (widget *Footer) UpdateSuite(suiteName string) {
 
 func (widget *Footer) UpdateRootDirectory(path string) {
 	widget.Parameters.RootDirectoryPath = path
+	widget.render()
+}
+
+func (widget *Footer) UpdateStatus(status string) {
+	widget.status = status
 	widget.render()
 }

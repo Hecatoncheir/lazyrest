@@ -77,6 +77,9 @@ func (widget *Producer) ChangeSuite(suite http.HttpSuite) {
 			if !widget.FinishRun(runID) {
 				return
 			}
+			if widget.onRunFinished != nil {
+				widget.onRunFinished(err)
+			}
 			widget.addHistory(suite, response, err)
 			text := renderExecutionResultWithMode(suite, response, err, widget.bodyViewMode)
 

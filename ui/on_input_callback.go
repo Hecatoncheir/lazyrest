@@ -10,15 +10,57 @@ type onInputCallbackType func(event *tcell.EventKey) *tcell.EventKey
 func onInputCallback(application *Application) onInputCallbackType {
 	applicationElement := application.Element
 	return func(event *tcell.EventKey) *tcell.EventKey {
+		if application.Model != nil {
+			overlay := application.Model.CurrentOverlay()
+			if overlay != OverlayNone {
+				switch event.Key() {
+				case tcell.KeyCtrlC:
+					stopApplication(application)
+					return nil
+				case tcell.KeyEsc:
+					application.closeOverlay()
+					return nil
+				}
+				switch event.Rune() {
+				case 'q':
+					application.closeOverlay()
+					return nil
+				case '?':
+					if overlay == OverlayHelp {
+						application.closeOverlay()
+					} else {
+						application.openOverlay(OverlayHelp)
+					}
+					return nil
+				case 'd':
+					if overlay == OverlayDiagnostics {
+						application.closeOverlay()
+					} else {
+						application.openOverlay(OverlayDiagnostics)
+					}
+					return nil
+				case 'j':
+					return tcell.NewEventKey(tcell.KeyDown, 0, tcell.ModNone)
+				case 'k':
+					return tcell.NewEventKey(tcell.KeyUp, 0, tcell.ModNone)
+				}
+				return event
+			}
+		}
 		if application.HttpFilesTree.IsSearching() || application.Suites.IsSearching() || application.Producer.IsSearching() {
 			return event
 		}
+		switch event.Rune() {
+		case '?':
+			application.openOverlay(OverlayHelp)
+			return nil
+		case 'd':
+			application.openOverlay(OverlayDiagnostics)
+			return nil
+		}
 		// handle 'q' to quit
 		if event.Rune() == 'q' || event.Key() == tcell.KeyCtrlC {
-			application.Producer.CancelActive()
-			application.Suites.CancelLoad()
-			application.HttpFilesTree.CancelReload()
-			applicationElement.Stop()
+			stopApplication(application)
 			return nil
 		}
 
@@ -71,4 +113,11 @@ func onInputCallback(application *Application) onInputCallbackType {
 
 		return event
 	}
+}
+
+func stopApplication(application *Application) {
+	application.Producer.CancelActive()
+	application.Suites.CancelLoad()
+	application.HttpFilesTree.CancelReload()
+	application.Element.Stop()
 }

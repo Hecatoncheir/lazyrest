@@ -18,11 +18,15 @@ func (widget *Suites) IsSearching() bool {
 	return widget.searchMode
 }
 
+func (widget *Suites) SetParseOptions(options http.ParseOptions) {
+	widget.parseOptions = options
+}
+
 type Suites struct {
 	Element               tview.Primitive
 	theme                 theme.SuitesTheme
 	suites                []http.HttpSuite
-	diagnostics           []http.Diagnostic
+	diagnosticCount       int
 	selectedSuite         http.HttpSuite
 	searchQuery           string
 	searchMode            bool

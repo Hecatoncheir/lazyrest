@@ -1,0 +1,19 @@
+@scheme = "https"
+@host = "httpbin.org"
+@baseUrl = "{{scheme}}://{{host}}"
+@requestId = "lazyrest-example-001"
+
+# @name Resolve nested variables
+GET {{baseUrl}}/headers
+Accept: application/json
+X-Request-Id: {{requestId}}
+
+# @name Send a variable in JSON
+POST {{baseUrl}}/anything
+Accept: application/json
+Content-Type: application/json
+
+{
+  "requestId": "{{requestId}}",
+  "client": "lazyrest"
+}

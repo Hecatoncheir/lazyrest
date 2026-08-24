@@ -2,9 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
-## [Unreleased]
+## [v0.5.0] - 2026-08-24
 ### Added
 - Neovim and LazyVim terminal integration examples in the README.
+- A unified application state model covering startup, file discovery, parsing, execution, selection, diagnostics, and overlays.
+- Dedicated diagnostics (`d`) and keyboard help (`?`) windows.
+- Integration tests that drive the complete TUI through a simulated terminal.
+- Ready-to-run `.http` and `.hurl` examples under `example/`.
+
+### Changed
+- Environment loading and initial file discovery now run after the TUI is visible, without blocking startup.
+- Parser warnings are summarized in the Suites title and displayed in the diagnostics window.
 
 ## [v0.4.0] - 2026-08-24
 ### Added

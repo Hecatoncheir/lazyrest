@@ -22,6 +22,7 @@ type Tree struct {
 	filesExtension       []string
 	theme                theme.TreeTheme
 	onReloadCallback     func()
+	loading              bool
 	reloading            bool
 	reloadMutex          sync.Mutex
 	reloadID             uint64
@@ -72,8 +73,7 @@ func (widget *Tree) Build(parameters Parameters) tview.Primitive {
 	element.Box = box
 	element.SetInputCapture(onInputCallback(widget))
 	widget.Element = element
-	result := widget.Scan(context.Background())
-	widget.ApplyScanResult(result)
+	widget.ShowLoading()
 
 	return element
 }
@@ -129,7 +129,19 @@ func (widget *Tree) Scan(ctx context.Context) ScanResult {
 	return ScanResult{Directory: directory, Err: err}
 }
 
+func (widget *Tree) ShowLoading() {
+	widget.loading = true
+	widget.reloading = false
+	element := widget.Element.(*tview.TreeView)
+	root := tview.NewTreeNode("Loading files...").
+		SetSelectable(false).
+		SetColor(widget.theme.Node.Foreground)
+	element.SetRoot(root).SetCurrentNode(root)
+	widget.updateTitle()
+}
+
 func (widget *Tree) ShowReloading() {
+	widget.loading = false
 	widget.reloading = true
 	widget.updateTitle()
 }
@@ -137,6 +149,7 @@ func (widget *Tree) ShowReloading() {
 func (widget *Tree) ApplyScanResult(result ScanResult) {
 	element := widget.Element.(*tview.TreeView)
 	selectedPath := currentFilePath(element.GetCurrentNode())
+	widget.loading = false
 	widget.reloading = false
 
 	if result.Err != nil {
