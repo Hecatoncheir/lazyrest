@@ -22,7 +22,16 @@ type TaskState struct {
 	Current     int64
 	Total       int64
 	HasProgress bool
+	Outcome     Outcome
 }
+
+type Outcome uint8
+
+const (
+	OutcomeNone Outcome = iota
+	OutcomeSuccess
+	OutcomeFailure
+)
 
 type Overlay uint8
 

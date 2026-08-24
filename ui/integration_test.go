@@ -157,8 +157,10 @@ func TestTUIProducerAnimatesProgressWhileWaiting(t *testing.T) {
 
 	releaseRequest()
 	waitFor(t, "completed request", func() bool {
-		return application.Model.Snapshot().Request.Phase == PhaseReady
+		request := application.Model.Snapshot().Request
+		return request.Phase == PhaseReady && request.Outcome == OutcomeSuccess
 	})
+	waitForScreenText(t, application, screen, "Success [")
 }
 
 type uiRoundTripFunc func(*http.Request) (*http.Response, error)

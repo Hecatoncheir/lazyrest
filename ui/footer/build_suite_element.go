@@ -7,14 +7,18 @@ import (
 
 const maxSuiteSegmentWidth = 42
 
-func buildSuiteElement(suiteName string, footerTheme theme.FooterTheme) (*tview.Flex, *tview.TextView, int) {
-	leftArrow, leftArrowSize := buildArrowLeftElement(footerTheme.Background, footerTheme.SuiteBackground)
+func buildSuiteElement(
+	suiteName string,
+	footerTheme theme.FooterTheme,
+	indicatorTheme theme.FooterIndicatorTheme,
+) (*tview.Flex, *tview.TextView, int) {
+	leftArrow, leftArrowSize := buildArrowLeftElement(footerTheme.Background, indicatorTheme.Background)
 
 	text := " Suite: " + suiteName + " "
 	textView := tview.NewTextView().
 		SetText(text).
-		SetTextColor(footerTheme.SuiteForeground)
-	textView.SetBackgroundColor(footerTheme.SuiteBackground)
+		SetTextColor(indicatorTheme.Foreground)
+	textView.SetBackgroundColor(indicatorTheme.Background)
 
 	segmentWidth := tview.TaggedStringWidth(text) + leftArrowSize
 	if segmentWidth > maxSuiteSegmentWidth {

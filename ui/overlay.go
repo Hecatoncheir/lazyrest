@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/Hecatoncheir/lazyrest/ui/footer"
 	uiprogress "github.com/Hecatoncheir/lazyrest/ui/progress"
 	"github.com/rivo/tview"
 )
@@ -109,6 +110,7 @@ func (application *Application) refreshStatus() {
 		return
 	}
 	state := application.Model.Snapshot()
+	application.Footer.UpdateIndicatorState(footerIndicatorState(state))
 	status := ""
 	switch {
 	case state.Request.Phase == PhaseLoading && state.Request.HasProgress:
@@ -131,11 +133,32 @@ func (application *Application) refreshStatus() {
 		return
 	case state.Startup.Phase == PhaseFailed || state.Files.Phase == PhaseFailed || state.Parser.Phase == PhaseFailed:
 		status = "Error — press d"
+	case state.Request.Outcome == OutcomeSuccess:
+		status = "Success " + uiprogress.Body(1, 1, footerProgressWidth, footerProgressPulse)
+	case state.Request.Outcome == OutcomeFailure && state.Request.Phase == PhaseReady:
+		status = "Failed " + uiprogress.Body(1, 1, footerProgressWidth, footerProgressPulse)
+	case state.Request.Outcome == OutcomeFailure:
+		status = "Failed"
 	case len(state.Diagnostics) > 0:
 		status = fmt.Sprintf("%d diagnostics — press d", len(state.Diagnostics))
 	}
 	application.stopFooterProgress()
 	application.Footer.UpdateStatus(status)
+}
+
+func footerIndicatorState(state State) footer.IndicatorState {
+	switch {
+	case state.Request.Phase == PhaseLoading || state.Parser.Phase == PhaseLoading ||
+		state.Startup.Phase == PhaseLoading || state.Files.Phase == PhaseLoading:
+		return footer.IndicatorDefault
+	case state.Startup.Phase == PhaseFailed || state.Files.Phase == PhaseFailed ||
+		state.Parser.Phase == PhaseFailed || state.Request.Outcome == OutcomeFailure:
+		return footer.IndicatorFailure
+	case state.Request.Outcome == OutcomeSuccess:
+		return footer.IndicatorSuccess
+	default:
+		return footer.IndicatorDefault
+	}
 }
 
 func renderDiagnostics(state State) string {

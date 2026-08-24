@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v0.6.1] - 2026-08-24
+### Changed
+- Suite and footer progress indicators now use yellow while idle or running, green after successful requests, and orange after errors or unsuccessful responses.
+
 ## [v0.6.0] - 2026-08-24
 ### Added
 - An animated footer progress bar for startup, parsing, and request execution, including byte or percentage progress when available.

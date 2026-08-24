@@ -7,6 +7,7 @@ func onSuiteSelect(application *Application) func(suite http.HttpSuite) {
 		application.Model.update(func(state *State) {
 			selectedSuite := suite
 			state.SelectedSuite = &selectedSuite
+			state.Request = TaskState{}
 		})
 		suiteWidget := application.Suite
 		suiteWidget.ChangeSuite(suite)
@@ -16,5 +17,6 @@ func onSuiteSelect(application *Application) func(suite http.HttpSuite) {
 		applicationElement.SetFocus(suiteElement)
 
 		application.Footer.UpdateSuite(suite.Redact(suite.Name))
+		application.refreshStatus()
 	}
 }

@@ -9,6 +9,7 @@ func onSuitesEscape(application *Application) func() {
 			state.Suites = nil
 			state.Diagnostics = nil
 			state.Parser = TaskState{}
+			state.Request = TaskState{}
 		})
 		application.Suites.Clear()
 		application.Suite.Clear()

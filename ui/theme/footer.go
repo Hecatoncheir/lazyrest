@@ -7,8 +7,15 @@ type FooterTheme struct {
 	Foreground        tcell.Color
 	SuiteBackground   tcell.Color
 	SuiteForeground   tcell.Color
+	SuiteSuccess      FooterIndicatorTheme
+	SuiteFailure      FooterIndicatorTheme
 	RootDirectoryPath RootDirectoryPathTheme
 	SelectedFileName  SelectedFileNameTheme
+}
+
+type FooterIndicatorTheme struct {
+	Background tcell.Color
+	Foreground tcell.Color
 }
 
 type RootDirectoryPathTheme struct {

@@ -24,7 +24,7 @@ type Producer struct {
 	suite            http.HttpSuite
 	onEscapeCallback OnEscapeCallbackType
 	onProgress       func(current, total int64)
-	onRunFinished    func(error)
+	onRunFinished    func(runner.Response, error)
 	app              *tview.Application
 	runMutex         sync.Mutex
 	runID            uint64

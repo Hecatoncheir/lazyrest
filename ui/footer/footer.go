@@ -2,6 +2,7 @@ package footer
 
 import (
 	"github.com/Hecatoncheir/lazyrest/finder"
+	"github.com/Hecatoncheir/lazyrest/ui/theme"
 
 	"github.com/rivo/tview"
 )
@@ -11,11 +12,21 @@ type Footer struct {
 	Element              tview.Primitive
 	rootDirectoryElement *tview.TextView
 	suiteElement         *tview.TextView
+	environmentElement   *tview.TextView
 	statusElement        *tview.TextView
 	selectedFile         *finder.File
 	suiteName            string
 	status               string
+	indicatorState       IndicatorState
 }
+
+type IndicatorState uint8
+
+const (
+	IndicatorDefault IndicatorState = iota
+	IndicatorSuccess
+	IndicatorFailure
+)
 
 func New() *Footer {
 	return &Footer{}
@@ -49,4 +60,27 @@ func (widget *Footer) UpdateRootDirectory(path string) {
 func (widget *Footer) UpdateStatus(status string) {
 	widget.status = status
 	widget.render()
+}
+
+func (widget *Footer) UpdateIndicatorState(state IndicatorState) {
+	if widget.indicatorState == state {
+		return
+	}
+	widget.indicatorState = state
+	widget.render()
+}
+
+func (widget *Footer) indicatorTheme() theme.FooterIndicatorTheme {
+	footerTheme := widget.Parameters.Theme.Footer
+	switch widget.indicatorState {
+	case IndicatorSuccess:
+		return footerTheme.SuiteSuccess
+	case IndicatorFailure:
+		return footerTheme.SuiteFailure
+	default:
+		return theme.FooterIndicatorTheme{
+			Background: footerTheme.SuiteBackground,
+			Foreground: footerTheme.SuiteForeground,
+		}
+	}
 }

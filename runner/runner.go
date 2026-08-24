@@ -194,6 +194,7 @@ func (runner *Runner) Execute(ctx context.Context, onProgress ProgressCallback) 
 		Body:          string(responseBody),
 		ContentLength: len(responseBody),
 		Code:          fmt.Sprintf("%d %s", result.StatusCode, http.StatusText(result.StatusCode)),
+		StatusCode:    result.StatusCode,
 		Time:          diff,
 		Truncated:     truncated,
 		Header:        result.Header.Clone(),
