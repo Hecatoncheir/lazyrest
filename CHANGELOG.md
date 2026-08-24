@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+### Added
+- Neovim and LazyVim terminal integration examples in the README.
+
 ## [v0.4.0] - 2026-08-24
 ### Added
 - Cancellable background suite parsing and file-tree reloads with stale-result protection.

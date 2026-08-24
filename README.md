@@ -47,6 +47,76 @@ brew install mingw-w64
 env GOOS=windows GOARCH=amd64 CGO_ENABLED=1 CC=x86_64-w64-mingw32-gcc go build
 ```
 
+## Neovim and LazyVim
+
+Install `lazyrest` first and make sure the executable is available in Neovim's `$PATH`:
+
+```sh
+go install github.com/Hecatoncheir/lazyrest@latest
+```
+
+### Neovim
+
+The following configuration opens `lazyrest` in a terminal tab, using the nearest Git repository or Go module as its root. Add it to `init.lua`:
+
+```lua
+local function open_lazyrest()
+  local root = vim.fs.root(0, { ".git", "go.mod" }) or vim.fn.getcwd()
+
+  vim.cmd("tabnew")
+  local job = vim.fn.jobstart({ "lazyrest", root }, {
+    cwd = root,
+    term = true,
+  })
+  if job <= 0 then
+    vim.notify("Unable to start lazyrest; check $PATH", vim.log.levels.ERROR)
+    vim.cmd("tabclose")
+    return
+  end
+  vim.cmd("startinsert")
+end
+
+vim.api.nvim_create_user_command("LazyRest", open_lazyrest, {})
+vim.keymap.set("n", "<leader>Rl", open_lazyrest, { desc = "LazyRest" })
+```
+
+Run `:LazyRest` or press `<leader>Rl`. Use `<C-\\><C-n>` to leave terminal mode and `:tabclose` to close the tab after `lazyrest` exits.
+
+### LazyVim
+
+LazyVim includes `snacks.nvim`, whose terminal can toggle the same process in a floating window. Create `~/.config/nvim/lua/plugins/lazyrest.lua`:
+
+```lua
+return {
+  {
+    "folke/snacks.nvim",
+    keys = {
+      {
+        "<leader>Rl",
+        function()
+          local root = vim.fs.root(0, { ".git", "go.mod" }) or vim.fn.getcwd()
+          Snacks.terminal.toggle({ "lazyrest", root }, {
+            cwd = root,
+            start_insert = true,
+          })
+        end,
+        desc = "LazyRest",
+      },
+    },
+  },
+}
+```
+
+The mapping follows LazyVim's REST key namespace. While lazyrest is in Terminal
+mode, `Ctrl+h/j/k/l` are sent to the TUI. Use `<C-\\><C-n>` first when you want
+those keys to control Neovim windows instead.
+
+To select an environment profile, place its flags before the directory in either example:
+
+```lua
+{ "lazyrest", "-env", "development", root }
+```
+
 ## Usage
 
 ```sh
