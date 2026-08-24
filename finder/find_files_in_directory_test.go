@@ -13,7 +13,7 @@ func TestFailingOnReadDir(t *testing.T) {
 	// testing the error propagation path structure.
 	// NOTE: In a real-world scenario, we would mock os.ReadDir.
 	// For now, we test the structure of the error handling.
-	
+
 	// Create a path unlikely to exist or readable to force an error on os.ReadDir
 	badPath := filepath.Join("nonexistent", "path", "for", "test")
 	dir, err := FindFilesInDirectory(badPath, []string{".http"})
@@ -62,7 +62,7 @@ func TestFindFilesInDirectory_Basic(t *testing.T) {
 	}
 
 	// 3. Assertions
-	
+
 	// Helper to collect all files from the tree
 	var allFiles []File
 	var collectFiles func(d Directory)
@@ -79,13 +79,13 @@ func TestFindFilesInDirectory_Basic(t *testing.T) {
 	if len(actualDir.Directories) != 1 {
 		t.Errorf("Expected 1 non-empty directory (sub), got %d. Directories found: %+v", len(actualDir.Directories), actualDir.Directories)
 	}
-	
+
 	// Проверяем, что найденные файлы корректны (total 3)
 	expectedFilesCount := 3
 	if len(allFiles) != expectedFilesCount {
 		t.Errorf("Expected %d files in total, got %d. Files found: %+v", expectedFilesCount, len(allFiles), allFiles)
 	}
-	
+
 	// Проверяем, что все три файла были найдены и пути правильные
 	foundPaths := make(map[string]bool)
 	for _, file := range allFiles {
@@ -144,5 +144,30 @@ func TestFindFilesInDirectory_ExtensionWithoutDot(t *testing.T) {
 
 	if len(actualDir.Files) != 0 {
 		t.Errorf("Expected 0 files when searching with extension without dot, got %d", len(actualDir.Files))
+	}
+}
+
+func TestFindFilesInDirectory_IgnoresHeavyDirectories(t *testing.T) {
+	tempDir := t.TempDir()
+	ignoredDir := filepath.Join(tempDir, "node_modules", "package")
+	if err := os.MkdirAll(ignoredDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(ignoredDir, "hidden.http"), []byte("GET http://example.com"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(tempDir, "visible.http"), []byte("GET http://example.com"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	directory, err := FindFilesInDirectory(tempDir, []string{".http"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(directory.Files) != 1 || directory.Files[0].Name != "visible.http" {
+		t.Fatalf("unexpected files: %+v", directory.Files)
+	}
+	if len(directory.Directories) != 0 {
+		t.Fatalf("ignored directory was included: %+v", directory.Directories)
 	}
 }

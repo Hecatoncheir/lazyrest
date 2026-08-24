@@ -5,6 +5,7 @@ type Directory struct {
 	Path        string
 	Directories []Directory
 	Files       []File
+	Warnings    []string
 }
 
 type File struct {

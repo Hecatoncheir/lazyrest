@@ -1,22 +1,28 @@
 package suites
 
 import (
-	"lazyrest/parser/http"
-	"lazyrest/ui/theme"
+	"github.com/Hecatoncheir/lazyrest/parser/http"
+	"github.com/Hecatoncheir/lazyrest/ui/theme"
 
 	"github.com/rivo/tview"
 )
 
-func New() Suites {
-	element := Suites{}
-	return element
+func New() *Suites {
+	return &Suites{}
+}
+
+func (widget *Suites) IsSearching() bool {
+	return widget.searchMode
 }
 
 type Suites struct {
 	Element               tview.Primitive
 	theme                 theme.SuitesTheme
 	suites                []http.HttpSuite
+	diagnostics           []http.Diagnostic
 	selectedSuite         http.HttpSuite
+	searchQuery           string
+	searchMode            bool
 	onEscapeCallback      OnEscapeCallbackType
 	onSuiteSelectCallback OnSuiteSelectCallbackType
 }

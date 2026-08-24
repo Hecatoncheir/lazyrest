@@ -1,8 +1,8 @@
 package ui
 
 import (
-	"github.com/rivo/tview"
 	"github.com/gdamore/tcell/v2"
+	"github.com/rivo/tview"
 )
 
 type onInputCallbackType func(event *tcell.EventKey) *tcell.EventKey
@@ -10,8 +10,12 @@ type onInputCallbackType func(event *tcell.EventKey) *tcell.EventKey
 func onInputCallback(application *Application) onInputCallbackType {
 	applicationElement := application.Element
 	return func(event *tcell.EventKey) *tcell.EventKey {
+		if application.HttpFilesTree.IsSearching() || application.Suites.IsSearching() || application.Producer.IsSearching() {
+			return event
+		}
 		// handle 'q' to quit
 		if event.Rune() == 'q' {
+			application.Producer.CancelActive()
 			applicationElement.Stop()
 			return event
 		}

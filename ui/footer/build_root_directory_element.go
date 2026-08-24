@@ -3,7 +3,7 @@ package footer
 import (
 	"fmt"
 
-	"lazyrest/ui/theme"
+	"github.com/Hecatoncheir/lazyrest/ui/theme"
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"

@@ -1,29 +1,28 @@
 package ui
 
 import (
-	"lazyrest/ui/footer"
-	"lazyrest/ui/producer"
-	"lazyrest/ui/suite"
-	"lazyrest/ui/suites"
-	"lazyrest/ui/tree"
-	"lazyrest/ui/workspace"
+	"github.com/Hecatoncheir/lazyrest/ui/footer"
+	"github.com/Hecatoncheir/lazyrest/ui/producer"
+	"github.com/Hecatoncheir/lazyrest/ui/suite"
+	"github.com/Hecatoncheir/lazyrest/ui/suites"
+	"github.com/Hecatoncheir/lazyrest/ui/tree"
+	"github.com/Hecatoncheir/lazyrest/ui/workspace"
 
 	"github.com/rivo/tview"
 )
 
-func NewApplication() Application {
-	widget := Application{}
-	return widget
+func NewApplication() *Application {
+	return &Application{}
 }
 
 type Application struct {
 	Element       *tview.Application
-	HttpFilesTree tree.Tree
-	Suites        suites.Suites
-	Suite         suite.Suite
-	Producer      producer.Producer
-	Workspace     workspace.Workspace
-	Footer        footer.Footer
+	HttpFilesTree *tree.Tree
+	Suites        *suites.Suites
+	Suite         *suite.Suite
+	Producer      *producer.Producer
+	Workspace     *workspace.Workspace
+	Footer        *footer.Footer
 }
 
 func (widget *Application) Build() *tview.Application {

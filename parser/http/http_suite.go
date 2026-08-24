@@ -1,12 +1,12 @@
 package http
 
 type HttpSuite struct {
-	Name     string
-	Method   string
-	Uri      string
-	Header   map[string]string
-	Body     string
-	BodyType string
+	Name         string
+	Method       string
+	Uri          string
+	Header       map[string]string
+	Body         string
+	BodyType     string
 	IsHurl       bool
 	HurlFilePath string
 }

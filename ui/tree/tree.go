@@ -1,7 +1,7 @@
 package tree
 
 import (
-	"lazyrest/finder"
+	"github.com/Hecatoncheir/lazyrest/finder"
 
 	"github.com/rivo/tview"
 )
@@ -9,11 +9,18 @@ import (
 type Tree struct {
 	Element              tview.Primitive
 	onSelectFileCallback OnSelectFileCallbackType
+	searchMode           bool
+	searchQuery          string
+	searchMatches        []*tview.TreeNode
+	searchIndex          int
 }
 
-func New() Tree {
-	widget := Tree{}
-	return widget
+func New() *Tree {
+	return &Tree{}
+}
+
+func (widget *Tree) IsSearching() bool {
+	return widget.searchMode
 }
 
 func (widget *Tree) Build(parameters Parameters) tview.Primitive {
@@ -51,12 +58,14 @@ func (widget *Tree) Build(parameters Parameters) tview.Primitive {
 		extensions,
 	)
 	if err != nil {
-		widget := buildNoFilesFound(
+		element := buildNoFilesFound(
 			rootDirectotyPath,
 			theme,
 		)
-		widget.Box = box
-		return widget
+		element.SetText("Unable to scan directory: " + err.Error())
+		element.Box = box
+		widget.Element = element
+		return element
 	}
 
 	element := buildTree(
@@ -65,6 +74,7 @@ func (widget *Tree) Build(parameters Parameters) tview.Primitive {
 		onSelectFileCallback,
 	)
 	element.Box = box
+	element.SetInputCapture(onInputCallback(widget))
 
 	widget.Element = element
 

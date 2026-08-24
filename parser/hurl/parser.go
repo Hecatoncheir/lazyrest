@@ -1,28 +1,33 @@
 package hurl
 
 import (
-	"lazyrest/parser/http"
+	"fmt"
+	"github.com/Hecatoncheir/lazyrest/parser/http"
+	"os"
+	"path/filepath"
 )
 
 type Parser struct{}
 
-func NewParser() (Parser, error) {
-	return Parser{}, nil
+func NewParser() (*Parser, error) {
+	return &Parser{}, nil
 }
 
-func (p Parser) GetSuitesFromFile(filePath string) ([]http.HttpSuite, error) {
-	hp, err := http.NewParser()
+func (p *Parser) GetSuitesFromFile(filePath string) ([]http.HttpSuite, error) {
+	info, err := os.Stat(filePath)
 	if err != nil {
 		return nil, err
 	}
-	suites, err := hp.GetSuitesFromFile(filePath)
-	if err != nil {
-		return nil, err
+	if !info.Mode().IsRegular() {
+		return nil, fmt.Errorf("hurl path is not a regular file: %s", filePath)
 	}
 
-	for i := range suites {
-		suites[i].IsHurl = true
-	}
-
-	return suites, nil
+	return []http.HttpSuite{{
+		Name:         filepath.Base(filePath),
+		Method:       "HURL",
+		Uri:          filePath,
+		Header:       map[string]string{},
+		IsHurl:       true,
+		HurlFilePath: filePath,
+	}}, nil
 }

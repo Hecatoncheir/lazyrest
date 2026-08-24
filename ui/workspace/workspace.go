@@ -1,17 +1,16 @@
 package workspace
 
 import (
-	"lazyrest/ui/producer"
-	"lazyrest/ui/suite"
-	"lazyrest/ui/suites"
-	"lazyrest/ui/tree"
+	"github.com/Hecatoncheir/lazyrest/ui/producer"
+	"github.com/Hecatoncheir/lazyrest/ui/suite"
+	"github.com/Hecatoncheir/lazyrest/ui/suites"
+	"github.com/Hecatoncheir/lazyrest/ui/tree"
 
 	"github.com/rivo/tview"
 )
 
-func New() Workspace {
-	widget := Workspace{}
-	return widget
+func New() *Workspace {
+	return &Workspace{}
 }
 
 type Workspace struct {
@@ -20,10 +19,10 @@ type Workspace struct {
 
 func (widget *Workspace) Build(
 	parameters Parameters,
-	treeWidget tree.Tree,
-	suitesWidget suites.Suites,
-	suiteWidget suite.Suite,
-	producerWidget producer.Producer,
+	treeWidget *tree.Tree,
+	suitesWidget *suites.Suites,
+	suiteWidget *suite.Suite,
+	producerWidget *producer.Producer,
 ) tview.Primitive {
 	suitesArea := tview.NewFlex().
 		SetDirection(tview.FlexColumnCSS).

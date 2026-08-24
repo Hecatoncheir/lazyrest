@@ -1,6 +1,6 @@
 package suites
 
-import "lazyrest/ui/theme"
+import "github.com/Hecatoncheir/lazyrest/ui/theme"
 
 type Parameters struct {
 	Theme                     theme.Theme

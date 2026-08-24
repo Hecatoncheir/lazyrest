@@ -1,15 +1,14 @@
 package suite
 
 import (
-	"lazyrest/parser/http"
-	"lazyrest/ui/theme"
+	"github.com/Hecatoncheir/lazyrest/parser/http"
+	"github.com/Hecatoncheir/lazyrest/ui/theme"
 
 	"github.com/rivo/tview"
 )
 
-func New() Suite {
-	widget := Suite{}
-	return widget
+func New() *Suite {
+	return &Suite{}
 }
 
 type Suite struct {

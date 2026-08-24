@@ -1,15 +1,21 @@
 package producer
 
 import (
-	"lazyrest/parser/http"
-	"lazyrest/ui/theme"
+	"context"
+	"github.com/Hecatoncheir/lazyrest/parser/http"
+	"github.com/Hecatoncheir/lazyrest/runner"
+	"github.com/Hecatoncheir/lazyrest/ui/theme"
+	"sync"
 
 	"github.com/rivo/tview"
 )
 
-func New() Producer {
-	widget := Producer{}
-	return widget
+func New() *Producer {
+	return &Producer{}
+}
+
+func (widget *Producer) IsSearching() bool {
+	return widget.searchMode
 }
 
 type Producer struct {
@@ -18,16 +24,68 @@ type Producer struct {
 	suite            http.HttpSuite
 	onEscapeCallback OnEscapeCallbackType
 	app              *tview.Application
+	runMutex         sync.Mutex
+	runID            uint64
+	cancelRun        context.CancelFunc
+	history          []HistoryEntry
+	historyIndex     int
+	currentText      string
+	searchMode       bool
+	searchQuery      string
+	runnerConfig     runner.Config
+}
+
+func (widget *Producer) StartRun() (context.Context, uint64) {
+	widget.runMutex.Lock()
+	defer widget.runMutex.Unlock()
+	if widget.cancelRun != nil {
+		widget.cancelRun()
+	}
+	widget.runID++
+	ctx, cancel := context.WithCancel(context.Background())
+	widget.cancelRun = cancel
+	return ctx, widget.runID
+}
+
+func (widget *Producer) IsCurrentRun(runID uint64) bool {
+	widget.runMutex.Lock()
+	defer widget.runMutex.Unlock()
+	return widget.runID == runID
+}
+
+func (widget *Producer) FinishRun(runID uint64) bool {
+	widget.runMutex.Lock()
+	defer widget.runMutex.Unlock()
+	if widget.runID != runID {
+		return false
+	}
+	if widget.cancelRun != nil {
+		widget.cancelRun()
+		widget.cancelRun = nil
+	}
+	return true
+}
+
+func (widget *Producer) CancelActive() {
+	widget.runMutex.Lock()
+	defer widget.runMutex.Unlock()
+	widget.runID++
+	if widget.cancelRun != nil {
+		widget.cancelRun()
+		widget.cancelRun = nil
+	}
 }
 
 func (widget *Producer) Build(parameters Parameters) tview.Primitive {
 	widget.onEscapeCallback = parameters.OnEscapeCallback
 	widget.app = parameters.App
+	widget.runnerConfig = parameters.RunnerConfig
 	theme := parameters.Theme.Producer
 	widget.theme = theme
 
 	element := tview.NewTextView()
 	element.
+		SetDynamicColors(true).
 		SetTextColor(theme.Foreground).
 		SetBackgroundColor(theme.Background)
 

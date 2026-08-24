@@ -3,6 +3,8 @@
 
 pkg/
 .cache/
+.idea/
+/lazyrest
 *.exe
 *.exe~
 *.dll

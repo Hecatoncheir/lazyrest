@@ -2,7 +2,7 @@ package suite
 
 import (
 	"fmt"
-	"lazyrest/parser/http"
+	"github.com/Hecatoncheir/lazyrest/parser/http"
 
 	"github.com/rivo/tview"
 )

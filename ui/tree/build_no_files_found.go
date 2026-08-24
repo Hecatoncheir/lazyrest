@@ -2,7 +2,7 @@ package tree
 
 import (
 	"fmt"
-	"lazyrest/ui/theme"
+	"github.com/Hecatoncheir/lazyrest/ui/theme"
 
 	"github.com/rivo/tview"
 )

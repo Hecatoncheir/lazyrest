@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v0.3.0] - 2026-08-24
+### Added
+- Cancellable request execution with configurable timeouts and response-size limits.
+- File, request, and response search plus an in-memory response history.
+- `.http` variable substitution and visible parser diagnostics.
+
+### Changed
+- Hurl files are represented and executed as complete Hurl sessions.
+- Tree-sitter parser and tree ownership is explicit and no longer copied by value.
+- Sensitive request headers are redacted in the response pane.
+- CI, module metadata, and usage documentation have been updated.
+
+### Fixed
+- Hurl execution now receives the selected file path.
+- Stale background requests can no longer overwrite newer UI results.
+- Footer breadcrumbs retain the selected request name.
+
 ## [v0.2.9] - 2026-08-21
 ### Fixed
 - Resolved Hurl test failures.

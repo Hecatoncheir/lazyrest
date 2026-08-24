@@ -11,21 +11,27 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0 # Important to fetch all history for changelog parsing
 
       - name: Set up Go
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v7
         with:
-          go_version: '1.22'
+          go-version-file: go.mod
+          cache-dependency-path: go.sum
 
-      - name: Install Dependencies
-        run: |
-          go mod tidy
+      - name: Verify formatting
+        run: test -z "$(gofmt -l .)"
+
+      - name: Verify module files
+        run: go mod tidy && git diff --exit-code
+
+      - name: Run go vet
+        run: go vet ./...
 
       - name: Run Unit Tests
-        run: go test ./...
+        run: go test -race ./...
 
       - name: Build Project
         run: go build -v ./...
@@ -37,7 +43,7 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
@@ -55,7 +61,7 @@ jobs:
           echo "EOF" >> $GITHUB_OUTPUT
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v3
         with:
           body: ${{ steps.changelog.outputs.body }}
           generate_release_notes: false # We are providing our own from changelog

@@ -1,7 +1,7 @@
 package suite
 
 import (
-	"lazyrest/parser/http"
+	"github.com/Hecatoncheir/lazyrest/parser/http"
 
 	"github.com/gdamore/tcell/v2"
 )

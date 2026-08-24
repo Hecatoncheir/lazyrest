@@ -1,7 +1,7 @@
 package theme
 
 import (
-	"lazyrest/color"
+	"github.com/Hecatoncheir/lazyrest/color"
 
 	"github.com/rivo/tview"
 )
@@ -69,8 +69,8 @@ func NewDefault() Theme {
 			BorderFocus:     color.Color("#fbf1c7").ToTerminal(),
 		},
 		Footer: FooterTheme{
-			Background: color.Color("#504945").ToTerminal(),
-			Foreground: color.Color("#bdae93").ToTerminal(),
+			Background:      color.Color("#504945").ToTerminal(),
+			Foreground:      color.Color("#bdae93").ToTerminal(),
 			SuiteForeground: color.Color("#bdae93").ToTerminal(),
 			RootDirectoryPath: RootDirectoryPathTheme{
 				Background:      color.Color("#bdae93").ToTerminal(),

@@ -1,7 +1,7 @@
 package tree
 
 import (
-	"lazyrest/finder"
+	"github.com/Hecatoncheir/lazyrest/finder"
 
 	"github.com/rivo/tview"
 )

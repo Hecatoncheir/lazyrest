@@ -1,19 +1,31 @@
 package finder
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 )
 
+var ignoredDirectories = map[string]struct{}{
+	".git":         {},
+	".hg":          {},
+	".svn":         {},
+	".cache":       {},
+	"node_modules": {},
+	"vendor":       {},
+}
+
 func FindFilesInDirectory(directoryPath string, extensions []string) (Directory, error) {
-	_, directoryName := filepath.Split(directoryPath)
+	directoryPath = filepath.Clean(directoryPath)
+	directoryName := filepath.Base(directoryPath)
 
 	directory := Directory{
 		Name:        directoryName,
 		Path:        directoryPath,
 		Directories: []Directory{},
 		Files:       []File{},
+		Warnings:    []string{},
 	}
 
 	entities, err := os.ReadDir(directoryPath)
@@ -26,10 +38,15 @@ func FindFilesInDirectory(directoryPath string, extensions []string) (Directory,
 		entityPath := filepath.Join(directory.Path, entityName)
 
 		if entity.IsDir() {
-			directoryWithFiles, err := FindFilesInDirectory(entityPath, extensions)
-			if err != nil {
+			if _, ignored := ignoredDirectories[entityName]; ignored {
 				continue
 			}
+			directoryWithFiles, err := FindFilesInDirectory(entityPath, extensions)
+			if err != nil {
+				directory.Warnings = append(directory.Warnings, fmt.Sprintf("%s: %v", entityPath, err))
+				continue
+			}
+			directory.Warnings = append(directory.Warnings, directoryWithFiles.Warnings...)
 			if len(directoryWithFiles.Directories) == 0 && len(directoryWithFiles.Files) == 0 {
 				continue
 			}

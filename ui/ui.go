@@ -1,17 +1,18 @@
 package ui
 
 import (
-	"lazyrest/ui/footer"
-	"lazyrest/ui/layout"
-	"lazyrest/ui/producer"
-	"lazyrest/ui/suite"
-	"lazyrest/ui/suites"
-	"lazyrest/ui/theme"
-	"lazyrest/ui/tree"
-	"lazyrest/ui/workspace"
+	"github.com/Hecatoncheir/lazyrest/runner"
+	"github.com/Hecatoncheir/lazyrest/ui/footer"
+	"github.com/Hecatoncheir/lazyrest/ui/layout"
+	"github.com/Hecatoncheir/lazyrest/ui/producer"
+	"github.com/Hecatoncheir/lazyrest/ui/suite"
+	"github.com/Hecatoncheir/lazyrest/ui/suites"
+	"github.com/Hecatoncheir/lazyrest/ui/theme"
+	"github.com/Hecatoncheir/lazyrest/ui/tree"
+	"github.com/Hecatoncheir/lazyrest/ui/workspace"
 )
 
-func Run(rootDirectoryPath string) error {
+func Run(rootDirectoryPath string, runnerConfig runner.Config) error {
 	uiTheme := theme.NewDefault()
 
 	// Application
@@ -25,7 +26,7 @@ func Run(rootDirectoryPath string) error {
 		RootDirectoryPath:    rootDirectoryPath,
 		Theme:                uiTheme,
 		FilesExtension:       httpFilesExtensions,
-		OnSelectFileCallback: onSelectFileCallback(&applicationWidget),
+		OnSelectFileCallback: onSelectFileCallback(applicationWidget),
 	}
 	httpFilesTreeElement := httpFilesTreeWidget.Build(httpFilesTreeParameters)
 	applicationWidget.HttpFilesTree = httpFilesTreeWidget
@@ -34,8 +35,8 @@ func Run(rootDirectoryPath string) error {
 	suiteWidget := suite.New()
 	suiteParameters := suite.Parameters{
 		Theme:            uiTheme,
-		OnEscapeCallback: onSuiteEscape(&applicationWidget),
-		OnRunCallback:    onSuiteRun(&applicationWidget),
+		OnEscapeCallback: onSuiteEscape(applicationWidget),
+		OnRunCallback:    onSuiteRun(applicationWidget),
 	}
 	suiteWidget.Build(suiteParameters)
 	applicationWidget.Suite = suiteWidget
@@ -44,8 +45,8 @@ func Run(rootDirectoryPath string) error {
 	suitesWidget := suites.New()
 	suitesParameters := suites.Parameters{
 		Theme:                     uiTheme,
-		OnEscapeCallback:          onSuitesEscape(&applicationWidget),
-		OnSuiteSelectCallbackType: onSuiteSelect(&applicationWidget),
+		OnEscapeCallback:          onSuitesEscape(applicationWidget),
+		OnSuiteSelectCallbackType: onSuiteSelect(applicationWidget),
 	}
 	suitesWidget.Build(suitesParameters)
 	applicationWidget.Suites = suitesWidget
@@ -54,8 +55,9 @@ func Run(rootDirectoryPath string) error {
 	producerWidget := producer.New()
 	producerParameters := producer.Parameters{
 		Theme:            uiTheme,
-		OnEscapeCallback: onProducerEscape(&applicationWidget),
+		OnEscapeCallback: onProducerEscape(applicationWidget),
 		App:              applicationElement,
+		RunnerConfig:     runnerConfig,
 	}
 	producerWidget.Build(producerParameters)
 	applicationWidget.Producer = producerWidget
@@ -100,7 +102,7 @@ func Run(rootDirectoryPath string) error {
 		SetRoot(layoutElement, true).
 		SetFocus(httpFilesTreeElement)
 
-	applicationElement.SetInputCapture(onInputCallback(&applicationWidget))
+	applicationElement.SetInputCapture(onInputCallback(applicationWidget))
 
 	err := applicationElement.Run()
 	if err != nil {

@@ -1,6 +1,6 @@
 package ui
 
-import "lazyrest/parser/http"
+import "github.com/Hecatoncheir/lazyrest/parser/http"
 
 func onSuiteSelect(application *Application) func(suite http.HttpSuite) {
 	return func(suite http.HttpSuite) {

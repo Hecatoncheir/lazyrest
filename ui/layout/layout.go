@@ -1,23 +1,22 @@
 package layout
 
 import (
-	"lazyrest/ui/footer"
-	"lazyrest/ui/workspace"
+	"github.com/Hecatoncheir/lazyrest/ui/footer"
+	"github.com/Hecatoncheir/lazyrest/ui/workspace"
 
 	"github.com/rivo/tview"
 )
 
-func New() Layout {
-	element := Layout{}
-	return element
+func New() *Layout {
+	return &Layout{}
 }
 
 type Layout struct{}
 
 func (element *Layout) Build(
 	parameters Parameters,
-	workspaceWidget workspace.Workspace,
-	footerWidget footer.Footer,
+	workspaceWidget *workspace.Workspace,
+	footerWidget *footer.Footer,
 ) tview.Primitive {
 	workspaceElement := workspaceWidget.Element
 	footerElement := footerWidget.Element

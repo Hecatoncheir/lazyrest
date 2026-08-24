@@ -5,9 +5,10 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/Hecatoncheir/lazyrest/finder"
+	"github.com/Hecatoncheir/lazyrest/ui/theme"
 	"github.com/gdamore/tcell/v2"
-	"lazyrest/finder"
-	"lazyrest/ui/theme"
+	"github.com/rivo/tview"
 )
 
 // Mock implementation for parameters
@@ -74,5 +75,23 @@ func TestTree_Build_NoFilesFound(t *testing.T) {
 	// 3. Assertions
 	if element == nil {
 		t.Fatal("Build returned nil element when no files found")
+	}
+}
+
+func TestCollectMatchingNodes(t *testing.T) {
+	root := tview.NewTreeNode("root").SetReference(finder.Directory{Name: "root"})
+	directory := tview.NewTreeNode("api").SetReference(finder.Directory{Name: "api"})
+	match := tview.NewTreeNode("users.http").SetReference(finder.File{Name: "users.http"})
+	other := tview.NewTreeNode("projects.http").SetReference(finder.File{Name: "projects.http"})
+	directory.AddChild(match).AddChild(other)
+	root.AddChild(directory)
+
+	var matches []*tview.TreeNode
+	collectMatchingNodes(root, "users", &matches)
+	if len(matches) != 1 || matches[0] != match {
+		t.Fatalf("unexpected matches: %+v", matches)
+	}
+	if !directory.IsExpanded() || !root.IsExpanded() {
+		t.Fatal("parents of the match were not expanded")
 	}
 }

@@ -1,18 +1,16 @@
 package ui
 
 import (
-	"lazyrest/finder"
-	"lazyrest/ui/tree"
+	"github.com/Hecatoncheir/lazyrest/finder"
+	"github.com/Hecatoncheir/lazyrest/ui/tree"
 )
 
 func onSelectFileCallback(applicationWidget *Application) tree.OnSelectFileCallbackType {
 	return func(file finder.File) {
-		footerWidget := applicationWidget.Footer
-		footerWidget.SelectFile(file)
+		applicationWidget.Footer.SelectFile(file)
 
-		suitesWidget := applicationWidget.Suites
-		suitesWidget.ChangeSuitesFromFile(file)
-		suitesElement := suitesWidget.Element
+		applicationWidget.Suites.ChangeSuitesFromFile(file)
+		suitesElement := applicationWidget.Suites.Element
 
 		applicationElement := applicationWidget.Element
 		applicationElement.SetFocus(suitesElement)

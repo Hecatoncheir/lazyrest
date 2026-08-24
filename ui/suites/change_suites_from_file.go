@@ -1,9 +1,11 @@
 package suites
 
 import (
-	"lazyrest/finder"
-	"lazyrest/parser/hurl"
-	"lazyrest/parser/http"
+	"context"
+	"github.com/Hecatoncheir/lazyrest/finder"
+	"github.com/Hecatoncheir/lazyrest/parser/http"
+	"github.com/Hecatoncheir/lazyrest/parser/hurl"
+	"path/filepath"
 	"strings"
 
 	"github.com/rivo/tview"
@@ -14,11 +16,14 @@ type OnSuiteSelectCallbackType func(suite http.HttpSuite)
 func (widget *Suites) ChangeSuitesFromFile(file finder.File) {
 	element := widget.Element.(*tview.List)
 	element.Clear()
+	widget.searchQuery = ""
+	widget.searchMode = false
 
 	var suites []http.HttpSuite
+	var diagnostics []http.Diagnostic
 	var err error
 
-	if strings.HasSuffix(file.Path, ".hurl") {
+	if strings.EqualFold(filepath.Ext(file.Path), ".hurl") {
 		parser, pErr := hurl.NewParser()
 		if pErr != nil {
 			err = pErr
@@ -30,27 +35,22 @@ func (widget *Suites) ChangeSuitesFromFile(file finder.File) {
 		if pErr != nil {
 			err = pErr
 		} else {
-			suites, err = parser.GetSuitesFromFile(file.Path)
+			defer parser.Close()
+			result, parseErr := parser.ParseFile(context.Background(), file.Path)
+			suites = result.Suites
+			diagnostics = result.Diagnostics
+			err = parseErr
 		}
 	}
 
 	if err != nil {
-		element.AddItem(err.Error(), "", '0', nil)
+		element.AddItem("Error: "+err.Error(), "", 0, nil)
+		widget.suites = nil
+		widget.diagnostics = nil
+		return
 	}
 
 	widget.suites = suites
-
-	for _, suite := range suites {
-		theme := widget.theme
-		element.AddItem(suite.Method+" "+suite.Uri, suite.Body, 0, func() {
-			widget.onSuiteSelectCallback(suite)
-		}).
-			SetWrapAround(true).
-			SetHighlightFullLine(true).
-			SetMainTextColor(theme.SuiteForeground).
-			SetSecondaryTextColor(theme.SuiteForeground).
-			SetSelectedTextColor(theme.SuiteFocusForeground).
-			SetSelectedBackgroundColor(theme.SuiteFocusBackground).
-			SetBackgroundColor(theme.SuiteBackground)
-	}
+	widget.diagnostics = diagnostics
+	widget.render()
 }

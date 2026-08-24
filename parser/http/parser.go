@@ -1,41 +1,48 @@
 package http
 
 import (
+	"context"
 	"os"
 
 	sitter "github.com/smacker/go-tree-sitter"
 )
 
-func NewParser() (Parser, error) {
-	httpParser := Parser{}
-	parser := getParser()
-	httpParser.treesitter = parser
-	return httpParser, nil
+func NewParser() (*Parser, error) {
+	return &Parser{treesitter: getParser()}, nil
 }
 
 type Parser struct {
-	treesitter sitter.Parser
+	treesitter *sitter.Parser
 }
 
-func (parser Parser) GetSuitesFromFile(filePath string) ([]HttpSuite, error) {
+func (parser *Parser) GetSuitesFromFile(filePath string) ([]HttpSuite, error) {
+	result, err := parser.ParseFile(context.Background(), filePath)
+	return result.Suites, err
+}
+
+func (parser *Parser) ParseFile(ctx context.Context, filePath string) (ParseResult, error) {
 	source, err := os.ReadFile(filePath)
 	if err != nil {
-		return nil, err
+		return ParseResult{}, err
 	}
-
-	tree, err := getTree(source, parser.treesitter)
+	tree, err := getTree(ctx, source, parser.treesitter)
 	if err != nil {
-		return nil, err
+		return ParseResult{}, err
 	}
+	defer tree.Close()
 
-	suites, err := getSuites(source, tree)
-	if err != nil {
-		return nil, err
-	}
-
-	return suites, nil
+	suites, diagnostics := getSuites(source, tree)
+	return ParseResult{Suites: suites, Diagnostics: diagnostics}, nil
 }
 
-func (parser Parser) Reset() {
+func (parser *Parser) Reset() {
 	parser.treesitter.Reset()
+}
+
+func (parser *Parser) Close() {
+	if parser == nil || parser.treesitter == nil {
+		return
+	}
+	parser.treesitter.Close()
+	parser.treesitter = nil
 }

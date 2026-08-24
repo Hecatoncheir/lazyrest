@@ -12,6 +12,7 @@ type Response struct {
 	Time          time.Duration
 	ContentLength int
 	Body          string
+	Truncated     bool
 }
 
 // Response code: 200 (OK); Time: 7035ms (7 s 35 ms); Content length: 389 bytes (389 B)
@@ -25,10 +26,12 @@ func (response *Response) ToMiniString() string {
 	text := fmt.Sprintf(
 		"Response code: %v; \n"+
 			timeFormat+" \n"+
-			// "Time: %v (); "+
 			"Content length: %v \n",
 		response.Code,
 		response.ContentLength,
 	)
+	if response.Truncated {
+		text += "Response body was truncated.\n"
+	}
 	return text
 }

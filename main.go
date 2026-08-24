@@ -1,75 +1,37 @@
 package main
 
 import (
-	"lazyrest/ui"
+	"flag"
+	"github.com/Hecatoncheir/lazyrest/runner"
+	"github.com/Hecatoncheir/lazyrest/ui"
 	"log"
 	"os"
 )
 
 func main() {
+	timeout := flag.Duration("timeout", runner.DefaultTimeout, "request and Hurl execution timeout")
+	maxResponseBytes := flag.Int64("max-response-bytes", runner.DefaultMaxResponseBytes, "maximum response bytes kept in memory")
+	hurlExecutable := flag.String("hurl", "hurl", "path or name of the Hurl executable")
+	flag.Parse()
+
 	rootDirectoryPath, err := getRootDirectoryPath()
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	err = ui.Run(rootDirectoryPath)
+	err = ui.Run(rootDirectoryPath, runner.Config{
+		Timeout:          *timeout,
+		MaxResponseBytes: *maxResponseBytes,
+		HurlExecutable:   *hurlExecutable,
+	})
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	// rootDirectoryPath, err := getRootDirectoryPath()
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
-	//
-	// directoriesWithFiles, err := finder.FindFilesInDirectory(
-	// 	rootDirectoryPath,
-	// 	".http",
-	// )
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
-	//
-	// if len(directoriesWithFiles.Directories) == 0 && len(directoriesWithFiles.Files) == 0 {
-	// 	log.Fatal("No files for parse.")
-	// }
-	//
-	// httpParser, err := http.NewParser()
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
-
-	// fmt.Println(directoriesWithFiles.Path)
-	// for _, directory := range directoriesWithFiles.Directories {
-	// 	fmt.Println(directory.Path)
-	// 	fmt.Println(len(directory.Files))
-	// 	for _, directory := range directory.Directories {
-	// 		fmt.Println(directory.Path)
-	// 		fmt.Println(len(directory.Files))
-	// 		for _, file := range directory.Files {
-	// 			fmt.Println(file.Path)
-	// 			suites, err := httpParser.GetSuitesFromFile(file.Path)
-	// 			if err != nil {
-	// 				log.Fatal(err)
-	// 			}
-	// 			println(len(suites))
-	// 		}
-	// 	}
-	//
-	// 	for _, file := range directory.Files {
-	// 		fmt.Println(file.Path)
-	// 		suites, err := httpParser.GetSuitesFromFile(file.Path)
-	// 		if err != nil {
-	// 			log.Fatal(err)
-	// 		}
-	// 		println(len(suites))
-	// 	}
-	// }
 }
 
 func getRootDirectoryPath() (string, error) {
-	if len(os.Args) > 1 {
-		directoryPath := os.Args[1]
+	if flag.NArg() > 0 {
+		directoryPath := flag.Arg(0)
 		return directoryPath, nil
 	}
 
