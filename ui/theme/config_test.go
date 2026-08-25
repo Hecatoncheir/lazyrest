@@ -3,6 +3,9 @@ package theme
 import (
 	"reflect"
 	"testing"
+
+	appcolor "github.com/Hecatoncheir/lazyrest/color"
+	"github.com/gdamore/tcell/v2"
 )
 
 func TestFromConfigOverridesSemanticColors(t *testing.T) {
@@ -66,5 +69,49 @@ func TestPresetAllowsColorOverrides(t *testing.T) {
 func TestFromConfigRejectsUnknownPreset(t *testing.T) {
 	if _, err := FromConfig(Config{Preset: "unknown"}); err == nil {
 		t.Fatal("expected unknown preset error")
+	}
+}
+
+func TestSyntaxColorsFollowTheSemanticPalette(t *testing.T) {
+	configured, err := FromConfig(Config{Preset: "dracula"})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	cases := []struct {
+		role string
+		got  tcell.Color
+		want string
+	}{
+		{role: "string", got: configured.Producer.Syntax.String, want: "#50fa7b"},
+		{role: "key", got: configured.Producer.Syntax.Key, want: "#8be9fd"},
+		{role: "number", got: configured.Producer.Syntax.Number, want: "#f1fa8c"},
+		{role: "literal", got: configured.Producer.Syntax.Literal, want: "#ff5555"},
+		{role: "punctuation", got: configured.Producer.Syntax.Punctuation, want: "#6272a4"},
+	}
+	for _, testCase := range cases {
+		if want := appcolor.Color(testCase.want).ToTerminal(); testCase.got != want {
+			t.Errorf("%s took %v, want %v", testCase.role, testCase.got, want)
+		}
+	}
+}
+
+func TestEveryPresetDefinesSyntaxColors(t *testing.T) {
+	for _, name := range PresetNames() {
+		configured, err := FromConfig(Config{Preset: name})
+		if err != nil {
+			t.Fatal(err)
+		}
+		colors := configured.Producer.Syntax
+		for role, color := range map[string]tcell.Color{
+			"key": colors.Key, "string": colors.String, "number": colors.Number,
+			"literal": colors.Literal, "keyword": colors.Keyword,
+			"variable": colors.Variable, "punctuation": colors.Punctuation,
+			"comment": colors.Comment,
+		} {
+			if !color.Valid() {
+				t.Errorf("preset %s leaves %s unset", name, role)
+			}
+		}
 	}
 }

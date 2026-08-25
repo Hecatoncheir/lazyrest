@@ -6,6 +6,10 @@ import (
 	parserhttp "github.com/Hecatoncheir/lazyrest/parser/http"
 	"github.com/Hecatoncheir/lazyrest/runner"
 	nethttp "net/http"
+
+	"github.com/Hecatoncheir/lazyrest/ui/syntax"
+	"github.com/Hecatoncheir/lazyrest/ui/theme"
+	"github.com/rivo/tview"
 	"strings"
 	"testing"
 )
@@ -64,12 +68,19 @@ func TestFormatResponseBody_PrettyAndRawJSON(t *testing.T) {
 		Body:   `{"ok":true,"items":[1,2]}`,
 	}
 
-	pretty := formatResponseBody(response, BodyViewPretty)
+	pretty, language := formatResponseBody(response, BodyViewPretty)
 	if !strings.Contains(pretty, "\n  \"items\"") {
 		t.Fatalf("JSON was not formatted: %q", pretty)
 	}
-	if raw := formatResponseBody(response, BodyViewRaw); raw != response.Body {
+	if language != syntax.LanguageJSON {
+		t.Fatalf("unexpected language: %v", language)
+	}
+	raw, rawLanguage := formatResponseBody(response, BodyViewRaw)
+	if raw != response.Body {
 		t.Fatalf("raw body changed: %q", raw)
+	}
+	if rawLanguage != syntax.LanguagePlain {
+		t.Fatalf("raw body was marked for highlighting: %v", rawLanguage)
 	}
 }
 
@@ -136,5 +147,36 @@ func TestRenderExecutionResult_ShowsGraphQLQueryVariablesAndErrors(t *testing.T)
 	}
 	if !strings.Contains(text, "[red]") {
 		t.Errorf("a failed GraphQL response is not marked as failed: %q", text)
+	}
+}
+
+func TestRenderResult_UsesTheThemePalette(t *testing.T) {
+	widget := New()
+	widget.Build(Parameters{Theme: theme.NewDefault(), App: tview.NewApplication()})
+
+	suite := parserhttp.HttpSuite{
+		Method: "GET",
+		Uri:    "https://example.com/users",
+		Header: nethttp.Header{},
+	}
+	response := runner.Response{
+		Code:       "200 OK",
+		StatusCode: 200,
+		Header:     nethttp.Header{"Content-Type": []string{"application/json"}},
+		Body:       `{"name":"Ada","age":36}`,
+	}
+
+	text := widget.renderResult(suite, response, nil)
+	// The default theme is gruvbox: keys take its accent, strings its success
+	// colour, numbers its progress colour.
+	for _, want := range []string{`[#83a598]"name"`, `[#b8bb26]"Ada"`, `[#fabd2f]36`} {
+		if !strings.Contains(text, want) {
+			t.Errorf("missing %s in %q", want, text)
+		}
+	}
+
+	widget.bodyViewMode = BodyViewRaw
+	if raw := widget.renderResult(suite, response, nil); strings.Contains(raw, "[#83a598]\"name\"") {
+		t.Errorf("the raw view was highlighted: %q", raw)
 	}
 }

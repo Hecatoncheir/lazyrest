@@ -7,7 +7,9 @@ import (
 	"io"
 	"strings"
 
+	parserhttp "github.com/Hecatoncheir/lazyrest/parser/http"
 	"github.com/Hecatoncheir/lazyrest/runner"
+	"github.com/Hecatoncheir/lazyrest/ui/syntax"
 )
 
 type BodyViewMode uint8
@@ -31,15 +33,17 @@ func (widget *Producer) toggleBodyView() {
 		widget.bodyViewMode = BodyViewPretty
 	}
 	if !widget.IsRunning() && len(widget.history) > 0 {
-		entry := widget.history[widget.historyIndex]
-		widget.setText(renderExecutionResultWithLocale(entry.Suite, entry.Response, entry.Err, widget.bodyViewMode, widget.locale))
+		widget.setText(widget.renderEntry(widget.history[widget.historyIndex]))
 	}
 	widget.updateTitle()
 }
 
-func formatResponseBody(response runner.Response, mode BodyViewMode) string {
+// formatResponseBody returns the body as it should be displayed together with
+// the scanner that fits it. Raw is left untouched and unhighlighted, which is
+// what makes it the way to see exactly what came over the wire.
+func formatResponseBody(response runner.Response, mode BodyViewMode) (string, syntax.Language) {
 	if mode == BodyViewRaw || strings.TrimSpace(response.Body) == "" {
-		return response.Body
+		return response.Body, syntax.LanguagePlain
 	}
 
 	contentType := strings.ToLower(response.Header.Get("Content-Type"))
@@ -47,15 +51,38 @@ func formatResponseBody(response runner.Response, mode BodyViewMode) string {
 	if strings.Contains(contentType, "json") || json.Valid([]byte(trimmed)) {
 		var output bytes.Buffer
 		if err := json.Indent(&output, []byte(trimmed), "", "  "); err == nil {
-			return output.String()
+			return output.String(), syntax.LanguageJSON
 		}
 	}
 	if strings.Contains(contentType, "xml") || strings.HasPrefix(trimmed, "<") {
 		if formatted, ok := formatXML(trimmed); ok {
-			return formatted
+			return formatted, syntax.LanguageXML
 		}
 	}
-	return response.Body
+	return response.Body, syntax.LanguagePlain
+}
+
+// requestLanguage picks the scanner for the body a request sends.
+func requestLanguage(suite parserhttp.HttpSuite, mode BodyViewMode) syntax.Language {
+	if mode == BodyViewRaw {
+		return syntax.LanguagePlain
+	}
+	switch suite.BodyType {
+	case "json":
+		return syntax.LanguageJSON
+	case "xml":
+		return syntax.LanguageXML
+	case parserhttp.BodyTypeGraphQL:
+		return syntax.LanguageGraphQL
+	}
+	return syntax.LanguagePlain
+}
+
+func jsonLanguage(mode BodyViewMode) syntax.Language {
+	if mode == BodyViewRaw {
+		return syntax.LanguagePlain
+	}
+	return syntax.LanguageJSON
 }
 
 func formatXML(body string) (string, bool) {

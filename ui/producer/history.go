@@ -10,6 +10,8 @@ import (
 	"github.com/Hecatoncheir/lazyrest/locale"
 	"github.com/Hecatoncheir/lazyrest/parser/http"
 	"github.com/Hecatoncheir/lazyrest/runner"
+	"github.com/Hecatoncheir/lazyrest/ui/syntax"
+	"github.com/Hecatoncheir/lazyrest/ui/theme"
 
 	"github.com/rivo/tview"
 )
@@ -47,8 +49,30 @@ func (widget *Producer) showHistory(delta int) {
 	}
 	entry := widget.history[widget.historyIndex]
 	widget.historyVisible = true
-	widget.setText(renderExecutionResultWithLocale(entry.Suite, entry.Response, entry.Err, widget.bodyViewMode, widget.locale))
+	widget.setText(widget.renderEntry(entry))
 	widget.updateTitle()
+}
+
+// renderEntry draws an entry with the settings the widget currently holds.
+func (widget *Producer) renderEntry(entry HistoryEntry) string {
+	return widget.renderResult(entry.Suite, entry.Response, entry.Err)
+}
+
+func (widget *Producer) renderResult(suite http.HttpSuite, response runner.Response, err error) string {
+	return renderExecutionResultWithLocale(suite, response, err, widget.bodyViewMode, widget.locale, syntaxPalette(widget.theme.Syntax))
+}
+
+func syntaxPalette(colors theme.SyntaxTheme) syntax.Palette {
+	return syntax.Palette{
+		Key:         colors.Key,
+		String:      colors.String,
+		Number:      colors.Number,
+		Literal:     colors.Literal,
+		Keyword:     colors.Keyword,
+		Variable:    colors.Variable,
+		Punctuation: colors.Punctuation,
+		Comment:     colors.Comment,
+	}
 }
 
 func (widget *Producer) setText(text string) {
@@ -61,16 +85,16 @@ func renderExecutionResult(suite http.HttpSuite, response runner.Response, err e
 }
 
 func renderExecutionResultWithMode(suite http.HttpSuite, response runner.Response, err error, mode BodyViewMode) string {
-	return renderExecutionResultWithLocale(suite, response, err, mode, locale.English())
+	return renderExecutionResultWithLocale(suite, response, err, mode, locale.English(), syntax.Palette{})
 }
 
-func renderExecutionResultWithLocale(suite http.HttpSuite, response runner.Response, err error, mode BodyViewMode, translator *locale.Translator) string {
+func renderExecutionResultWithLocale(suite http.HttpSuite, response runner.Response, err error, mode BodyViewMode, translator *locale.Translator, palette syntax.Palette) string {
 	if err != nil {
-		return "[red]" + translator.Text("response_error") + ":[white]\n" + tview.Escape(redactSecrets(err.Error(), suite.SecretValues))
+		return "[red]" + translator.Text("response_error") + ":[-]\n" + tview.Escape(redactSecrets(err.Error(), suite.SecretValues))
 	}
 
 	var request strings.Builder
-	request.WriteString("[yellow]" + translator.Text("request") + ":[white]\n")
+	request.WriteString("[yellow]" + translator.Text("request") + ":[-]\n")
 	request.WriteString(tview.Escape(fmt.Sprintf("%s %s\n", suite.Method, redactSecrets(suite.Uri, suite.SecretValues))))
 
 	request.WriteString(tview.Escape(renderHeaders(suite.Header, suite.SecretValues)))
@@ -79,12 +103,12 @@ func renderExecutionResultWithLocale(suite http.HttpSuite, response runner.Respo
 		bodyLabel = "query"
 	}
 	if suite.Body != "" {
-		request.WriteString("\n[yellow]" + translator.Text(bodyLabel) + ":[white]\n")
-		request.WriteString(tview.Escape(redactSecrets(suite.Body, suite.SecretValues)))
+		request.WriteString("\n[yellow]" + translator.Text(bodyLabel) + ":[-]\n")
+		request.WriteString(syntax.Highlight(redactSecrets(suite.Body, suite.SecretValues), requestLanguage(suite, mode), palette))
 	}
 	if suite.GraphQLVariables != "" {
-		request.WriteString("\n\n[yellow]" + translator.Text("variables") + ":[white]\n")
-		request.WriteString(tview.Escape(redactSecrets(prettyJSON(suite.GraphQLVariables), suite.SecretValues)))
+		request.WriteString("\n\n[yellow]" + translator.Text("variables") + ":[-]\n")
+		request.WriteString(syntax.Highlight(redactSecrets(prettyJSON(suite.GraphQLVariables), suite.SecretValues), jsonLanguage(mode), palette))
 	}
 
 	responseColor := "white"
@@ -116,12 +140,13 @@ func renderExecutionResultWithLocale(suite http.HttpSuite, response runner.Respo
 		responseDetails.WriteString("\n" + translator.Text("headers") + ":\n")
 		responseDetails.WriteString(renderHeaders(response.Header, suite.SecretValues))
 	}
-	body := redactSecrets(formatResponseBody(response, mode), suite.SecretValues)
-	responseText := fmt.Sprintf("[%s]%s:[white]\n%s\n%s",
+	formatted, language := formatResponseBody(response, mode)
+	body := redactSecrets(formatted, suite.SecretValues)
+	responseText := fmt.Sprintf("[%s]%s:[-]\n%s\n%s",
 		responseColor,
 		translator.Text("response"),
 		tview.Escape(responseDetails.String()),
-		tview.Escape(body),
+		syntax.Highlight(body, language, palette),
 	)
 	return request.String() + separator + responseText
 }

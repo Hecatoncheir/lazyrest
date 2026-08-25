@@ -129,7 +129,7 @@ func (widget *Producer) ChangeSuite(suite http.HttpSuite) {
 				widget.onRunFinished(response, err)
 			}
 			widget.addHistory(suite, response, err)
-			text := renderExecutionResultWithLocale(suite, response, err, widget.bodyViewMode, widget.locale)
+			text := widget.renderResult(suite, response, err)
 
 			widget.showCompletedResult(element, text)
 		})

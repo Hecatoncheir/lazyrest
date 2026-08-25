@@ -20,7 +20,7 @@
 - Public/private environment profiles plus recursive `{{variable}}` substitution.
 - Cancellable HTTP and Hurl execution with animated Producer/footer progress bars, timeout, and bounded response bodies.
 - GraphQL requests encoded the way servers expect, with a variables block and errors surfaced from `200` responses.
-- Response headers, protocol metadata, and Pretty/Raw JSON or XML bodies.
+- Response headers, protocol metadata, and Pretty/Raw JSON or XML bodies with syntax highlighting.
 - File/request/response search and an in-memory history of the last 50 runs.
 - Mouse and Vim-style keyboard navigation.
 
@@ -308,6 +308,10 @@ keybindings:
 
 The built-in languages are English (`en`), Russian (`ru`), Spanish (`es`), and Simplified Chinese (`zh`). The `languages` section is optional and overrides individual built-in strings. Missing strings fall back to the selected built-in language and then to English. A new language can be added by defining it under `languages` and selecting its code with `language`.
 
+Syntax highlighting takes its colours from the same palette, so it matches
+whichever preset or override is active, and bodies over 256 KiB are shown
+without highlighting to keep the pane responsive.
+
 The built-in theme presets are `gruvbox` (default), `catppuccin-mocha`, `tokyo-night`, `dracula`, `nord`, and `monokai`. Every theme color remains an optional hexadecimal RGB override applied on top of the selected preset. Choose **Choose theme** from the command palette to switch the current session immediately. Press `Ctrl+r` or choose **Reload configuration** to apply language, translations, keybindings, and theme changes from configuration without restarting lazyrest. Invalid configuration leaves the current settings active and displays an error in the footer.
 
 Supported named keys are `enter`, `esc`, `backspace`, `tab`, arrow keys, `home`, `end`, `pgup`, `pgdn`, `f1` through `f12`, and `ctrl+a` through `ctrl+z`. Single non-whitespace printable characters are case-sensitive.
@@ -348,7 +352,7 @@ The latest 50 request results are stored in `~/.config/lazyrest/history.json` an
 
 - `/`: search in the focused Files, Suites, or Producer area; `Enter` finishes entering the query.
 - `r`: reload the file tree in the background while Files is focused.
-- `p`: toggle Pretty/Raw response bodies while Producer is focused.
+- `p`: toggle Pretty/Raw response bodies while Producer is focused. Pretty formats and highlights JSON, XML, and GraphQL; Raw shows exactly what came over the wire.
 - `n` / `N`: next/previous matching file.
 - `[` / `]`: previous/next response history entry.
 - `d`: open parser, startup, and file-discovery diagnostics; press `d`, `q`, or `Esc` to close.
