@@ -56,7 +56,10 @@ jobs:
             cc: aarch64-linux-gnu-gcc
             packages: gcc-aarch64-linux-gnu
             name: lazyrest-linux-arm64
-          - os: macos-13
+          # Intel macOS runners are scarce, so darwin/amd64 is cross compiled
+          # on the arm64 runner. Apple ships a universal SDK and Go passes the
+          # matching -arch to clang, so CGO works either way.
+          - os: macos-latest
             goos: darwin
             goarch: amd64
             name: lazyrest-darwin-amd64
