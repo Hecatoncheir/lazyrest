@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v0.9.0] - 2026-08-25
+### Added
+- Configurable semantic UI colors under `theme` in `~/.config/lazyrest/config.yml`.
+- Runtime configuration reload through `Ctrl+r`, a configurable `reload_config` action, or the command palette.
+- A localized command palette for configuration reload, file reload, diagnostics, help, and quit.
+
+### Changed
+- Localization now covers byte progress, execution errors, palette commands, and language-aware diagnostic plural forms.
+
 ## [v0.8.0] - 2026-08-25
 ### Added
 - Configurable UI localization through `language` and `languages` in `~/.config/lazyrest/config.yml`.

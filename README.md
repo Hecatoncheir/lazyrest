@@ -192,6 +192,26 @@ lazyrest reads optional settings from `~/.config/lazyrest/config.yml`. Each acti
 ```yaml
 language: ru
 
+theme:
+  background: "#1d2021"
+  panel_background: "#504945"
+  panel_focus: "#3c3836"
+  foreground: "#fbf1c7"
+  muted: "#bdae93"
+  accent: "#83a598"
+  border: "#bdae93"
+  border_focus: "#fbf1c7"
+  selection_background: "#fbf1c7"
+  selection_foreground: "#282828"
+  progress: "#fabd2f"
+  progress_foreground: "#3c3836"
+  success: "#b8bb26"
+  success_foreground: "#3c3836"
+  failure: "#d65d0e"
+  failure_foreground: "#fbf1c7"
+  breadcrumb: "#bdae93"
+  breadcrumb_foreground: "#504945"
+
 languages:
   en:
     files: "Files"
@@ -233,9 +253,13 @@ keybindings:
   toggle_body: ["p"]
   history_previous: ["["]
   history_next: ["]"]
+  command_palette: [":", "ctrl+p"]
+  reload_config: ["ctrl+r"]
 ```
 
 The built-in languages are English (`en`), Russian (`ru`), and Spanish (`es`). The `languages` section is optional and overrides individual built-in strings. Missing strings fall back to the selected built-in language and then to English. A new language can be added by defining it under `languages` and selecting its code with `language`.
+
+All theme colors are optional hexadecimal RGB values. Omitted colors keep the built-in Gruvbox palette. Press `Ctrl+r` or choose **Reload configuration** from the command palette to apply language, translations, keybindings, and theme changes without restarting lazyrest. Invalid configuration leaves the current settings active and displays an error in the footer.
 
 Supported named keys are `enter`, `esc`, `backspace`, `tab`, arrow keys, `home`, `end`, `pgup`, `pgdn`, `f1` through `f12`, and `ctrl+a` through `ctrl+z`. Single non-whitespace printable characters are case-sensitive.
 
@@ -264,6 +288,8 @@ Supported named keys are `enter`, `esc`, `backspace`, `tab`, arrow keys, `home`,
 - `[` / `]`: previous/next response history entry.
 - `d`: open parser, startup, and file-discovery diagnostics; press `d`, `q`, or `Esc` to close.
 - `?`: open the built-in keyboard reference; press `?`, `q`, or `Esc` to close.
+- `:` or `Ctrl+p`: open the command palette.
+- `Ctrl+r`: reload `~/.config/lazyrest/config.yml` without restarting.
 - `q` or `Ctrl+C`: quit.
 
 ## Development

@@ -52,6 +52,15 @@ func (widget *Footer) Build(parameters Parameters) tview.Primitive {
 	return layout
 }
 
+func (widget *Footer) ApplySettings(uiTheme theme.Theme, translator *locale.Translator) {
+	widget.Parameters.Theme = uiTheme
+	widget.Parameters.Locale = translator
+	if layout, ok := widget.Element.(*tview.Flex); ok {
+		layout.SetBackgroundColor(uiTheme.Footer.Background)
+	}
+	widget.render()
+}
+
 func (widget *Footer) UpdateSuite(suiteName string) {
 	widget.suiteName = suiteName
 	widget.render()

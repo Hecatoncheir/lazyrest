@@ -28,6 +28,10 @@ var builtins = map[string]map[string]string{
 		"execute_request": "Execute the selected request", "go_back": "Go back", "search_response": "Search the response",
 		"toggle_body": "Toggle Pretty / Raw body", "previous_history": "Previous history entry", "next_history": "Next history entry",
 		"cancel_back": "Cancel the active request and go back", "search_finish": "Search input captures printable keys. Use %s to finish searching.",
+		"command_palette": "Command palette", "reload_config": "Reload configuration", "reload_files_command": "Reload files",
+		"config_reloaded": "Configuration reloaded", "config_error": "Configuration error: %s", "bytes": "%d bytes",
+		"diagnostics_one": "%d diagnostic", "diagnostics_many": "%d diagnostics",
+		"press_d": "press d",
 	},
 	"ru": {
 		"files": "Файлы", "suites": "Запросы", "suite": "Запрос", "producer": "Результат",
@@ -56,6 +60,10 @@ var builtins = map[string]map[string]string{
 		"go_back": "Назад", "search_response": "Искать в ответе", "toggle_body": "Переключить форматированный/исходный вид",
 		"previous_history": "Предыдущий элемент истории", "next_history": "Следующий элемент истории",
 		"cancel_back": "Отменить активный запрос и вернуться", "search_finish": "При поиске печатные клавиши вводят текст. Для завершения используйте %s.",
+		"command_palette": "Палитра команд", "reload_config": "Перезагрузить конфигурацию", "reload_files_command": "Обновить файлы",
+		"config_reloaded": "Конфигурация перезагружена", "config_error": "Ошибка конфигурации: %s", "bytes": "%d байт",
+		"diagnostics_one": "%d диагностика", "diagnostics_few": "%d диагностики", "diagnostics_many": "%d диагностик",
+		"press_d": "нажмите d",
 	},
 	"es": {
 		"files": "Archivos", "suites": "Solicitudes", "suite": "Solicitud", "producer": "Resultado",
@@ -82,5 +90,9 @@ var builtins = map[string]map[string]string{
 		"search_response": "Buscar en la respuesta", "toggle_body": "Alternar vista formateada/sin formato",
 		"previous_history": "Entrada anterior del historial", "next_history": "Entrada siguiente del historial",
 		"cancel_back": "Cancelar la solicitud activa y volver", "search_finish": "La búsqueda captura teclas imprimibles. Usa %s para terminar.",
+		"command_palette": "Paleta de comandos", "reload_config": "Recargar configuración", "reload_files_command": "Recargar archivos",
+		"config_reloaded": "Configuración recargada", "config_error": "Error de configuración: %s", "bytes": "%d bytes",
+		"diagnostics_one": "%d diagnóstico", "diagnostics_many": "%d diagnósticos",
+		"press_d": "pulsa d",
 	},
 }

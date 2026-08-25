@@ -3,12 +3,18 @@ package progress
 import (
 	"fmt"
 	"strings"
+
+	"github.com/Hecatoncheir/lazyrest/locale"
 )
 
 func Body(current, total int64, width, pulseWidth int) string {
+	return BodyLocalized(current, total, width, pulseWidth, locale.English())
+}
+
+func BodyLocalized(current, total int64, width, pulseWidth int, translator *locale.Translator) string {
 	if total <= 0 {
 		frame := int(current / 1024)
-		return fmt.Sprintf("%s %d bytes", Indeterminate(frame, width, pulseWidth), current)
+		return fmt.Sprintf("%s %s", Indeterminate(frame, width, pulseWidth), translator.Format("bytes", current))
 	}
 	percentage := float64(current) / float64(total) * 100
 	if percentage > 100 {

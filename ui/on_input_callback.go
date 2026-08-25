@@ -25,6 +25,17 @@ func onInputCallback(application *Application) onInputCallbackType {
 				case bindings.Matches(keymap.Back, event):
 					application.closeOverlay()
 					return nil
+				case bindings.Matches(keymap.CommandPalette, event):
+					if overlay == OverlayCommandPalette {
+						application.closeOverlay()
+					} else {
+						application.openOverlay(OverlayCommandPalette)
+					}
+					return nil
+				case bindings.Matches(keymap.ReloadConfig, event):
+					application.closeOverlay()
+					application.reloadConfiguration()
+					return nil
 				case bindings.Matches(keymap.Help, event):
 					if overlay == OverlayHelp {
 						application.closeOverlay()
@@ -51,6 +62,12 @@ func onInputCallback(application *Application) onInputCallbackType {
 			return event
 		}
 		switch {
+		case bindings.Matches(keymap.CommandPalette, event):
+			application.openOverlay(OverlayCommandPalette)
+			return nil
+		case bindings.Matches(keymap.ReloadConfig, event):
+			application.reloadConfiguration()
+			return nil
 		case bindings.Matches(keymap.Help, event):
 			application.openOverlay(OverlayHelp)
 			return nil

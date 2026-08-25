@@ -5,9 +5,8 @@ import (
 	"log"
 	"os"
 
+	appconfig "github.com/Hecatoncheir/lazyrest/config"
 	"github.com/Hecatoncheir/lazyrest/environment"
-	"github.com/Hecatoncheir/lazyrest/keymap"
-	"github.com/Hecatoncheir/lazyrest/locale"
 	"github.com/Hecatoncheir/lazyrest/runner"
 	"github.com/Hecatoncheir/lazyrest/ui"
 )
@@ -25,18 +24,16 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	keybindings, _, err := keymap.LoadDefault()
-	if err != nil {
-		log.Fatal(err)
-	}
-	translator, _, err := locale.LoadDefault()
+	settings, configPath, err := appconfig.LoadDefault()
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	err = ui.Run(rootDirectoryPath, ui.Config{
-		Keybindings: keybindings,
-		Locale:      translator,
+		Keybindings: settings.Keybindings,
+		Locale:      settings.Locale,
+		Theme:       settings.Theme,
+		ConfigPath:  configPath,
 		Runner: runner.Config{
 			Timeout:          *timeout,
 			MaxResponseBytes: *maxResponseBytes,

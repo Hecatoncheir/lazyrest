@@ -21,17 +21,18 @@ func NewApplication() *Application {
 }
 
 type Application struct {
-	Element       *tview.Application
-	Pages         *tview.Pages
-	Model         *Model
-	HttpFilesTree *tree.Tree
-	Suites        *suites.Suites
-	Suite         *suite.Suite
-	Producer      *producer.Producer
-	Workspace     *workspace.Workspace
-	Footer        *footer.Footer
-	Diagnostics   *tview.TextView
-	Help          *tview.TextView
+	Element        *tview.Application
+	Pages          *tview.Pages
+	Model          *Model
+	HttpFilesTree  *tree.Tree
+	Suites         *suites.Suites
+	Suite          *suite.Suite
+	Producer       *producer.Producer
+	Workspace      *workspace.Workspace
+	Footer         *footer.Footer
+	Diagnostics    *tview.TextView
+	Help           *tview.TextView
+	CommandPalette *tview.List
 
 	config          Config
 	theme           theme.Theme

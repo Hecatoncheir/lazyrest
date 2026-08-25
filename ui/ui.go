@@ -25,7 +25,10 @@ func Run(rootDirectoryPath string, config Config) error {
 }
 
 func BuildApplication(rootDirectoryPath string, config Config) *Application {
-	uiTheme := theme.NewDefault()
+	uiTheme := config.Theme
+	if uiTheme == (theme.Theme{}) {
+		uiTheme = theme.NewDefault()
+	}
 	if config.Keybindings == nil {
 		config.Keybindings = keymap.Default()
 	}

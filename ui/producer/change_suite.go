@@ -23,6 +23,10 @@ func formatProgressBar(current, total int64) string {
 	return uiprogress.Body(current, total, progressBarWidth, progressPulseWidth)
 }
 
+func (widget *Producer) formatProgressBar(current, total int64) string {
+	return uiprogress.BodyLocalized(current, total, progressBarWidth, progressPulseWidth, widget.locale)
+}
+
 func formatIndeterminateProgressBar(frame int) string {
 	return uiprogress.Indeterminate(frame, progressBarWidth, progressPulseWidth)
 }
@@ -109,7 +113,7 @@ func (widget *Producer) ChangeSuite(suite http.HttpSuite) {
 				if !widget.IsCurrentRun(runID) {
 					return
 				}
-				widget.setText(localizedRunningRequestText(widget.locale, formatProgressBar(current, total)))
+				widget.setText(localizedRunningRequestText(widget.locale, widget.formatProgressBar(current, total)))
 				if widget.onProgress != nil {
 					widget.onProgress(current, total)
 				}

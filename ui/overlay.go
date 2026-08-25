@@ -12,8 +12,9 @@ import (
 )
 
 const (
-	diagnosticsPage = "diagnostics"
-	helpPage        = "help"
+	diagnosticsPage    = "diagnostics"
+	helpPage           = "help"
+	commandPalettePage = "command-palette"
 )
 
 func (application *Application) buildOverlays() {
@@ -21,10 +22,12 @@ func (application *Application) buildOverlays() {
 	application.Diagnostics = application.newOverlayView(translator.Text("diagnostics") + " — d/Esc " + translator.Text("close"))
 	application.Help = application.newOverlayView(translator.Text("help") + " — ?/Esc " + translator.Text("close"))
 	application.Help.SetText(helpText(application.config.Keybindings, translator))
+	application.buildCommandPalette()
 
 	application.Pages.
 		AddPage(diagnosticsPage, centered(application.Diagnostics, 84, 24), true, false).
 		AddPage(helpPage, centered(application.Help, 72, 25), true, false)
+	application.Pages.AddPage(commandPalettePage, centered(application.CommandPalette, 58, 14), true, false)
 	application.refreshDiagnostics()
 }
 
@@ -60,6 +63,7 @@ func (application *Application) openOverlay(overlay Overlay) {
 	}
 	application.Pages.HidePage(diagnosticsPage)
 	application.Pages.HidePage(helpPage)
+	application.Pages.HidePage(commandPalettePage)
 
 	var page string
 	var focus tview.Primitive
@@ -71,6 +75,9 @@ func (application *Application) openOverlay(overlay Overlay) {
 	case OverlayHelp:
 		page = helpPage
 		focus = application.Help
+	case OverlayCommandPalette:
+		page = commandPalettePage
+		focus = application.CommandPalette
 	default:
 		application.closeOverlay()
 		return
@@ -86,6 +93,7 @@ func (application *Application) openOverlay(overlay Overlay) {
 func (application *Application) closeOverlay() {
 	application.Pages.HidePage(diagnosticsPage)
 	application.Pages.HidePage(helpPage)
+	application.Pages.HidePage(commandPalettePage)
 	application.Model.update(func(state *State) {
 		state.Overlay = OverlayNone
 	})
@@ -118,11 +126,12 @@ func (application *Application) refreshStatus() {
 	switch {
 	case state.Request.Phase == PhaseLoading && state.Request.HasProgress:
 		application.stopFooterProgress()
-		application.Footer.UpdateStatus(application.config.Locale.Text("running") + " " + uiprogress.Body(
+		application.Footer.UpdateStatus(application.config.Locale.Text("running") + " " + uiprogress.BodyLocalized(
 			state.Request.Current,
 			state.Request.Total,
 			footerProgressWidth,
 			footerProgressPulse,
+			application.config.Locale,
 		))
 		return
 	case state.Request.Phase == PhaseLoading:
@@ -141,7 +150,7 @@ func (application *Application) refreshStatus() {
 	case state.Request.Outcome == OutcomeFailure:
 		status = application.config.Locale.Text("failed")
 	case len(state.Diagnostics) > 0:
-		status = application.config.Locale.Format("diagnostics_press", len(state.Diagnostics))
+		status = application.config.Locale.PluralDiagnostics(len(state.Diagnostics)) + " — " + application.config.Locale.Text("press_d")
 	}
 	application.stopFooterProgress()
 	application.Footer.UpdateStatus(status)
@@ -226,6 +235,8 @@ func helpText(bindings *keymap.Bindings, translator *locale.Translator) string {
 		line(keymap.FocusDown, translator.Text("focus_down")),
 		line(keymap.FocusUp, translator.Text("focus_up")),
 		line(keymap.FocusRight, translator.Text("focus_right")),
+		line(keymap.CommandPalette, translator.Text("command_palette")),
+		line(keymap.ReloadConfig, translator.Text("reload_config")),
 		"",
 		translator.Text("files_help"),
 		line(keymap.Open, translator.Text("open_file")),

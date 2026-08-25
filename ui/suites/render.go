@@ -15,7 +15,7 @@ func (widget *Suites) render() {
 		title += " /" + widget.searchQuery
 	}
 	if widget.diagnosticCount > 0 {
-		title += widget.locale.Format("diagnostics_count", widget.diagnosticCount)
+		title += " — " + widget.locale.PluralDiagnostics(widget.diagnosticCount) + " [d]"
 	}
 	element.SetTitle(title)
 

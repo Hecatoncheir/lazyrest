@@ -50,6 +50,25 @@ func (translator *Translator) Format(key string, arguments ...any) string {
 	return fmt.Sprintf(translator.Text(key), arguments...)
 }
 
+func (translator *Translator) PluralDiagnostics(count int) string {
+	key := "diagnostics_many"
+	switch translator.Language() {
+	case "ru":
+		lastTwo := count % 100
+		last := count % 10
+		if last == 1 && lastTwo != 11 {
+			key = "diagnostics_one"
+		} else if last >= 2 && last <= 4 && (lastTwo < 12 || lastTwo > 14) {
+			key = "diagnostics_few"
+		}
+	default:
+		if count == 1 {
+			key = "diagnostics_one"
+		}
+	}
+	return translator.Format(key, count)
+}
+
 func clone(source map[string]string) map[string]string {
 	result := make(map[string]string, len(source))
 	merge(result, source)

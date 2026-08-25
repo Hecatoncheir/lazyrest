@@ -39,6 +39,7 @@ const (
 	OverlayNone Overlay = iota
 	OverlayDiagnostics
 	OverlayHelp
+	OverlayCommandPalette
 )
 
 type State struct {

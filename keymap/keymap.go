@@ -32,6 +32,8 @@ const (
 	ToggleBody      Action = "toggle_body"
 	HistoryPrevious Action = "history_previous"
 	HistoryNext     Action = "history_next"
+	CommandPalette  Action = "command_palette"
+	ReloadConfig    Action = "reload_config"
 )
 
 var defaults = map[Action][]string{
@@ -55,6 +57,8 @@ var defaults = map[Action][]string{
 	ToggleBody:      {"p"},
 	HistoryPrevious: {"["},
 	HistoryNext:     {"]"},
+	CommandPalette:  {":", "ctrl+p"},
+	ReloadConfig:    {"ctrl+r"},
 }
 
 type Bindings struct {

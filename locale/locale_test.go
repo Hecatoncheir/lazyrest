@@ -42,3 +42,16 @@ func TestLoadSelectsLanguageAndFallsBackToEnglish(t *testing.T) {
 		t.Fatal("built-in translation or English fallback is missing")
 	}
 }
+
+func TestRussianDiagnosticPluralForms(t *testing.T) {
+	translator, err := New("ru", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	tests := map[int]string{1: "1 диагностика", 2: "2 диагностики", 5: "5 диагностик", 11: "11 диагностик", 21: "21 диагностика"}
+	for count, want := range tests {
+		if got := translator.PluralDiagnostics(count); got != want {
+			t.Fatalf("unexpected plural for %d: got %q, want %q", count, got, want)
+		}
+	}
+}

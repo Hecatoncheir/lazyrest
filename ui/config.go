@@ -6,6 +6,7 @@ import (
 	"github.com/Hecatoncheir/lazyrest/locale"
 	parserhttp "github.com/Hecatoncheir/lazyrest/parser/http"
 	"github.com/Hecatoncheir/lazyrest/runner"
+	"github.com/Hecatoncheir/lazyrest/ui/theme"
 )
 
 type Config struct {
@@ -15,4 +16,6 @@ type Config struct {
 	Environment     environment.Config
 	Keybindings     *keymap.Bindings
 	Locale          *locale.Translator
+	Theme           theme.Theme
+	ConfigPath      string
 }
