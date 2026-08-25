@@ -185,6 +185,36 @@ go run . example
 The examples use the public `https://httpbin.org` test service and require
 internet access. Running `.hurl` examples also requires the `hurl` executable.
 
+## Configuration
+
+lazyrest reads optional settings from `~/.config/lazyrest/config.yml`. Each action accepts one or more keys. Configured keys replace the defaults for that action; actions omitted from the file keep their default bindings.
+
+```yaml
+keybindings:
+  help: ["?", "f1"]
+  diagnostics: ["d"]
+  quit: ["q", "ctrl+c"]
+  focus_left: ["ctrl+h"]
+  focus_down: ["ctrl+j"]
+  focus_up: ["ctrl+k"]
+  focus_right: ["ctrl+l"]
+  open: ["enter", "o"]
+  run: ["enter", "r"]
+  back: ["esc"]
+  search: ["/"]
+  search_finish: ["enter", "esc"]
+  search_next: ["n"]
+  search_previous: ["N"]
+  reload: ["r"]
+  move_down: ["j"]
+  move_up: ["k"]
+  toggle_body: ["p"]
+  history_previous: ["["]
+  history_next: ["]"]
+```
+
+Supported named keys are `enter`, `esc`, `backspace`, `tab`, arrow keys, `home`, `end`, `pgup`, `pgdn`, `f1` through `f12`, and `ctrl+a` through `ctrl+z`. Single non-whitespace printable characters are case-sensitive.
+
 ## Navigation
 
 - `j` / `k` or arrows: move and scroll.

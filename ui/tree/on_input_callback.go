@@ -1,8 +1,10 @@
 package tree
 
 import (
-	"github.com/Hecatoncheir/lazyrest/finder"
 	"strings"
+
+	"github.com/Hecatoncheir/lazyrest/finder"
+	"github.com/Hecatoncheir/lazyrest/keymap"
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
@@ -11,11 +13,12 @@ import (
 func onInputCallback(widget *Tree) func(event *tcell.EventKey) *tcell.EventKey {
 	return func(event *tcell.EventKey) *tcell.EventKey {
 		if widget.searchMode {
-			switch event.Key() {
-			case tcell.KeyEsc, tcell.KeyEnter:
+			if widget.keybindings.Matches(keymap.SearchFinish, event) {
 				widget.searchMode = false
 				widget.updateSearch()
 				return nil
+			}
+			switch event.Key() {
 			case tcell.KeyBackspace, tcell.KeyBackspace2:
 				query := []rune(widget.searchQuery)
 				if len(query) > 0 {
@@ -30,20 +33,26 @@ func onInputCallback(widget *Tree) func(event *tcell.EventKey) *tcell.EventKey {
 			}
 			return nil
 		}
+		if widget.keybindings.Matches(keymap.Open, event) {
+			return tcell.NewEventKey(tcell.KeyEnter, 0, tcell.ModNone)
+		}
+		if event.Key() == tcell.KeyEnter {
+			return nil
+		}
 
-		switch event.Rune() {
-		case '/':
+		switch {
+		case widget.keybindings.Matches(keymap.Search, event):
 			widget.searchMode = true
 			widget.searchQuery = ""
 			widget.updateSearch()
 			return nil
-		case 'n':
+		case widget.keybindings.Matches(keymap.SearchNext, event):
 			widget.moveToMatch(1)
 			return nil
-		case 'N':
+		case widget.keybindings.Matches(keymap.SearchPrevious, event):
 			widget.moveToMatch(-1)
 			return nil
-		case 'r':
+		case widget.keybindings.Matches(keymap.Reload, event):
 			if widget.onReloadCallback != nil {
 				widget.onReloadCallback()
 			}

@@ -1,6 +1,7 @@
 package suite
 
 import (
+	"github.com/Hecatoncheir/lazyrest/keymap"
 	"github.com/Hecatoncheir/lazyrest/parser/http"
 	"github.com/Hecatoncheir/lazyrest/ui/theme"
 
@@ -17,11 +18,16 @@ type Suite struct {
 	suite            http.HttpSuite
 	onEscapeCallback OnEscapeCallbackType
 	onRunCallback    OnRunCallbackType
+	keybindings      *keymap.Bindings
 }
 
 func (widget *Suite) Build(parameters Parameters) tview.Primitive {
+	if parameters.Keybindings == nil {
+		parameters.Keybindings = keymap.Default()
+	}
 	widget.onEscapeCallback = parameters.OnEscapeCallback
 	widget.onRunCallback = parameters.OnRunCallback
+	widget.keybindings = parameters.Keybindings
 
 	theme := parameters.Theme.Suite
 	widget.theme = theme

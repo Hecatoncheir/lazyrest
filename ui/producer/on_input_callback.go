@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/Hecatoncheir/lazyrest/keymap"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 )
@@ -13,11 +14,12 @@ type OnEscapeCallbackType func()
 func onInputCallback(widget *Producer) func(event *tcell.EventKey) *tcell.EventKey {
 	return func(event *tcell.EventKey) *tcell.EventKey {
 		if widget.searchMode {
-			switch event.Key() {
-			case tcell.KeyEsc, tcell.KeyEnter:
+			if widget.keybindings.Matches(keymap.SearchFinish, event) {
 				widget.searchMode = false
 				widget.updateSearch()
 				return nil
+			}
+			switch event.Key() {
 			case tcell.KeyBackspace, tcell.KeyBackspace2:
 				query := []rune(widget.searchQuery)
 				if len(query) > 0 {
@@ -33,24 +35,23 @@ func onInputCallback(widget *Producer) func(event *tcell.EventKey) *tcell.EventK
 			return nil
 		}
 
-		switch event.Key() {
-		case tcell.KeyEsc:
+		if widget.keybindings.Matches(keymap.Back, event) {
 			widget.onEscapeCallback()
 			return nil
 		}
-		switch event.Rune() {
-		case '/':
+		switch {
+		case widget.keybindings.Matches(keymap.Search, event):
 			widget.searchMode = true
 			widget.searchQuery = ""
 			widget.updateSearch()
 			return nil
-		case '[':
+		case widget.keybindings.Matches(keymap.HistoryPrevious, event):
 			widget.showHistory(-1)
 			return nil
-		case ']':
+		case widget.keybindings.Matches(keymap.HistoryNext, event):
 			widget.showHistory(1)
 			return nil
-		case 'p':
+		case widget.keybindings.Matches(keymap.ToggleBody, event):
 			widget.toggleBodyView()
 			return nil
 		}

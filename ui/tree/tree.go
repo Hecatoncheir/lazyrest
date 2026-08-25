@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/Hecatoncheir/lazyrest/finder"
+	"github.com/Hecatoncheir/lazyrest/keymap"
 	"github.com/Hecatoncheir/lazyrest/ui/theme"
 
 	"github.com/rivo/tview"
@@ -27,6 +28,7 @@ type Tree struct {
 	reloadMutex          sync.Mutex
 	reloadID             uint64
 	cancelReload         context.CancelFunc
+	keybindings          *keymap.Bindings
 }
 
 func New() *Tree {
@@ -55,11 +57,15 @@ func (widget *Tree) OpenCurrentFile() bool {
 }
 
 func (widget *Tree) Build(parameters Parameters) tview.Primitive {
+	if parameters.Keybindings == nil {
+		parameters.Keybindings = keymap.Default()
+	}
 	onSelectFileCallback := parameters.OnSelectFileCallback
 	widget.onSelectFileCallback = onSelectFileCallback
 	widget.onReloadCallback = parameters.OnReloadCallback
 	widget.rootDirectoryPath = parameters.RootDirectoryPath
 	widget.filesExtension = append([]string(nil), parameters.FilesExtension...)
+	widget.keybindings = parameters.Keybindings
 
 	theme := parameters.Theme.Tree
 	widget.theme = theme

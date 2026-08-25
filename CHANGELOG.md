@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v0.7.0] - 2026-08-25
+### Added
+- Configurable multi-key bindings loaded from `~/.config/lazyrest/config.yml`, with defaults preserved for actions omitted from the file.
+- The help overlay now displays the active key bindings.
+
 ## [v0.6.2] - 2026-08-25
 ### Changed
 - Footer request progress is shown as a separate yellow powerline segment and disappears when execution finishes.

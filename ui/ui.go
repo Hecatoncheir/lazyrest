@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/Hecatoncheir/lazyrest/environment"
+	"github.com/Hecatoncheir/lazyrest/keymap"
 	"github.com/Hecatoncheir/lazyrest/ui/footer"
 	"github.com/Hecatoncheir/lazyrest/ui/layout"
 	"github.com/Hecatoncheir/lazyrest/ui/producer"
@@ -24,6 +25,9 @@ func Run(rootDirectoryPath string, config Config) error {
 
 func BuildApplication(rootDirectoryPath string, config Config) *Application {
 	uiTheme := theme.NewDefault()
+	if config.Keybindings == nil {
+		config.Keybindings = keymap.Default()
+	}
 	environmentName := config.Environment.Name
 	if environmentName == "" {
 		environmentName = config.EnvironmentName
@@ -46,6 +50,7 @@ func BuildApplication(rootDirectoryPath string, config Config) *Application {
 		FilesExtension:       httpFilesExtensions,
 		OnSelectFileCallback: onSelectFileCallback(applicationWidget),
 		OnReloadCallback:     onReloadFiles(applicationWidget),
+		Keybindings:          config.Keybindings,
 	}
 	httpFilesTreeElement := httpFilesTreeWidget.Build(httpFilesTreeParameters)
 	applicationWidget.HttpFilesTree = httpFilesTreeWidget
@@ -59,6 +64,7 @@ func BuildApplication(rootDirectoryPath string, config Config) *Application {
 		Theme:            uiTheme,
 		OnEscapeCallback: onSuiteEscape(applicationWidget),
 		OnRunCallback:    onSuiteRun(applicationWidget),
+		Keybindings:      config.Keybindings,
 	}
 	suiteWidget.Build(suiteParameters)
 	applicationWidget.Suite = suiteWidget
@@ -70,6 +76,7 @@ func BuildApplication(rootDirectoryPath string, config Config) *Application {
 		OnEscapeCallback:          onSuitesEscape(applicationWidget),
 		OnSuiteSelectCallbackType: onSuiteSelect(applicationWidget),
 		ParseOptions:              config.ParseOptions,
+		Keybindings:               config.Keybindings,
 	}
 	suitesWidget.Build(suitesParameters)
 	applicationWidget.Suites = suitesWidget
@@ -83,6 +90,7 @@ func BuildApplication(rootDirectoryPath string, config Config) *Application {
 		OnRunFinishedCallback: onRunFinished(applicationWidget),
 		App:                   applicationElement,
 		RunnerConfig:          config.Runner,
+		Keybindings:           config.Keybindings,
 	}
 	producerWidget.Build(producerParameters)
 	applicationWidget.Producer = producerWidget

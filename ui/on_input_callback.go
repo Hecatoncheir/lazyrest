@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"github.com/Hecatoncheir/lazyrest/keymap"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 )
@@ -10,38 +11,37 @@ type onInputCallbackType func(event *tcell.EventKey) *tcell.EventKey
 func onInputCallback(application *Application) onInputCallbackType {
 	applicationElement := application.Element
 	return func(event *tcell.EventKey) *tcell.EventKey {
+		bindings := application.config.Keybindings
+		if bindings == nil {
+			bindings = keymap.Default()
+		}
 		if application.Model != nil {
 			overlay := application.Model.CurrentOverlay()
 			if overlay != OverlayNone {
-				switch event.Key() {
-				case tcell.KeyCtrlC:
+				switch {
+				case bindings.Matches(keymap.Quit, event):
 					stopApplication(application)
 					return nil
-				case tcell.KeyEsc:
+				case bindings.Matches(keymap.Back, event):
 					application.closeOverlay()
 					return nil
-				}
-				switch event.Rune() {
-				case 'q':
-					application.closeOverlay()
-					return nil
-				case '?':
+				case bindings.Matches(keymap.Help, event):
 					if overlay == OverlayHelp {
 						application.closeOverlay()
 					} else {
 						application.openOverlay(OverlayHelp)
 					}
 					return nil
-				case 'd':
+				case bindings.Matches(keymap.Diagnostics, event):
 					if overlay == OverlayDiagnostics {
 						application.closeOverlay()
 					} else {
 						application.openOverlay(OverlayDiagnostics)
 					}
 					return nil
-				case 'j':
+				case bindings.Matches(keymap.MoveDown, event):
 					return tcell.NewEventKey(tcell.KeyDown, 0, tcell.ModNone)
-				case 'k':
+				case bindings.Matches(keymap.MoveUp, event):
 					return tcell.NewEventKey(tcell.KeyUp, 0, tcell.ModNone)
 				}
 				return event
@@ -50,60 +50,50 @@ func onInputCallback(application *Application) onInputCallbackType {
 		if application.HttpFilesTree.IsSearching() || application.Suites.IsSearching() || application.Producer.IsSearching() {
 			return event
 		}
-		switch event.Rune() {
-		case '?':
+		switch {
+		case bindings.Matches(keymap.Help, event):
 			application.openOverlay(OverlayHelp)
 			return nil
-		case 'd':
+		case bindings.Matches(keymap.Diagnostics, event):
 			application.openOverlay(OverlayDiagnostics)
 			return nil
 		}
 		// handle 'q' to quit
-		if event.Rune() == 'q' || event.Key() == tcell.KeyCtrlC {
+		if bindings.Matches(keymap.Quit, event) {
 			stopApplication(application)
 			return nil
 		}
 
-		// Terminals commonly report Ctrl+h as Backspace.
-		navigationKey := event.Key()
-		isNavigationKey := event.Modifiers()&tcell.ModCtrl != 0
-		if navigationKey == tcell.KeyBackspace {
-			navigationKey = tcell.KeyCtrlH
-			isNavigationKey = true
-		}
-
-		// Handle Ctrl+h/j/k/l for navigation.
-		if isNavigationKey {
+		if bindings.Matches(keymap.FocusLeft, event) || bindings.Matches(keymap.FocusDown, event) ||
+			bindings.Matches(keymap.FocusUp, event) || bindings.Matches(keymap.FocusRight, event) {
 			focused := applicationElement.GetFocus()
 			if focused == nil {
 				return event
 			}
 
 			var target tview.Primitive
-			switch navigationKey {
-			case tcell.KeyCtrlH:
+			switch {
+			case bindings.Matches(keymap.FocusLeft, event):
 				if focused == application.Suites.Element || focused == application.Suite.Element {
 					target = application.HttpFilesTree.Element
 				} else if focused == application.Producer.Element {
 					target = application.Suite.Element
 				}
-			case tcell.KeyCtrlJ:
+			case bindings.Matches(keymap.FocusDown, event):
 				if focused == application.Suites.Element {
 					target = application.Suite.Element
 				}
-			case tcell.KeyCtrlK:
+			case bindings.Matches(keymap.FocusUp, event):
 				if focused == application.Suite.Element {
 					target = application.Suites.Element
 				}
-			case tcell.KeyCtrlL:
+			case bindings.Matches(keymap.FocusRight, event):
 				if focused == application.HttpFilesTree.Element {
 					application.HttpFilesTree.OpenCurrentFile()
 					target = application.Suites.Element
 				} else if focused == application.Suite.Element || focused == application.Suites.Element {
 					target = application.Producer.Element
 				}
-			default:
-				return event
 			}
 
 			if target != nil {

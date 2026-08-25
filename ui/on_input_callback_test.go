@@ -3,6 +3,7 @@ package ui
 import (
 	"testing"
 
+	"github.com/Hecatoncheir/lazyrest/keymap"
 	"github.com/Hecatoncheir/lazyrest/ui/producer"
 	"github.com/Hecatoncheir/lazyrest/ui/suite"
 	"github.com/Hecatoncheir/lazyrest/ui/suites"
@@ -56,6 +57,27 @@ func TestCtrlHNavigationAcceptsBackspaceEvent(t *testing.T) {
 
 	if focused := application.Element.GetFocus(); focused != application.Suite.Element {
 		t.Fatalf("unexpected focused element: got %T, want %T", focused, application.Suite.Element)
+	}
+}
+
+func TestConfiguredNavigationSupportsMultipleKeys(t *testing.T) {
+	bindings, err := keymap.New(map[string][]string{"focus_right": {"l", "ctrl+l"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, event := range []*tcell.EventKey{
+		tcell.NewEventKey(tcell.KeyRune, 'l', tcell.ModNone),
+		tcell.NewEventKey(tcell.KeyCtrlL, 0, tcell.ModCtrl),
+	} {
+		application := newNavigationTestApplication()
+		application.config.Keybindings = bindings
+		application.Element.SetFocus(application.Suites.Element)
+		if returned := onInputCallback(application)(event); returned != nil {
+			t.Fatal("configured navigation event was not consumed")
+		}
+		if focused := application.Element.GetFocus(); focused != application.Producer.Element {
+			t.Fatalf("unexpected focused element: got %T", focused)
+		}
 	}
 }
 

@@ -4,6 +4,7 @@ import (
 	"context"
 	"sync"
 
+	"github.com/Hecatoncheir/lazyrest/keymap"
 	"github.com/Hecatoncheir/lazyrest/parser/http"
 	"github.com/Hecatoncheir/lazyrest/ui/theme"
 
@@ -36,12 +37,17 @@ type Suites struct {
 	loadMutex             sync.Mutex
 	loadID                uint64
 	cancelLoad            context.CancelFunc
+	keybindings           *keymap.Bindings
 }
 
 func (widget *Suites) Build(parameters Parameters) tview.Primitive {
+	if parameters.Keybindings == nil {
+		parameters.Keybindings = keymap.Default()
+	}
 	widget.onEscapeCallback = parameters.OnEscapeCallback
 	widget.onSuiteSelectCallback = parameters.OnSuiteSelectCallbackType
 	widget.parseOptions = parameters.ParseOptions
+	widget.keybindings = parameters.Keybindings
 
 	theme := parameters.Theme.Suites
 	widget.theme = theme

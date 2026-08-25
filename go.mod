@@ -10,6 +10,8 @@ require (
 	github.com/rivo/tview v0.42.0
 )
 
+require gopkg.in/yaml.v3 v3.0.1
+
 require (
 	github.com/gdamore/encoding v1.0.1 // indirect
 	github.com/hako/durafmt v0.0.0-20210608085754-5c1018a4e16b

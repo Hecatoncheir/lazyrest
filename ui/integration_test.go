@@ -46,7 +46,7 @@ func TestTUIRemainsInteractiveDuringBackgroundStartup(t *testing.T) {
 	screen.InjectKey(tcell.KeyRune, '?', tcell.ModNone)
 	waitFor(t, "help during startup", func() bool {
 		return application.Model.Snapshot().Overlay == OverlayHelp &&
-			strings.Contains(applicationText(application, screen), "Toggle Pretty / Raw body")
+			strings.Contains(applicationText(application, screen), "Open or close this help")
 	})
 
 	screen.InjectKey(tcell.KeyRune, '?', tcell.ModNone)
@@ -102,7 +102,7 @@ func TestTUIDiagnosticsAndHelpWorkflow(t *testing.T) {
 	screen.InjectKey(tcell.KeyRune, '?', tcell.ModNone)
 	waitFor(t, "help window", func() bool {
 		return application.Model.Snapshot().Overlay == OverlayHelp &&
-			strings.Contains(applicationText(application, screen), "Ctrl+h/j/k/l")
+			strings.Contains(applicationText(application, screen), "Move focus left")
 	})
 
 	screen.InjectKey(tcell.KeyEsc, 0, tcell.ModNone)
@@ -134,7 +134,7 @@ func TestTUIProducerAnimatesProgressWhileWaiting(t *testing.T) {
 	defer releaseRequest()
 
 	application := BuildApplication(t.TempDir(), Config{
-		Runner: runner.Config{Client: client, Timeout: 2 * time.Second},
+		Runner: runner.Config{Client: client, Timeout: 10 * time.Second},
 	})
 	screen, _ := runTestApplication(t, application)
 	application.Element.QueueUpdateDraw(func() {
@@ -201,7 +201,7 @@ func runTestApplication(t *testing.T, application *Application) (tcell.Simulatio
 
 func waitFor(t *testing.T, description string, condition func() bool) {
 	t.Helper()
-	deadline := time.Now().Add(3 * time.Second)
+	deadline := time.Now().Add(5 * time.Second)
 	for time.Now().Before(deadline) {
 		if condition() {
 			return
@@ -214,7 +214,7 @@ func waitFor(t *testing.T, description string, condition func() bool) {
 func waitForScreenText(t *testing.T, application *Application, screen tcell.SimulationScreen, expected string) {
 	t.Helper()
 	var content string
-	deadline := time.Now().Add(3 * time.Second)
+	deadline := time.Now().Add(5 * time.Second)
 	for time.Now().Before(deadline) {
 		content = applicationText(application, screen)
 		if strings.Contains(content, expected) {

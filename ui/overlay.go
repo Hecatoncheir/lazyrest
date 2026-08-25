@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/Hecatoncheir/lazyrest/keymap"
 	"github.com/Hecatoncheir/lazyrest/ui/footer"
 	uiprogress "github.com/Hecatoncheir/lazyrest/ui/progress"
 	"github.com/rivo/tview"
@@ -17,7 +18,7 @@ const (
 func (application *Application) buildOverlays() {
 	application.Diagnostics = application.newOverlayView("Diagnostics — d/Esc close")
 	application.Help = application.newOverlayView("Help — ?/Esc close")
-	application.Help.SetText(helpText)
+	application.Help.SetText(helpText(application.config.Keybindings))
 
 	application.Pages.
 		AddPage(diagnosticsPage, centered(application.Diagnostics, 84, 24), true, false).
@@ -206,28 +207,41 @@ func renderDiagnostics(state State) string {
 	return strings.Join(sections, "\n\n")
 }
 
-const helpText = `Global
-  ?              Open or close this help
-  d              Open or close diagnostics
-  q / Ctrl+C     Quit lazyrest
-  Ctrl+h/j/k/l   Move between panels
-
-Files
-  Enter          Open a directory or parse a request file
-  Ctrl+l         Parse the selected file and open Suites
-  /              Search files
-  n / N          Next / previous match
-  r              Reload files in the background
-
-Suites and Suite
-  j / k          Move between requests
-  Enter          Open or execute the selected request
-  Esc            Go back
-
-Producer
-  /              Search the response
-  p              Toggle Pretty / Raw body
-  [ / ]          Previous / next history entry
-  Esc            Cancel the active request and go back
-
-Search input captures printable keys. Press Enter or Esc to finish searching.`
+func helpText(bindings *keymap.Bindings) string {
+	line := func(action keymap.Action, description string) string {
+		return fmt.Sprintf("  %-20s %s", bindings.Describe(action), description)
+	}
+	return strings.Join([]string{
+		"Global",
+		line(keymap.Help, "Open or close this help"),
+		line(keymap.Diagnostics, "Open or close diagnostics"),
+		line(keymap.Quit, "Quit lazyrest"),
+		line(keymap.FocusLeft, "Move focus left"),
+		line(keymap.FocusDown, "Move focus down"),
+		line(keymap.FocusUp, "Move focus up"),
+		line(keymap.FocusRight, "Move focus right"),
+		"",
+		"Files",
+		line(keymap.Open, "Open a directory or parse a request file"),
+		line(keymap.Search, "Search files"),
+		line(keymap.SearchNext, "Next match"),
+		line(keymap.SearchPrevious, "Previous match"),
+		line(keymap.Reload, "Reload files in the background"),
+		"",
+		"Suites and Suite",
+		line(keymap.MoveDown, "Move down"),
+		line(keymap.MoveUp, "Move up"),
+		line(keymap.Open, "Open the selected request"),
+		line(keymap.Run, "Execute the selected request"),
+		line(keymap.Back, "Go back"),
+		"",
+		"Producer",
+		line(keymap.Search, "Search the response"),
+		line(keymap.ToggleBody, "Toggle Pretty / Raw body"),
+		line(keymap.HistoryPrevious, "Previous history entry"),
+		line(keymap.HistoryNext, "Next history entry"),
+		line(keymap.Back, "Cancel the active request and go back"),
+		"",
+		"Search input captures printable keys. Use " + bindings.Describe(keymap.SearchFinish) + " to finish searching.",
+	}, "\n")
+}
