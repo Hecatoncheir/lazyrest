@@ -1,6 +1,9 @@
 package theme
 
-import "testing"
+import (
+	"reflect"
+	"testing"
+)
 
 func TestFromConfigOverridesSemanticColors(t *testing.T) {
 	configured, err := FromConfig(Config{PanelBackground: "#010203", Success: "#040506"})
@@ -26,6 +29,22 @@ func TestBuiltInPresets(t *testing.T) {
 	for _, name := range []string{"gruvbox", "catppuccin-mocha", "tokyo-night", "dracula", "nord", "monokai"} {
 		if _, err := FromConfig(Config{Preset: name}); err != nil {
 			t.Fatalf("preset %s failed: %v", name, err)
+		}
+	}
+}
+
+func TestEmbeddedPresetsDefineEveryColor(t *testing.T) {
+	for name, preset := range presets {
+		value := reflect.ValueOf(preset)
+		typeOfPreset := value.Type()
+		for index := 0; index < value.NumField(); index++ {
+			field := typeOfPreset.Field(index)
+			if field.Name == "Preset" {
+				continue
+			}
+			if value.Field(index).String() == "" {
+				t.Errorf("preset %s is missing %s", name, field.Tag.Get("yaml"))
+			}
 		}
 	}
 }
