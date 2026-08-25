@@ -55,7 +55,11 @@ func (application *Application) reloadConfiguration() {
 			return
 		}
 	}
-	settings, err := appconfig.Load(path)
+	paths := application.config.ConfigPaths
+	if len(paths) == 0 {
+		paths = []string{path}
+	}
+	settings, err := appconfig.LoadFiles(paths)
 	if err != nil {
 		application.Footer.UpdateIndicatorState(footer.IndicatorFailure)
 		application.Footer.UpdateStatus(application.config.Locale.Format("config_error", err))

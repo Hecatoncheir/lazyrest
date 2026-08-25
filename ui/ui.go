@@ -102,6 +102,7 @@ func BuildApplication(rootDirectoryPath string, config Config) *Application {
 		RunnerConfig:          config.Runner,
 		Keybindings:           config.Keybindings,
 		Locale:                config.Locale,
+		HistoryPath:           config.HistoryPath,
 	}
 	producerWidget.Build(producerParameters)
 	applicationWidget.Producer = producerWidget

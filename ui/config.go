@@ -18,4 +18,6 @@ type Config struct {
 	Locale          *locale.Translator
 	Theme           theme.Theme
 	ConfigPath      string
+	ConfigPaths     []string
+	HistoryPath     string
 }

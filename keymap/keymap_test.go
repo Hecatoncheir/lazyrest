@@ -80,3 +80,13 @@ func TestLoadDefaultUsesHomeConfigDirectory(t *testing.T) {
 		t.Fatal("function key binding was not loaded")
 	}
 }
+
+func TestBindingsRejectContextualConflicts(t *testing.T) {
+	_, err := New(map[string][]string{"help": {"x"}, "reload": {"x"}})
+	if err == nil {
+		t.Fatal("expected conflicting Files bindings to fail")
+	}
+	if _, err := New(map[string][]string{"run": {"r"}, "reload": {"r"}}); err != nil {
+		t.Fatalf("bindings in different contexts must be allowed: %v", err)
+	}
+}

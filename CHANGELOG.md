@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+### Added
+- Layered project configuration through `.lazyrest.yml` and an explicit `--config` file.
+- Configuration CLI commands: `--generate-config`, `--print-config`, and `--validate-config`.
+- Persistent, size-limited request history in `~/.config/lazyrest/history.json` with secret redaction and secure file permissions.
+
+### Changed
+- Keybinding validation now rejects conflicts within the same UI context while allowing reuse across independent panels.
+
 ## [v0.9.0] - 2026-08-25
 ### Added
 - Configurable semantic UI colors under `theme` in `~/.config/lazyrest/config.yml`.

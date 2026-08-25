@@ -29,6 +29,19 @@ type Config struct {
 	BreadcrumbForeground string `yaml:"breadcrumb_foreground"`
 }
 
+func DefaultConfig() Config {
+	return Config{
+		Background: "#1d2021", PanelBackground: "#504945", PanelFocus: "#3c3836",
+		Foreground: "#fbf1c7", Muted: "#bdae93", Accent: "#83a598",
+		Border: "#bdae93", BorderFocus: "#fbf1c7",
+		SelectionBackground: "#fbf1c7", SelectionForeground: "#282828",
+		Progress: "#fabd2f", ProgressForeground: "#3c3836",
+		Success: "#b8bb26", SuccessForeground: "#3c3836",
+		Failure: "#d65d0e", FailureForeground: "#fbf1c7",
+		Breadcrumb: "#bdae93", BreadcrumbForeground: "#504945",
+	}
+}
+
 func FromConfig(config Config) (Theme, error) {
 	result := NewDefault()
 	set := func(value string, targets ...*tcell.Color) error {

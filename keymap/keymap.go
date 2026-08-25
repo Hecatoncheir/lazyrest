@@ -2,6 +2,7 @@ package keymap
 
 import (
 	"fmt"
+	"sort"
 	"strconv"
 	"strings"
 	"unicode/utf8"
@@ -97,6 +98,9 @@ func New(overrides map[string][]string) (*Bindings, error) {
 			bindings.keys[action] = append(bindings.keys[action], parsed)
 		}
 	}
+	if err := bindings.validateConflicts(); err != nil {
+		return nil, err
+	}
 	return bindings, nil
 }
 
@@ -129,6 +133,53 @@ func (bindings *Bindings) Describe(action Action) string {
 		names = append(names, key.name)
 	}
 	return strings.Join(names, " / ")
+}
+
+func (bindings *Bindings) Map() map[string][]string {
+	result := make(map[string][]string, len(bindings.keys))
+	for action, keys := range bindings.keys {
+		for _, key := range keys {
+			result[string(action)] = append(result[string(action)], key.name)
+		}
+	}
+	return result
+}
+
+func (bindings *Bindings) validateConflicts() error {
+	global := []Action{Help, Diagnostics, Quit, FocusLeft, FocusDown, FocusUp, FocusRight, CommandPalette, ReloadConfig}
+	contexts := []struct {
+		name    string
+		actions []Action
+	}{
+		{"files", append(append([]Action{}, global...), Open, Search, SearchNext, SearchPrevious, Reload)},
+		{"suites", append(append([]Action{}, global...), Open, Back, Search, MoveDown, MoveUp)},
+		{"suite", append(append([]Action{}, global...), Run, Back)},
+		{"producer", append(append([]Action{}, global...), Back, Search, HistoryPrevious, HistoryNext, ToggleBody)},
+		{"search", []Action{SearchFinish}},
+		{"overlay", []Action{Quit, Back, CommandPalette, ReloadConfig, Help, Diagnostics, MoveDown, MoveUp}},
+	}
+	for _, context := range contexts {
+		used := map[string]Action{}
+		for _, action := range context.actions {
+			for _, candidate := range bindings.keys[action] {
+				identity := candidate.identity()
+				if previous, ok := used[identity]; ok && previous != action {
+					actions := []string{string(previous), string(action)}
+					sort.Strings(actions)
+					return fmt.Errorf("key %q is assigned to both %q and %q in %s context", candidate.name, actions[0], actions[1], context.name)
+				}
+				used[identity] = action
+			}
+		}
+	}
+	return nil
+}
+
+func (candidate key) identity() string {
+	if candidate.rune != 0 {
+		return fmt.Sprintf("r:%U", candidate.rune)
+	}
+	return fmt.Sprintf("k:%d", candidate.code)
 }
 
 func (candidate key) matches(event *tcell.EventKey) bool {

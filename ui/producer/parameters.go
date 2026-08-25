@@ -17,4 +17,5 @@ type Parameters struct {
 	RunnerConfig          runner.Config
 	Keybindings           *keymap.Bindings
 	Locale                *locale.Translator
+	HistoryPath           string
 }

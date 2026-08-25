@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"reflect"
 
 	"github.com/Hecatoncheir/lazyrest/keymap"
 	"github.com/Hecatoncheir/lazyrest/locale"
@@ -16,11 +17,12 @@ type Settings struct {
 	Keybindings *keymap.Bindings
 	Locale      *locale.Translator
 	Theme       theme.Theme
+	Document    Document
 }
 
-type fileConfig struct {
+type Document struct {
 	Language    string                       `yaml:"language"`
-	Languages   map[string]map[string]string `yaml:"languages"`
+	Languages   map[string]map[string]string `yaml:"languages,omitempty"`
 	Keybindings map[string][]string          `yaml:"keybindings"`
 	Theme       theme.Config                 `yaml:"theme"`
 }
@@ -33,6 +35,22 @@ func DefaultPath() (string, error) {
 	return filepath.Join(homeDirectory, ".config", "lazyrest", "config.yml"), nil
 }
 
+func HistoryPath() (string, error) {
+	configPath, err := DefaultPath()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(filepath.Dir(configPath), "history.json"), nil
+}
+
+func ProjectPath(rootDirectory string) string {
+	return filepath.Join(rootDirectory, ".lazyrest.yml")
+}
+
+func DefaultDocument() Document {
+	return Document{Language: "en", Keybindings: keymap.Default().Map(), Theme: theme.DefaultConfig()}
+}
+
 func LoadDefault() (Settings, string, error) {
 	path, err := DefaultPath()
 	if err != nil {
@@ -43,27 +61,106 @@ func LoadDefault() (Settings, string, error) {
 }
 
 func Load(path string) (Settings, error) {
-	config := fileConfig{}
-	contents, err := os.ReadFile(path)
-	if err == nil {
-		if err := yaml.Unmarshal(contents, &config); err != nil {
-			return Settings{}, fmt.Errorf("parse config %s: %w", path, err)
-		}
-	} else if !errors.Is(err, os.ErrNotExist) {
-		return Settings{}, fmt.Errorf("read config %s: %w", path, err)
-	}
+	return LoadFiles([]string{path})
+}
 
-	bindings, err := keymap.New(config.Keybindings)
-	if err != nil {
-		return Settings{}, fmt.Errorf("parse config %s: %w", path, err)
+func LoadFiles(paths []string) (Settings, error) {
+	document := DefaultDocument()
+	for _, path := range paths {
+		layer, err := read(path)
+		if err != nil {
+			return Settings{}, err
+		}
+		merge(&document, layer)
 	}
-	translator, err := locale.New(config.Language, config.Languages)
+	bindings, err := keymap.New(document.Keybindings)
 	if err != nil {
-		return Settings{}, fmt.Errorf("parse config %s: %w", path, err)
+		return Settings{}, fmt.Errorf("validate configuration: %w", err)
 	}
-	uiTheme, err := theme.FromConfig(config.Theme)
+	translator, err := locale.New(document.Language, document.Languages)
 	if err != nil {
-		return Settings{}, fmt.Errorf("parse config %s: %w", path, err)
+		return Settings{}, fmt.Errorf("validate configuration: %w", err)
 	}
-	return Settings{Keybindings: bindings, Locale: translator, Theme: uiTheme}, nil
+	uiTheme, err := theme.FromConfig(document.Theme)
+	if err != nil {
+		return Settings{}, fmt.Errorf("validate configuration: %w", err)
+	}
+	return Settings{Keybindings: bindings, Locale: translator, Theme: uiTheme, Document: document}, nil
+}
+
+func Marshal(document Document) ([]byte, error) {
+	contents, err := yaml.Marshal(document)
+	if err != nil {
+		return nil, fmt.Errorf("render configuration: %w", err)
+	}
+	return contents, nil
+}
+
+func Generate(path string) error {
+	contents, err := Marshal(DefaultDocument())
+	if err != nil {
+		return err
+	}
+	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
+		return fmt.Errorf("create config directory: %w", err)
+	}
+	file, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o600)
+	if err != nil {
+		return fmt.Errorf("create config %s: %w", path, err)
+	}
+	defer file.Close()
+	if _, err := file.Write(contents); err != nil {
+		return fmt.Errorf("write config %s: %w", path, err)
+	}
+	return nil
+}
+
+func read(path string) (Document, error) {
+	contents, err := os.ReadFile(path)
+	if errors.Is(err, os.ErrNotExist) {
+		return Document{}, nil
+	}
+	if err != nil {
+		return Document{}, fmt.Errorf("read config %s: %w", path, err)
+	}
+	var document Document
+	if err := yaml.Unmarshal(contents, &document); err != nil {
+		return Document{}, fmt.Errorf("parse config %s: %w", path, err)
+	}
+	return document, nil
+}
+
+func merge(target *Document, source Document) {
+	if source.Language != "" {
+		target.Language = source.Language
+	}
+	if target.Languages == nil {
+		target.Languages = map[string]map[string]string{}
+	}
+	for language, translations := range source.Languages {
+		if target.Languages[language] == nil {
+			target.Languages[language] = map[string]string{}
+		}
+		for key, value := range translations {
+			target.Languages[language][key] = value
+		}
+	}
+	if target.Keybindings == nil {
+		target.Keybindings = map[string][]string{}
+	}
+	for action, keys := range source.Keybindings {
+		target.Keybindings[action] = append([]string(nil), keys...)
+	}
+	mergeStringFields(&target.Theme, source.Theme)
+}
+
+func mergeStringFields(target, source any) {
+	targetValue := reflect.ValueOf(target).Elem()
+	sourceValue := reflect.ValueOf(source)
+	for index := range sourceValue.NumField() {
+		value := sourceValue.Field(index).String()
+		if value != "" {
+			targetValue.Field(index).SetString(value)
+		}
+	}
 }

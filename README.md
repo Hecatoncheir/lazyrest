@@ -187,7 +187,14 @@ internet access. Running `.hurl` examples also requires the `hurl` executable.
 
 ## Configuration
 
-lazyrest reads optional settings from `~/.config/lazyrest/config.yml`. Each action accepts one or more keys. Configured keys replace the defaults for that action; actions omitted from the file keep their default bindings.
+lazyrest merges configuration in this order, with later layers taking priority:
+
+1. Built-in defaults.
+2. `~/.config/lazyrest/config.yml`.
+3. `.lazyrest.yml` in the selected project root.
+4. The file passed with `--config`.
+
+Each action accepts one or more keys. Configured keys replace the defaults for that action; actions omitted from the file keep their default bindings. Reusing a key in separate panels is allowed, while conflicting actions in the same context fail validation with an actionable error.
 
 ```yaml
 language: ru
@@ -262,6 +269,22 @@ The built-in languages are English (`en`), Russian (`ru`), and Spanish (`es`). T
 All theme colors are optional hexadecimal RGB values. Omitted colors keep the built-in Gruvbox palette. Press `Ctrl+r` or choose **Reload configuration** from the command palette to apply language, translations, keybindings, and theme changes without restarting lazyrest. Invalid configuration leaves the current settings active and displays an error in the footer.
 
 Supported named keys are `enter`, `esc`, `backspace`, `tab`, arrow keys, `home`, `end`, `pgup`, `pgdn`, `f1` through `f12`, and `ctrl+a` through `ctrl+z`. Single non-whitespace printable characters are case-sensitive.
+
+Configuration CLI commands:
+
+```sh
+lazyrest --generate-config
+lazyrest --print-config /path/to/project
+lazyrest --validate-config /path/to/project
+lazyrest --config ./team.yml /path/to/project
+lazyrest --config ./custom.yml --generate-config
+```
+
+`--generate-config` creates a complete configuration with permissions `0600` and refuses to overwrite an existing file. `--print-config` prints the resolved layered configuration. `--validate-config` checks YAML, colors, languages, key names, and contextual key conflicts without starting the TUI.
+
+## Persistent history
+
+The latest 50 request results are stored in `~/.config/lazyrest/history.json` and restored on the next launch. Known secret values and sensitive headers such as `Authorization`, cookies, and API keys are redacted before writing. The directory uses permissions `0700`, the history file uses `0600`, and updates are atomic. Delete the file to clear persistent history.
 
 ## Navigation
 

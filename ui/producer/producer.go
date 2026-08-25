@@ -41,6 +41,7 @@ type Producer struct {
 	bodyViewMode     BodyViewMode
 	keybindings      *keymap.Bindings
 	locale           *locale.Translator
+	historyPath      string
 }
 
 func (widget *Producer) StartRun() (context.Context, uint64) {
@@ -104,6 +105,8 @@ func (widget *Producer) Build(parameters Parameters) tview.Primitive {
 	widget.runnerConfig = parameters.RunnerConfig
 	widget.keybindings = parameters.Keybindings
 	widget.locale = parameters.Locale
+	widget.historyPath = parameters.HistoryPath
+	_ = widget.loadHistory()
 	widget.bodyViewMode = BodyViewPretty
 	theme := parameters.Theme.Producer
 	widget.theme = theme

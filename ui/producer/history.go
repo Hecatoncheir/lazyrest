@@ -24,18 +24,14 @@ type HistoryEntry struct {
 }
 
 func (widget *Producer) addHistory(suite http.HttpSuite, response runner.Response, err error) {
-	widget.history = append(widget.history, HistoryEntry{
-		Suite:     suite,
-		Response:  response,
-		Err:       err,
-		CreatedAt: time.Now(),
-	})
+	widget.history = append(widget.history, sanitizedHistoryEntry(suite, response, err, time.Now()))
 	if len(widget.history) > maxHistoryEntries {
 		widget.history = widget.history[len(widget.history)-maxHistoryEntries:]
 	}
 	widget.historyIndex = len(widget.history) - 1
 	widget.historyVisible = false
 	widget.updateTitle()
+	_ = widget.saveHistory()
 }
 
 func (widget *Producer) showHistory(delta int) {
