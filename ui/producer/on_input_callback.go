@@ -75,9 +75,13 @@ func (widget *Producer) updateSearch() {
 
 func (widget *Producer) updateTitle() {
 	element := widget.Element.(*tview.TextView)
-	title := "Producer [" + widget.bodyViewMode.String() + "]"
+	mode := widget.locale.Text("pretty")
+	if widget.bodyViewMode == BodyViewRaw {
+		mode = widget.locale.Text("raw")
+	}
+	title := widget.locale.Text("producer") + " [" + mode + "]"
 	if widget.historyVisible && len(widget.history) > 0 {
-		title += fmt.Sprintf(" history %d/%d", widget.historyIndex+1, len(widget.history))
+		title += fmt.Sprintf(" %s %d/%d", widget.locale.Text("history"), widget.historyIndex+1, len(widget.history))
 	}
 	if widget.searchMode || widget.searchQuery != "" {
 		title += " /" + widget.searchQuery

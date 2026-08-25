@@ -85,11 +85,11 @@ func (widget *Tree) updateTitle() {
 	if !ok {
 		return
 	}
-	title := "Files"
+	title := widget.locale.Text("files")
 	if widget.loading {
-		title += " — loading"
+		title += " — " + widget.locale.Text("loading")
 	} else if widget.reloading {
-		title += " — reloading"
+		title += " — " + widget.locale.Text("reloading")
 	}
 	if widget.searchMode || widget.searchQuery != "" {
 		title += " /" + widget.searchQuery

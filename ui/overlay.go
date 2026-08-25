@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/Hecatoncheir/lazyrest/keymap"
+	"github.com/Hecatoncheir/lazyrest/locale"
 	"github.com/Hecatoncheir/lazyrest/ui/footer"
 	uiprogress "github.com/Hecatoncheir/lazyrest/ui/progress"
 	"github.com/rivo/tview"
@@ -16,9 +17,10 @@ const (
 )
 
 func (application *Application) buildOverlays() {
-	application.Diagnostics = application.newOverlayView("Diagnostics — d/Esc close")
-	application.Help = application.newOverlayView("Help — ?/Esc close")
-	application.Help.SetText(helpText(application.config.Keybindings))
+	translator := application.config.Locale
+	application.Diagnostics = application.newOverlayView(translator.Text("diagnostics") + " — d/Esc " + translator.Text("close"))
+	application.Help = application.newOverlayView(translator.Text("help") + " — ?/Esc " + translator.Text("close"))
+	application.Help.SetText(helpText(application.config.Keybindings, translator))
 
 	application.Pages.
 		AddPage(diagnosticsPage, centered(application.Diagnostics, 84, 24), true, false).
@@ -98,10 +100,10 @@ func (application *Application) refreshDiagnostics() {
 		return
 	}
 	state := application.Model.Snapshot()
-	application.Diagnostics.SetText(renderDiagnostics(state))
+	application.Diagnostics.SetText(renderDiagnosticsWithLocale(state, application.config.Locale))
 	application.Diagnostics.ScrollToBeginning()
 	application.Diagnostics.SetTitle(fmt.Sprintf(
-		"Diagnostics (%d) — d/Esc close",
+		application.config.Locale.Text("diagnostics")+" (%d) — d/Esc "+application.config.Locale.Text("close"),
 		len(state.Diagnostics),
 	))
 }
@@ -116,7 +118,7 @@ func (application *Application) refreshStatus() {
 	switch {
 	case state.Request.Phase == PhaseLoading && state.Request.HasProgress:
 		application.stopFooterProgress()
-		application.Footer.UpdateStatus("Running " + uiprogress.Body(
+		application.Footer.UpdateStatus(application.config.Locale.Text("running") + " " + uiprogress.Body(
 			state.Request.Current,
 			state.Request.Total,
 			footerProgressWidth,
@@ -124,22 +126,22 @@ func (application *Application) refreshStatus() {
 		))
 		return
 	case state.Request.Phase == PhaseLoading:
-		application.showFooterProgress("Running")
+		application.showFooterProgress(application.config.Locale.Text("running"))
 		return
 	case state.Parser.Phase == PhaseLoading:
-		application.showFooterProgress("Parsing")
+		application.showFooterProgress(application.config.Locale.Text("parsing"))
 		return
 	case state.Startup.Phase == PhaseLoading || state.Files.Phase == PhaseLoading:
-		application.showFooterProgress("Loading")
+		application.showFooterProgress(application.config.Locale.Text("loading_short"))
 		return
 	case state.Startup.Phase == PhaseFailed || state.Files.Phase == PhaseFailed || state.Parser.Phase == PhaseFailed:
-		status = "Error — press d"
+		status = application.config.Locale.Text("error_press")
 	case state.Request.Outcome == OutcomeSuccess:
-		status = "Success"
+		status = application.config.Locale.Text("success")
 	case state.Request.Outcome == OutcomeFailure:
-		status = "Failed"
+		status = application.config.Locale.Text("failed")
 	case len(state.Diagnostics) > 0:
-		status = fmt.Sprintf("%d diagnostics — press d", len(state.Diagnostics))
+		status = application.config.Locale.Format("diagnostics_press", len(state.Diagnostics))
 	}
 	application.stopFooterProgress()
 	application.Footer.UpdateStatus(status)
@@ -161,18 +163,22 @@ func footerIndicatorState(state State) footer.IndicatorState {
 }
 
 func renderDiagnostics(state State) string {
+	return renderDiagnosticsWithLocale(state, locale.English())
+}
+
+func renderDiagnosticsWithLocale(state State, translator *locale.Translator) string {
 	var sections []string
 	if state.Startup.Phase == PhaseLoading {
-		sections = append(sections, "Startup\nLoading environment...")
+		sections = append(sections, translator.Text("startup")+"\n"+translator.Text("loading_environment"))
 	} else if state.Startup.Phase == PhaseFailed {
-		sections = append(sections, "Startup error\n"+state.Startup.Error)
+		sections = append(sections, translator.Text("startup_error")+"\n"+state.Startup.Error)
 	}
 	if state.Files.Phase == PhaseLoading {
-		sections = append(sections, "File discovery\nScanning "+state.RootDirectoryPath+"...")
+		sections = append(sections, translator.Text("file_discovery")+"\n"+translator.Format("scanning", state.RootDirectoryPath))
 	} else if state.Files.Phase == PhaseFailed {
-		sections = append(sections, "File discovery error\n"+state.Files.Error)
+		sections = append(sections, translator.Text("file_discovery_error")+"\n"+state.Files.Error)
 	} else if len(state.Directory.Warnings) > 0 {
-		sections = append(sections, "File discovery warnings\n- "+strings.Join(state.Directory.Warnings, "\n- "))
+		sections = append(sections, translator.Text("file_discovery_warnings")+"\n- "+strings.Join(state.Directory.Warnings, "\n- "))
 	}
 
 	fileName := ""
@@ -181,15 +187,15 @@ func renderDiagnostics(state State) string {
 	}
 	switch state.Parser.Phase {
 	case PhaseLoading:
-		sections = append(sections, "Parser\nParsing "+fileName+"...")
+		sections = append(sections, translator.Text("parser")+"\n"+translator.Format("parser_parsing", fileName))
 	case PhaseFailed:
-		sections = append(sections, "Parser error\n"+state.Parser.Error)
+		sections = append(sections, translator.Text("parser_error")+"\n"+state.Parser.Error)
 	case PhaseReady:
 		if len(state.Diagnostics) == 0 {
-			sections = append(sections, "Parser\nNo diagnostics for "+fileName+".")
+			sections = append(sections, translator.Text("parser")+"\n"+translator.Format("no_diagnostics_for", fileName))
 		} else {
 			lines := make([]string, 0, len(state.Diagnostics)+1)
-			lines = append(lines, "Parser diagnostics for "+fileName)
+			lines = append(lines, translator.Format("parser_diagnostics_for", fileName))
 			for _, diagnostic := range state.Diagnostics {
 				lines = append(lines, "- "+diagnostic.String())
 			}
@@ -197,51 +203,51 @@ func renderDiagnostics(state State) string {
 		}
 	default:
 		if state.SelectedFile == nil {
-			sections = append(sections, "Parser\nSelect an .http file to see parser diagnostics.")
+			sections = append(sections, translator.Text("parser")+"\n"+translator.Text("select_file_diagnostics"))
 		}
 	}
 
 	if len(sections) == 0 {
-		return "No diagnostics."
+		return translator.Text("no_diagnostics")
 	}
 	return strings.Join(sections, "\n\n")
 }
 
-func helpText(bindings *keymap.Bindings) string {
+func helpText(bindings *keymap.Bindings, translator *locale.Translator) string {
 	line := func(action keymap.Action, description string) string {
 		return fmt.Sprintf("  %-20s %s", bindings.Describe(action), description)
 	}
 	return strings.Join([]string{
-		"Global",
-		line(keymap.Help, "Open or close this help"),
-		line(keymap.Diagnostics, "Open or close diagnostics"),
-		line(keymap.Quit, "Quit lazyrest"),
-		line(keymap.FocusLeft, "Move focus left"),
-		line(keymap.FocusDown, "Move focus down"),
-		line(keymap.FocusUp, "Move focus up"),
-		line(keymap.FocusRight, "Move focus right"),
+		translator.Text("global"),
+		line(keymap.Help, translator.Text("help_toggle")),
+		line(keymap.Diagnostics, translator.Text("diagnostics_toggle")),
+		line(keymap.Quit, translator.Text("quit")),
+		line(keymap.FocusLeft, translator.Text("focus_left")),
+		line(keymap.FocusDown, translator.Text("focus_down")),
+		line(keymap.FocusUp, translator.Text("focus_up")),
+		line(keymap.FocusRight, translator.Text("focus_right")),
 		"",
-		"Files",
-		line(keymap.Open, "Open a directory or parse a request file"),
-		line(keymap.Search, "Search files"),
-		line(keymap.SearchNext, "Next match"),
-		line(keymap.SearchPrevious, "Previous match"),
-		line(keymap.Reload, "Reload files in the background"),
+		translator.Text("files_help"),
+		line(keymap.Open, translator.Text("open_file")),
+		line(keymap.Search, translator.Text("search_files")),
+		line(keymap.SearchNext, translator.Text("next_match")),
+		line(keymap.SearchPrevious, translator.Text("previous_match")),
+		line(keymap.Reload, translator.Text("reload_files")),
 		"",
-		"Suites and Suite",
-		line(keymap.MoveDown, "Move down"),
-		line(keymap.MoveUp, "Move up"),
-		line(keymap.Open, "Open the selected request"),
-		line(keymap.Run, "Execute the selected request"),
-		line(keymap.Back, "Go back"),
+		translator.Text("suites_help"),
+		line(keymap.MoveDown, translator.Text("move_down")),
+		line(keymap.MoveUp, translator.Text("move_up")),
+		line(keymap.Open, translator.Text("open_request")),
+		line(keymap.Run, translator.Text("execute_request")),
+		line(keymap.Back, translator.Text("go_back")),
 		"",
-		"Producer",
-		line(keymap.Search, "Search the response"),
-		line(keymap.ToggleBody, "Toggle Pretty / Raw body"),
-		line(keymap.HistoryPrevious, "Previous history entry"),
-		line(keymap.HistoryNext, "Next history entry"),
-		line(keymap.Back, "Cancel the active request and go back"),
+		translator.Text("producer_help"),
+		line(keymap.Search, translator.Text("search_response")),
+		line(keymap.ToggleBody, translator.Text("toggle_body")),
+		line(keymap.HistoryPrevious, translator.Text("previous_history")),
+		line(keymap.HistoryNext, translator.Text("next_history")),
+		line(keymap.Back, translator.Text("cancel_back")),
 		"",
-		"Search input captures printable keys. Use " + bindings.Describe(keymap.SearchFinish) + " to finish searching.",
+		translator.Format("search_finish", bindings.Describe(keymap.SearchFinish)),
 	}, "\n")
 }

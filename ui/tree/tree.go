@@ -2,11 +2,11 @@ package tree
 
 import (
 	"context"
-	"fmt"
 	"sync"
 
 	"github.com/Hecatoncheir/lazyrest/finder"
 	"github.com/Hecatoncheir/lazyrest/keymap"
+	"github.com/Hecatoncheir/lazyrest/locale"
 	"github.com/Hecatoncheir/lazyrest/ui/theme"
 
 	"github.com/rivo/tview"
@@ -29,6 +29,7 @@ type Tree struct {
 	reloadID             uint64
 	cancelReload         context.CancelFunc
 	keybindings          *keymap.Bindings
+	locale               *locale.Translator
 }
 
 func New() *Tree {
@@ -60,12 +61,16 @@ func (widget *Tree) Build(parameters Parameters) tview.Primitive {
 	if parameters.Keybindings == nil {
 		parameters.Keybindings = keymap.Default()
 	}
+	if parameters.Locale == nil {
+		parameters.Locale = locale.English()
+	}
 	onSelectFileCallback := parameters.OnSelectFileCallback
 	widget.onSelectFileCallback = onSelectFileCallback
 	widget.onReloadCallback = parameters.OnReloadCallback
 	widget.rootDirectoryPath = parameters.RootDirectoryPath
 	widget.filesExtension = append([]string(nil), parameters.FilesExtension...)
 	widget.keybindings = parameters.Keybindings
+	widget.locale = parameters.Locale
 
 	theme := parameters.Theme.Tree
 	widget.theme = theme
@@ -74,7 +79,7 @@ func (widget *Tree) Build(parameters Parameters) tview.Primitive {
 		SetBorderColor(theme.Border).
 		SetBorderPadding(0, 0, 0, 0).
 		SetBackgroundColor(theme.Background).
-		SetTitle("Files").
+		SetTitle(widget.locale.Text("files")).
 		SetTitleColor(theme.Title).
 		SetTitleAlign(1)
 
@@ -156,7 +161,7 @@ func (widget *Tree) ShowLoading() {
 	widget.loading = true
 	widget.reloading = false
 	element := widget.Element.(*tview.TreeView)
-	root := tview.NewTreeNode("Loading files...").
+	root := tview.NewTreeNode(widget.locale.Text("loading_files")).
 		SetSelectable(false).
 		SetColor(widget.theme.Node.Foreground)
 	element.SetRoot(root).SetCurrentNode(root)
@@ -176,7 +181,7 @@ func (widget *Tree) ApplyScanResult(result ScanResult) {
 	widget.reloading = false
 
 	if result.Err != nil {
-		root := tview.NewTreeNode(fmt.Sprintf("Unable to scan directory: %v", result.Err)).
+		root := tview.NewTreeNode(widget.locale.Format("unable_scan", result.Err)).
 			SetSelectable(false).
 			SetColor(widget.theme.Node.Foreground)
 		element.SetRoot(root).SetCurrentNode(root)
@@ -184,7 +189,7 @@ func (widget *Tree) ApplyScanResult(result ScanResult) {
 		return
 	}
 
-	newTree := buildTree(result.Directory, widget.theme, widget.onSelectFileCallback)
+	newTree := buildTree(result.Directory, widget.theme, widget.onSelectFileCallback, widget.locale)
 	root := newTree.GetRoot()
 	element.SetRoot(root).SetSelectedFunc(onNodeSelectedCallback(widget.onSelectFileCallback))
 	if selectedPath != "" {

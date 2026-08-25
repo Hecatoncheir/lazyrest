@@ -11,8 +11,8 @@ func (widget *Suite) ChangeSuite(suite http.HttpSuite) {
 	widget.suite = suite
 	element := widget.Element.(*tview.TextView)
 	text := fmt.Sprintf(
-		"Request: %v %v\n"+
-			"Body(%v): %v",
+		widget.locale.Text("request")+": %v %v\n"+
+			widget.locale.Text("body")+"(%v): %v",
 		suite.Method,
 		suite.Redact(suite.Uri),
 		suite.BodyType,

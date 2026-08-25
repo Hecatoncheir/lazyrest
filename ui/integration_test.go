@@ -13,6 +13,7 @@ import (
 
 	"github.com/Hecatoncheir/lazyrest/environment"
 	"github.com/Hecatoncheir/lazyrest/finder"
+	"github.com/Hecatoncheir/lazyrest/locale"
 	parserhttp "github.com/Hecatoncheir/lazyrest/parser/http"
 	"github.com/Hecatoncheir/lazyrest/runner"
 	"github.com/Hecatoncheir/lazyrest/ui/tree"
@@ -54,6 +55,19 @@ func TestTUIRemainsInteractiveDuringBackgroundStartup(t *testing.T) {
 	waitFor(t, "completed startup", func() bool {
 		state := application.Model.Snapshot()
 		return state.Files.Phase == PhaseReady && state.Startup.Phase == PhaseReady
+	})
+}
+
+func TestTUIUsesConfiguredLanguage(t *testing.T) {
+	translator, err := locale.New("ru", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	application := BuildApplication(t.TempDir(), Config{Locale: translator})
+	screen, _ := runTestApplication(t, application)
+	waitFor(t, "Russian interface", func() bool {
+		text := applicationText(application, screen)
+		return strings.Contains(text, "Файлы") && strings.Contains(text, "Запросы") && strings.Contains(text, "Результат")
 	})
 }
 
@@ -179,7 +193,7 @@ func runTestApplication(t *testing.T, application *Application) (tcell.Simulatio
 		done <- application.Element.Run()
 	}()
 	waitFor(t, "initial draw", func() bool {
-		return strings.Contains(applicationText(application, screen), "Files")
+		return strings.TrimSpace(applicationText(application, screen)) != ""
 	})
 	t.Cleanup(func() {
 		application.stopFooterProgress()

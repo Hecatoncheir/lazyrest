@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Hecatoncheir/lazyrest/locale"
 	"github.com/Hecatoncheir/lazyrest/parser/http"
 	"github.com/Hecatoncheir/lazyrest/runner"
 
@@ -50,7 +51,7 @@ func (widget *Producer) showHistory(delta int) {
 	}
 	entry := widget.history[widget.historyIndex]
 	widget.historyVisible = true
-	widget.setText(renderExecutionResultWithMode(entry.Suite, entry.Response, entry.Err, widget.bodyViewMode))
+	widget.setText(renderExecutionResultWithLocale(entry.Suite, entry.Response, entry.Err, widget.bodyViewMode, widget.locale))
 	widget.updateTitle()
 }
 
@@ -64,12 +65,16 @@ func renderExecutionResult(suite http.HttpSuite, response runner.Response, err e
 }
 
 func renderExecutionResultWithMode(suite http.HttpSuite, response runner.Response, err error, mode BodyViewMode) string {
+	return renderExecutionResultWithLocale(suite, response, err, mode, locale.English())
+}
+
+func renderExecutionResultWithLocale(suite http.HttpSuite, response runner.Response, err error, mode BodyViewMode, translator *locale.Translator) string {
 	if err != nil {
-		return "[red]Response error:[white]\n" + tview.Escape(redactSecrets(err.Error(), suite.SecretValues))
+		return "[red]" + translator.Text("response_error") + ":[white]\n" + tview.Escape(redactSecrets(err.Error(), suite.SecretValues))
 	}
 
 	var request strings.Builder
-	request.WriteString("[yellow]Request:[white]\n")
+	request.WriteString("[yellow]" + translator.Text("request") + ":[white]\n")
 	request.WriteString(tview.Escape(fmt.Sprintf("%s %s\n", suite.Method, redactSecrets(suite.Uri, suite.SecretValues))))
 
 	headerKeys := make([]string, 0, len(suite.Header))
@@ -88,7 +93,7 @@ func renderExecutionResultWithMode(suite http.HttpSuite, response runner.Respons
 		request.WriteString(tview.Escape(fmt.Sprintf("%s: %s\n", displayKey, value)))
 	}
 	if suite.Body != "" {
-		request.WriteString("\n[yellow]Body:[white]\n")
+		request.WriteString("\n[yellow]" + translator.Text("body") + ":[white]\n")
 		request.WriteString(tview.Escape(redactSecrets(suite.Body, suite.SecretValues)))
 	}
 
@@ -106,15 +111,16 @@ func renderExecutionResultWithMode(suite http.HttpSuite, response runner.Respons
 	var responseDetails strings.Builder
 	responseDetails.WriteString(response.ToMiniString())
 	if response.Protocol != "" {
-		responseDetails.WriteString("Protocol: " + response.Protocol + "\n")
+		responseDetails.WriteString(translator.Text("protocol") + ": " + response.Protocol + "\n")
 	}
 	if len(response.Header) > 0 {
-		responseDetails.WriteString("\nHeaders:\n")
+		responseDetails.WriteString("\n" + translator.Text("headers") + ":\n")
 		responseDetails.WriteString(renderHeaders(response.Header, suite.SecretValues))
 	}
 	body := redactSecrets(formatResponseBody(response, mode), suite.SecretValues)
-	responseText := fmt.Sprintf("[%s]Response:[white]\n%s\n%s",
+	responseText := fmt.Sprintf("[%s]%s:[white]\n%s\n%s",
 		responseColor,
+		translator.Text("response"),
 		tview.Escape(responseDetails.String()),
 		tview.Escape(body),
 	)

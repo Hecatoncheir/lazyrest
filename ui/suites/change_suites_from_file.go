@@ -63,8 +63,8 @@ func (widget *Suites) CancelLoad() {
 func (widget *Suites) ShowLoading(file finder.File) {
 	element := widget.Element.(*tview.List)
 	element.Clear()
-	element.SetTitle("Suites — loading " + file.Name)
-	element.AddItem("Loading...", file.Path, 0, nil)
+	element.SetTitle(widget.locale.Format("loading_file", file.Name))
+	element.AddItem(widget.locale.Text("loading_short"), file.Path, 0, nil)
 	widget.searchQuery = ""
 	widget.searchMode = false
 }
@@ -101,8 +101,8 @@ func (widget *Suites) ApplyLoadResult(result LoadResult) {
 	widget.searchQuery = ""
 	widget.searchMode = false
 	if result.Err != nil {
-		element.SetTitle("Suites")
-		element.AddItem("Error: "+result.Err.Error(), "", 0, nil)
+		element.SetTitle(widget.locale.Text("suites"))
+		element.AddItem(widget.locale.Format("error", result.Err.Error()), "", 0, nil)
 		widget.suites = nil
 		widget.diagnosticCount = 0
 		return

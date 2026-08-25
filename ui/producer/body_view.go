@@ -32,7 +32,7 @@ func (widget *Producer) toggleBodyView() {
 	}
 	if !widget.IsRunning() && len(widget.history) > 0 {
 		entry := widget.history[widget.historyIndex]
-		widget.setText(renderExecutionResultWithMode(entry.Suite, entry.Response, entry.Err, widget.bodyViewMode))
+		widget.setText(renderExecutionResultWithLocale(entry.Suite, entry.Response, entry.Err, widget.bodyViewMode, widget.locale))
 	}
 	widget.updateTitle()
 }

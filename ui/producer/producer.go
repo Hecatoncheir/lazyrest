@@ -3,6 +3,7 @@ package producer
 import (
 	"context"
 	"github.com/Hecatoncheir/lazyrest/keymap"
+	"github.com/Hecatoncheir/lazyrest/locale"
 	"github.com/Hecatoncheir/lazyrest/parser/http"
 	"github.com/Hecatoncheir/lazyrest/runner"
 	"github.com/Hecatoncheir/lazyrest/ui/theme"
@@ -39,6 +40,7 @@ type Producer struct {
 	runnerConfig     runner.Config
 	bodyViewMode     BodyViewMode
 	keybindings      *keymap.Bindings
+	locale           *locale.Translator
 }
 
 func (widget *Producer) StartRun() (context.Context, uint64) {
@@ -92,12 +94,16 @@ func (widget *Producer) Build(parameters Parameters) tview.Primitive {
 	if parameters.Keybindings == nil {
 		parameters.Keybindings = keymap.Default()
 	}
+	if parameters.Locale == nil {
+		parameters.Locale = locale.English()
+	}
 	widget.onEscapeCallback = parameters.OnEscapeCallback
 	widget.onProgress = parameters.OnProgressCallback
 	widget.onRunFinished = parameters.OnRunFinishedCallback
 	widget.app = parameters.App
 	widget.runnerConfig = parameters.RunnerConfig
 	widget.keybindings = parameters.Keybindings
+	widget.locale = parameters.Locale
 	widget.bodyViewMode = BodyViewPretty
 	theme := parameters.Theme.Producer
 	widget.theme = theme
@@ -126,7 +132,7 @@ func (widget *Producer) Build(parameters Parameters) tview.Primitive {
 		SetBorder(true).
 		SetBorderColor(theme.Border).
 		SetBackgroundColor(theme.Background).
-		SetTitle("Producer").
+		SetTitle(widget.locale.Text("producer")).
 		SetInputCapture(onInputCallback(widget))
 
 	box.SetFocusFunc(func() {

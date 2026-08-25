@@ -1,7 +1,6 @@
 package suites
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/rivo/tview"
@@ -11,12 +10,12 @@ func (widget *Suites) render() {
 	element := widget.Element.(*tview.List)
 	element.Clear()
 
-	title := "Suites"
+	title := widget.locale.Text("suites")
 	if widget.searchMode || widget.searchQuery != "" {
 		title += " /" + widget.searchQuery
 	}
 	if widget.diagnosticCount > 0 {
-		title += fmt.Sprintf(" — %d diagnostics [d]", widget.diagnosticCount)
+		title += widget.locale.Format("diagnostics_count", widget.diagnosticCount)
 	}
 	element.SetTitle(title)
 
@@ -46,6 +45,6 @@ func (widget *Suites) render() {
 			SetBackgroundColor(theme.SuiteBackground)
 	}
 	if visibleSuites == 0 && widget.diagnosticCount > 0 && query == "" {
-		element.AddItem("No runnable requests — press d for diagnostics", "", 0, nil)
+		element.AddItem(widget.locale.Text("no_requests"), "", 0, nil)
 	}
 }

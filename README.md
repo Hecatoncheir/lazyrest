@@ -190,6 +190,28 @@ internet access. Running `.hurl` examples also requires the `hurl` executable.
 lazyrest reads optional settings from `~/.config/lazyrest/config.yml`. Each action accepts one or more keys. Configured keys replace the defaults for that action; actions omitted from the file keep their default bindings.
 
 ```yaml
+language: ru
+
+languages:
+  en:
+    files: "Files"
+    suites: "Suites"
+    producer: "Producer"
+    success: "Success"
+    failed: "Failed"
+  ru:
+    files: "Файлы"
+    suites: "Запросы"
+    producer: "Результат"
+    success: "Успешно"
+    failed: "Ошибка"
+  es:
+    files: "Archivos"
+    suites: "Solicitudes"
+    producer: "Resultado"
+    success: "Correcto"
+    failed: "Error"
+
 keybindings:
   help: ["?", "f1"]
   diagnostics: ["d"]
@@ -212,6 +234,8 @@ keybindings:
   history_previous: ["["]
   history_next: ["]"]
 ```
+
+The built-in languages are English (`en`), Russian (`ru`), and Spanish (`es`). The `languages` section is optional and overrides individual built-in strings. Missing strings fall back to the selected built-in language and then to English. A new language can be added by defining it under `languages` and selecting its code with `language`.
 
 Supported named keys are `enter`, `esc`, `backspace`, `tab`, arrow keys, `home`, `end`, `pgup`, `pgdn`, `f1` through `f12`, and `ctrl+a` through `ctrl+z`. Single non-whitespace printable characters are case-sensitive.
 

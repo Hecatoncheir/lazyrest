@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v0.8.0] - 2026-08-25
+### Added
+- Configurable UI localization through `language` and `languages` in `~/.config/lazyrest/config.yml`.
+- Built-in English, Russian, and Spanish translations with English fallback and per-string overrides.
+
 ## [v0.7.0] - 2026-08-25
 ### Added
 - Configurable multi-key bindings loaded from `~/.config/lazyrest/config.yml`, with defaults preserved for actions omitted from the file.

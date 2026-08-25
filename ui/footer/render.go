@@ -45,7 +45,7 @@ func (widget *Footer) render() {
 	environmentText.SetBackgroundColor(footerTheme.Background)
 	environment := ""
 	if widget.Parameters.EnvironmentName != "" {
-		environment = " Env: " + widget.Parameters.EnvironmentName
+		environment = " " + widget.Parameters.Locale.Text("environment") + ": " + widget.Parameters.EnvironmentName
 	}
 	environmentText.SetText(environment)
 	widget.environmentElement = environmentText

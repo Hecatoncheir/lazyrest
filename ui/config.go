@@ -3,6 +3,7 @@ package ui
 import (
 	"github.com/Hecatoncheir/lazyrest/environment"
 	"github.com/Hecatoncheir/lazyrest/keymap"
+	"github.com/Hecatoncheir/lazyrest/locale"
 	parserhttp "github.com/Hecatoncheir/lazyrest/parser/http"
 	"github.com/Hecatoncheir/lazyrest/runner"
 )
@@ -13,4 +14,5 @@ type Config struct {
 	EnvironmentName string
 	Environment     environment.Config
 	Keybindings     *keymap.Bindings
+	Locale          *locale.Translator
 }

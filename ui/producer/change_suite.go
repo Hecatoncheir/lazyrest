@@ -5,6 +5,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/Hecatoncheir/lazyrest/locale"
 	"github.com/Hecatoncheir/lazyrest/parser/http"
 	"github.com/Hecatoncheir/lazyrest/runner"
 	uiprogress "github.com/Hecatoncheir/lazyrest/ui/progress"
@@ -27,7 +28,11 @@ func formatIndeterminateProgressBar(frame int) string {
 }
 
 func runningRequestText(progress string) string {
-	return "Running request...\n" + progress
+	return localizedRunningRequestText(locale.English(), progress)
+}
+
+func localizedRunningRequestText(translator *locale.Translator, progress string) string {
+	return translator.Text("running_request") + "\n" + progress
 }
 
 func (widget *Producer) animateProgress(ctx context.Context, runID uint64, done <-chan struct{}) {
@@ -42,7 +47,7 @@ func (widget *Producer) animateProgress(ctx context.Context, runID uint64, done 
 		case <-done:
 			return
 		case <-ticker.C:
-			text := runningRequestText(formatIndeterminateProgressBar(frame))
+			text := localizedRunningRequestText(widget.locale, formatIndeterminateProgressBar(frame))
 			frame++
 			widget.app.QueueUpdateDraw(func() {
 				select {
@@ -67,7 +72,7 @@ func (widget *Producer) ChangeSuite(suite http.HttpSuite) {
 	ctx, runID := widget.StartRun()
 	element := widget.Element.(*tview.TextView)
 	theme := widget.theme
-	initialText := runningRequestText(formatIndeterminateProgressBar(0))
+	initialText := localizedRunningRequestText(widget.locale, formatIndeterminateProgressBar(0))
 
 	// Show loading state immediately
 	element.Clear().
@@ -104,7 +109,7 @@ func (widget *Producer) ChangeSuite(suite http.HttpSuite) {
 				if !widget.IsCurrentRun(runID) {
 					return
 				}
-				widget.setText(runningRequestText(formatProgressBar(current, total)))
+				widget.setText(localizedRunningRequestText(widget.locale, formatProgressBar(current, total)))
 				if widget.onProgress != nil {
 					widget.onProgress(current, total)
 				}
@@ -121,7 +126,7 @@ func (widget *Producer) ChangeSuite(suite http.HttpSuite) {
 				widget.onRunFinished(response, err)
 			}
 			widget.addHistory(suite, response, err)
-			text := renderExecutionResultWithMode(suite, response, err, widget.bodyViewMode)
+			text := renderExecutionResultWithLocale(suite, response, err, widget.bodyViewMode, widget.locale)
 
 			element.
 				Clear().

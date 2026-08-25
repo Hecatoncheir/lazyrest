@@ -5,6 +5,7 @@ import (
 
 	"github.com/Hecatoncheir/lazyrest/environment"
 	"github.com/Hecatoncheir/lazyrest/keymap"
+	"github.com/Hecatoncheir/lazyrest/locale"
 	"github.com/Hecatoncheir/lazyrest/ui/footer"
 	"github.com/Hecatoncheir/lazyrest/ui/layout"
 	"github.com/Hecatoncheir/lazyrest/ui/producer"
@@ -27,6 +28,9 @@ func BuildApplication(rootDirectoryPath string, config Config) *Application {
 	uiTheme := theme.NewDefault()
 	if config.Keybindings == nil {
 		config.Keybindings = keymap.Default()
+	}
+	if config.Locale == nil {
+		config.Locale = locale.English()
 	}
 	environmentName := config.Environment.Name
 	if environmentName == "" {
@@ -51,6 +55,7 @@ func BuildApplication(rootDirectoryPath string, config Config) *Application {
 		OnSelectFileCallback: onSelectFileCallback(applicationWidget),
 		OnReloadCallback:     onReloadFiles(applicationWidget),
 		Keybindings:          config.Keybindings,
+		Locale:               config.Locale,
 	}
 	httpFilesTreeElement := httpFilesTreeWidget.Build(httpFilesTreeParameters)
 	applicationWidget.HttpFilesTree = httpFilesTreeWidget
@@ -65,6 +70,7 @@ func BuildApplication(rootDirectoryPath string, config Config) *Application {
 		OnEscapeCallback: onSuiteEscape(applicationWidget),
 		OnRunCallback:    onSuiteRun(applicationWidget),
 		Keybindings:      config.Keybindings,
+		Locale:           config.Locale,
 	}
 	suiteWidget.Build(suiteParameters)
 	applicationWidget.Suite = suiteWidget
@@ -77,6 +83,7 @@ func BuildApplication(rootDirectoryPath string, config Config) *Application {
 		OnSuiteSelectCallbackType: onSuiteSelect(applicationWidget),
 		ParseOptions:              config.ParseOptions,
 		Keybindings:               config.Keybindings,
+		Locale:                    config.Locale,
 	}
 	suitesWidget.Build(suitesParameters)
 	applicationWidget.Suites = suitesWidget
@@ -91,6 +98,7 @@ func BuildApplication(rootDirectoryPath string, config Config) *Application {
 		App:                   applicationElement,
 		RunnerConfig:          config.Runner,
 		Keybindings:           config.Keybindings,
+		Locale:                config.Locale,
 	}
 	producerWidget.Build(producerParameters)
 	applicationWidget.Producer = producerWidget
@@ -116,6 +124,7 @@ func BuildApplication(rootDirectoryPath string, config Config) *Application {
 		RootDirectoryPath: rootDirectoryPath,
 		Theme:             uiTheme,
 		EnvironmentName:   environmentName,
+		Locale:            config.Locale,
 	}
 	footerWidget.Build(footerParameters)
 	applicationWidget.Footer = footerWidget

@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"github.com/Hecatoncheir/lazyrest/keymap"
+	"github.com/Hecatoncheir/lazyrest/locale"
 	"github.com/Hecatoncheir/lazyrest/parser/http"
 	"github.com/Hecatoncheir/lazyrest/ui/theme"
 
@@ -38,16 +39,21 @@ type Suites struct {
 	loadID                uint64
 	cancelLoad            context.CancelFunc
 	keybindings           *keymap.Bindings
+	locale                *locale.Translator
 }
 
 func (widget *Suites) Build(parameters Parameters) tview.Primitive {
 	if parameters.Keybindings == nil {
 		parameters.Keybindings = keymap.Default()
 	}
+	if parameters.Locale == nil {
+		parameters.Locale = locale.English()
+	}
 	widget.onEscapeCallback = parameters.OnEscapeCallback
 	widget.onSuiteSelectCallback = parameters.OnSuiteSelectCallbackType
 	widget.parseOptions = parameters.ParseOptions
 	widget.keybindings = parameters.Keybindings
+	widget.locale = parameters.Locale
 
 	theme := parameters.Theme.Suites
 	widget.theme = theme
@@ -58,7 +64,7 @@ func (widget *Suites) Build(parameters Parameters) tview.Primitive {
 		SetBorder(true).
 		SetBackgroundColor(theme.Background).
 		SetBorderColor(theme.Border).
-		SetTitle("Suites").
+		SetTitle(widget.locale.Text("suites")).
 		SetInputCapture(onInputCallback(widget))
 
 	box.SetFocusFunc(func() {

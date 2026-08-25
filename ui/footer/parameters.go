@@ -1,9 +1,13 @@
 package footer
 
-import "github.com/Hecatoncheir/lazyrest/ui/theme"
+import (
+	"github.com/Hecatoncheir/lazyrest/locale"
+	"github.com/Hecatoncheir/lazyrest/ui/theme"
+)
 
 type Parameters struct {
 	RootDirectoryPath string
 	Theme             theme.Theme
 	EnvironmentName   string
+	Locale            *locale.Translator
 }

@@ -2,6 +2,7 @@ package footer
 
 import (
 	"github.com/Hecatoncheir/lazyrest/finder"
+	"github.com/Hecatoncheir/lazyrest/locale"
 	"github.com/Hecatoncheir/lazyrest/ui/theme"
 
 	"github.com/rivo/tview"
@@ -34,6 +35,9 @@ func New() *Footer {
 }
 
 func (widget *Footer) Build(parameters Parameters) tview.Primitive {
+	if parameters.Locale == nil {
+		parameters.Locale = locale.English()
+	}
 	widget.Parameters = parameters
 
 	layout := tview.NewFlex().SetDirection(tview.FlexRowCSS)
