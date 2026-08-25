@@ -2,6 +2,8 @@ package theme
 
 import "fmt"
 
+var presetNames = []string{"gruvbox", "catppuccin-mocha", "tokyo-night", "dracula", "nord", "monokai"}
+
 var presets = map[string]Config{
 	"gruvbox": {
 		Background: "#1d2021", PanelBackground: "#504945", PanelFocus: "#3c3836", Foreground: "#fbf1c7", Muted: "#bdae93", Accent: "#83a598",
@@ -39,6 +41,10 @@ var presets = map[string]Config{
 		ProgressForeground: "#272822", Success: "#a6e22e", SuccessForeground: "#272822", Failure: "#f92672", FailureForeground: "#f8f8f2",
 		Breadcrumb: "#ae81ff", BreadcrumbForeground: "#272822",
 	},
+}
+
+func PresetNames() []string {
+	return append([]string(nil), presetNames...)
 }
 
 func resolvePreset(overrides Config) (Config, error) {

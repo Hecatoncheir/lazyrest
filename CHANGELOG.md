@@ -12,6 +12,7 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 - Keybinding validation now rejects conflicts within the same UI context while allowing reuse across independent panels.
+- The command palette now provides an interactive picker for switching built-in themes at runtime.
 
 ## [v0.9.0] - 2026-08-25
 ### Added

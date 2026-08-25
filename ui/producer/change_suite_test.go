@@ -3,6 +3,9 @@ package producer
 import (
 	"strings"
 	"testing"
+
+	"github.com/Hecatoncheir/lazyrest/ui/theme"
+	"github.com/rivo/tview"
 )
 
 func TestFormatIndeterminateProgressBarMoves(t *testing.T) {
@@ -20,6 +23,24 @@ func TestFormatIndeterminateProgressBarMoves(t *testing.T) {
 		if !strings.ContainsAny(bar, "<>") {
 			t.Fatalf("progress bar has no direction marker: %q", bar)
 		}
+	}
+}
+
+func TestCompletedResultUsesCurrentTheme(t *testing.T) {
+	widget := New()
+	widget.Build(Parameters{Theme: theme.NewDefault(), App: tview.NewApplication()})
+	element := widget.Element.(*tview.TextView)
+	selected, err := theme.FromConfig(theme.Config{Preset: "monokai"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	widget.theme = selected.Producer
+	element.Focus(nil)
+
+	widget.showCompletedResult(element, "completed")
+
+	if got := element.GetBackgroundColor(); got != selected.Producer.BackgroundFocus {
+		t.Fatalf("completed result restored stale theme: got %v, want %v", got, selected.Producer.BackgroundFocus)
 	}
 }
 

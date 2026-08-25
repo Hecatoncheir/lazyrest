@@ -75,22 +75,21 @@ func (widget *Producer) ChangeSuite(suite http.HttpSuite) {
 	widget.historyVisible = false
 	ctx, runID := widget.StartRun()
 	element := widget.Element.(*tview.TextView)
-	theme := widget.theme
 	initialText := localizedRunningRequestText(widget.locale, formatIndeterminateProgressBar(0))
 
 	// Show loading state immediately
 	element.Clear().
 		SetText(initialText).
 		SetWrap(true).
-		SetTitleColor(theme.TitleFocus).
-		SetBorderColor(theme.BorderFocus).
-		SetBackgroundColor(theme.BackgroundFocus)
+		SetTitleColor(widget.theme.TitleFocus).
+		SetBorderColor(widget.theme.BorderFocus).
+		SetBackgroundColor(widget.theme.BackgroundFocus)
 	widget.updateTitle()
 	widget.currentText = initialText
 
 	// Set focus so the user sees it working
 	element.SetFocusFunc(func() {
-		element.SetBackgroundColor(theme.BackgroundFocus)
+		widget.applyTheme(element, true)
 	})
 
 	animationDone := make(chan struct{})
@@ -132,16 +131,13 @@ func (widget *Producer) ChangeSuite(suite http.HttpSuite) {
 			widget.addHistory(suite, response, err)
 			text := renderExecutionResultWithLocale(suite, response, err, widget.bodyViewMode, widget.locale)
 
-			element.
-				Clear().
-				SetWrap(true).
-				SetTitleColor(theme.TitleFocus).
-				SetBorderColor(theme.BorderFocus).
-				SetBackgroundColor(theme.BackgroundFocus)
-
-			element.
-				SetBackgroundColor(theme.BackgroundFocus)
-			widget.setText(text)
+			widget.showCompletedResult(element, text)
 		})
 	}()
+}
+
+func (widget *Producer) showCompletedResult(element *tview.TextView, text string) {
+	element.Clear().SetWrap(true)
+	widget.applyTheme(element, element.HasFocus())
+	widget.setText(text)
 }

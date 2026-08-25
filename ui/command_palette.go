@@ -3,6 +3,7 @@ package ui
 import (
 	appconfig "github.com/Hecatoncheir/lazyrest/config"
 	"github.com/Hecatoncheir/lazyrest/ui/footer"
+	"github.com/Hecatoncheir/lazyrest/ui/theme"
 	"github.com/rivo/tview"
 )
 
@@ -15,6 +16,9 @@ func (application *Application) buildCommandPalette() {
 	palette.AddItem(translator.Text("reload_config"), "", 0, func() {
 		application.closeOverlay()
 		application.reloadConfiguration()
+	})
+	palette.AddItem(translator.Text("choose_theme"), "", 0, func() {
+		application.openOverlay(OverlayThemePicker)
 	})
 	palette.AddItem(translator.Text("reload_files_command"), "", 0, func() {
 		application.closeOverlay()
@@ -31,6 +35,68 @@ func (application *Application) buildCommandPalette() {
 	})
 	application.applyCommandPaletteTheme(palette)
 	application.CommandPalette = palette
+	application.buildThemePicker()
+}
+
+func (application *Application) buildThemePicker() {
+	translator := application.config.Locale
+	picker := tview.NewList().ShowSecondaryText(false)
+	picker.SetBorder(true).
+		SetTitle(translator.Text("theme_picker")).
+		SetTitleAlign(tview.AlignCenter)
+	for _, preset := range theme.PresetNames() {
+		name := preset
+		picker.AddItem(name, "", 0, func() {
+			application.closeOverlay()
+			application.selectThemePreset(name)
+		})
+	}
+	application.applyCommandPaletteTheme(picker)
+	application.ThemePicker = picker
+}
+
+func (application *Application) selectThemePreset(name string) {
+	selected, err := theme.FromConfig(theme.Config{Preset: name})
+	if err != nil {
+		application.Footer.UpdateIndicatorState(footer.IndicatorFailure)
+		application.Footer.UpdateStatus(application.config.Locale.Format("config_error", err))
+		return
+	}
+	application.config.Theme = selected
+	application.theme = selected
+	focused := application.Element.GetFocus()
+	application.Pages.SetBackgroundColor(selected.Background)
+	application.Layout.ApplySettings(selected)
+	application.Workspace.ApplySettings(selected)
+	application.HttpFilesTree.ApplySettings(selected, application.config.Locale, application.config.Keybindings)
+	application.Suites.ApplySettings(selected, application.config.Locale, application.config.Keybindings)
+	application.Suite.ApplySettings(selected, application.config.Locale, application.config.Keybindings)
+	application.Producer.ApplySettings(selected, application.config.Locale, application.config.Keybindings)
+	application.Footer.ApplySettings(selected, application.config.Locale)
+	application.applyOverlayTheme()
+	if focused != nil {
+		application.Element.SetFocus(focused)
+	}
+	application.Footer.UpdateIndicatorState(footer.IndicatorDefault)
+	application.Footer.UpdateStatus(application.config.Locale.Format("theme_changed", name))
+}
+
+func (application *Application) applyOverlayTheme() {
+	for _, view := range []*tview.TextView{application.Diagnostics, application.Help} {
+		if view == nil {
+			continue
+		}
+		uiTheme := application.theme.Suite
+		view.SetTextColor(uiTheme.Foreground).
+			SetBackgroundColor(uiTheme.BackgroundFocus).
+			SetBorderColor(uiTheme.BorderFocus).
+			SetTitleColor(uiTheme.TitleFocus)
+	}
+	for _, list := range []*tview.List{application.CommandPalette, application.ThemePicker} {
+		if list != nil {
+			application.applyCommandPaletteTheme(list)
+		}
+	}
 }
 
 func (application *Application) applyCommandPaletteTheme(palette *tview.List) {
@@ -70,12 +136,19 @@ func (application *Application) reloadConfiguration() {
 	application.config.Theme = settings.Theme
 	application.config.ConfigPath = path
 	application.theme = settings.Theme
+	focused := application.Element.GetFocus()
+	application.Pages.SetBackgroundColor(settings.Theme.Background)
+	application.Layout.ApplySettings(settings.Theme)
+	application.Workspace.ApplySettings(settings.Theme)
 	application.HttpFilesTree.ApplySettings(settings.Theme, settings.Locale, settings.Keybindings)
 	application.Suites.ApplySettings(settings.Theme, settings.Locale, settings.Keybindings)
 	application.Suite.ApplySettings(settings.Theme, settings.Locale, settings.Keybindings)
 	application.Producer.ApplySettings(settings.Theme, settings.Locale, settings.Keybindings)
 	application.Footer.ApplySettings(settings.Theme, settings.Locale)
 	application.buildOverlays()
+	if focused != nil {
+		application.Element.SetFocus(focused)
+	}
 	application.Footer.UpdateIndicatorState(footer.IndicatorDefault)
 	application.Footer.UpdateStatus(settings.Locale.Text("config_reloaded"))
 }

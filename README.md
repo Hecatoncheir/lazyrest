@@ -1,4 +1,4 @@
-# lazyrest
+ # lazyrest
 
 [![CI](https://github.com/Hecatoncheir/lazyrest/actions/workflows/go-test.yml/badge.svg)](https://github.com/Hecatoncheir/lazyrest/actions/workflows/go-test.yml)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
@@ -256,7 +256,7 @@ keybindings:
 
 The built-in languages are English (`en`), Russian (`ru`), Spanish (`es`), and Simplified Chinese (`zh`). The `languages` section is optional and overrides individual built-in strings. Missing strings fall back to the selected built-in language and then to English. A new language can be added by defining it under `languages` and selecting its code with `language`.
 
-The built-in theme presets are `gruvbox` (default), `catppuccin-mocha`, `tokyo-night`, `dracula`, `nord`, and `monokai`. Every theme color remains an optional hexadecimal RGB override applied on top of the selected preset. Press `Ctrl+r` or choose **Reload configuration** from the command palette to apply language, translations, keybindings, and theme changes without restarting lazyrest. Invalid configuration leaves the current settings active and displays an error in the footer.
+The built-in theme presets are `gruvbox` (default), `catppuccin-mocha`, `tokyo-night`, `dracula`, `nord`, and `monokai`. Every theme color remains an optional hexadecimal RGB override applied on top of the selected preset. Choose **Choose theme** from the command palette to switch the current session immediately. Press `Ctrl+r` or choose **Reload configuration** to apply language, translations, keybindings, and theme changes from configuration without restarting lazyrest. Invalid configuration leaves the current settings active and displays an error in the footer.
 
 Supported named keys are `enter`, `esc`, `backspace`, `tab`, arrow keys, `home`, `end`, `pgup`, `pgdn`, `f1` through `f12`, and `ctrl+a` through `ctrl+z`. Single non-whitespace printable characters are case-sensitive.
 

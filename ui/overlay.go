@@ -15,6 +15,7 @@ const (
 	diagnosticsPage    = "diagnostics"
 	helpPage           = "help"
 	commandPalettePage = "command-palette"
+	themePickerPage    = "theme-picker"
 )
 
 func (application *Application) buildOverlays() {
@@ -28,6 +29,7 @@ func (application *Application) buildOverlays() {
 		AddPage(diagnosticsPage, centered(application.Diagnostics, 84, 24), true, false).
 		AddPage(helpPage, centered(application.Help, 72, 25), true, false)
 	application.Pages.AddPage(commandPalettePage, centered(application.CommandPalette, 58, 14), true, false)
+	application.Pages.AddPage(themePickerPage, centered(application.ThemePicker, 58, 14), true, false)
 	application.refreshDiagnostics()
 }
 
@@ -64,6 +66,7 @@ func (application *Application) openOverlay(overlay Overlay) {
 	application.Pages.HidePage(diagnosticsPage)
 	application.Pages.HidePage(helpPage)
 	application.Pages.HidePage(commandPalettePage)
+	application.Pages.HidePage(themePickerPage)
 
 	var page string
 	var focus tview.Primitive
@@ -78,6 +81,9 @@ func (application *Application) openOverlay(overlay Overlay) {
 	case OverlayCommandPalette:
 		page = commandPalettePage
 		focus = application.CommandPalette
+	case OverlayThemePicker:
+		page = themePickerPage
+		focus = application.ThemePicker
 	default:
 		application.closeOverlay()
 		return
@@ -94,6 +100,7 @@ func (application *Application) closeOverlay() {
 	application.Pages.HidePage(diagnosticsPage)
 	application.Pages.HidePage(helpPage)
 	application.Pages.HidePage(commandPalettePage)
+	application.Pages.HidePage(themePickerPage)
 	application.Model.update(func(state *State) {
 		state.Overlay = OverlayNone
 	})

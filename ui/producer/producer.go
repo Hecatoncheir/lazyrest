@@ -117,20 +117,6 @@ func (widget *Producer) Build(parameters Parameters) tview.Primitive {
 		SetTextColor(theme.Foreground).
 		SetBackgroundColor(theme.Background)
 
-	element.SetFocusFunc(func() {
-		element.
-			SetTitleColor(theme.TitleFocus).
-			SetBackgroundColor(theme.BackgroundFocus).
-			SetBorderColor(theme.BorderFocus)
-	})
-
-	element.SetBlurFunc(func() {
-		element.
-			SetTitleColor(theme.Title).
-			SetBackgroundColor(theme.Background).
-			SetBorderColor(theme.Border)
-	})
-
 	box := tview.NewBox().
 		SetBorder(true).
 		SetBorderColor(theme.Border).
@@ -138,21 +124,9 @@ func (widget *Producer) Build(parameters Parameters) tview.Primitive {
 		SetTitle(widget.locale.Text("producer")).
 		SetInputCapture(onInputCallback(widget))
 
-	box.SetFocusFunc(func() {
-		box.
-			SetTitleColor(theme.TitleFocus).
-			SetBackgroundColor(theme.BackgroundFocus).
-			SetBorderColor(theme.BorderFocus)
-	})
-
-	box.SetBlurFunc(func() {
-		box.
-			SetTitleColor(theme.Title).
-			SetBackgroundColor(theme.Background).
-			SetBorderColor(theme.Border)
-	})
-
 	element.Box = box
+	element.SetFocusFunc(func() { widget.applyTheme(element, true) })
+	element.SetBlurFunc(func() { widget.applyTheme(element, false) })
 
 	widget.Element = element
 	widget.updateTitle()

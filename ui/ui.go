@@ -144,9 +144,11 @@ func BuildApplication(rootDirectoryPath string, config Config) *Application {
 		workspaceWidget,
 		footerWidget,
 	)
+	applicationWidget.Layout = layoutWidget
 
 	pages := tview.NewPages().
 		AddPage("main", layoutElement, true, true)
+	pages.SetBackgroundColor(uiTheme.Background)
 	applicationWidget.Pages = pages
 	applicationWidget.buildOverlays()
 

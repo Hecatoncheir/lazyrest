@@ -12,14 +12,18 @@ func (widget *Producer) ApplySettings(uiTheme theme.Theme, translator *locale.Tr
 	widget.locale = translator
 	widget.keybindings = bindings
 	element := widget.Element.(*tview.TextView)
-	applyProducerTheme(element, widget.theme, element.HasFocus())
-	element.SetFocusFunc(func() { applyProducerTheme(element, widget.theme, true) })
-	element.SetBlurFunc(func() { applyProducerTheme(element, widget.theme, false) })
+	widget.applyTheme(element, element.HasFocus())
+	element.SetFocusFunc(func() { widget.applyTheme(element, true) })
+	element.SetBlurFunc(func() { widget.applyTheme(element, false) })
 	if !widget.IsRunning() && len(widget.history) > 0 {
 		entry := widget.history[widget.historyIndex]
 		widget.setText(renderExecutionResultWithLocale(entry.Suite, entry.Response, entry.Err, widget.bodyViewMode, widget.locale))
 	}
 	widget.updateTitle()
+}
+
+func (widget *Producer) applyTheme(element *tview.TextView, focused bool) {
+	applyProducerTheme(element, widget.theme, focused)
 }
 
 func applyProducerTheme(element *tview.TextView, uiTheme theme.ProducerTheme, focused bool) {

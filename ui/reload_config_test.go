@@ -54,3 +54,42 @@ func TestCommandPaletteOpensFromConfiguredKey(t *testing.T) {
 		t.Fatal("command palette was not opened")
 	}
 }
+
+func TestThemePickerAppliesPreset(t *testing.T) {
+	application := BuildApplication(t.TempDir(), Config{})
+	before := application.theme.Background
+	commandPalette := application.CommandPalette
+	themePicker := application.ThemePicker
+
+	application.openOverlay(OverlayThemePicker)
+	if application.Model.CurrentOverlay() != OverlayThemePicker || application.ThemePicker == nil {
+		t.Fatal("theme picker was not opened")
+	}
+	application.closeOverlay()
+	if application.Element.GetFocus() != application.HttpFilesTree.Element {
+		t.Fatalf("focus was not restored to active panel: %T", application.Element.GetFocus())
+	}
+	application.selectThemePreset("monokai")
+	if application.theme.Background == before || application.config.Theme.Background != application.theme.Background {
+		t.Fatal("selected theme was not applied consistently")
+	}
+	treeView := application.HttpFilesTree.Element.(*tview.TreeView)
+	if treeView.GetBackgroundColor() != application.theme.Tree.BackgroundFocus {
+		t.Fatalf("focused panel kept stale background: got %v, want %v", treeView.GetBackgroundColor(), application.theme.Tree.BackgroundFocus)
+	}
+	if application.Element.GetFocus() != application.HttpFilesTree.Element {
+		t.Fatal("active panel lost focus after applying theme")
+	}
+	if application.Pages.GetBackgroundColor() != application.theme.Background || application.Layout.Element.GetBackgroundColor() != application.theme.Background {
+		t.Fatal("top-level containers kept stale theme")
+	}
+	if application.Workspace.Element.(*tview.Flex).GetBackgroundColor() != application.theme.Background {
+		t.Fatal("workspace container kept stale theme")
+	}
+	if application.CommandPalette != commandPalette || application.ThemePicker != themePicker {
+		t.Fatal("theme selection rebuilt overlays and disturbed focus state")
+	}
+	if application.Footer == nil {
+		t.Fatal("footer was not preserved after applying theme")
+	}
+}

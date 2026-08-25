@@ -40,6 +40,7 @@ const (
 	OverlayDiagnostics
 	OverlayHelp
 	OverlayCommandPalette
+	OverlayThemePicker
 )
 
 type State struct {

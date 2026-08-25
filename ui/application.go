@@ -6,6 +6,7 @@ import (
 
 	"github.com/Hecatoncheir/lazyrest/environment"
 	"github.com/Hecatoncheir/lazyrest/ui/footer"
+	"github.com/Hecatoncheir/lazyrest/ui/layout"
 	"github.com/Hecatoncheir/lazyrest/ui/producer"
 	"github.com/Hecatoncheir/lazyrest/ui/suite"
 	"github.com/Hecatoncheir/lazyrest/ui/suites"
@@ -29,10 +30,12 @@ type Application struct {
 	Suite          *suite.Suite
 	Producer       *producer.Producer
 	Workspace      *workspace.Workspace
+	Layout         *layout.Layout
 	Footer         *footer.Footer
 	Diagnostics    *tview.TextView
 	Help           *tview.TextView
 	CommandPalette *tview.List
+	ThemePicker    *tview.List
 
 	config          Config
 	theme           theme.Theme
