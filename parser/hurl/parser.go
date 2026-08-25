@@ -3,6 +3,7 @@ package hurl
 import (
 	"fmt"
 	"github.com/Hecatoncheir/lazyrest/parser/http"
+	nethttp "net/http"
 	"os"
 	"path/filepath"
 )
@@ -26,7 +27,7 @@ func (p *Parser) GetSuitesFromFile(filePath string) ([]http.HttpSuite, error) {
 		Name:         filepath.Base(filePath),
 		Method:       "HURL",
 		Uri:          filePath,
-		Header:       map[string]string{},
+		Header:       nethttp.Header{},
 		IsHurl:       true,
 		HurlFilePath: filePath,
 	}}, nil

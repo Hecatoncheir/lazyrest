@@ -1,13 +1,30 @@
 package http
 
 import (
+	"context"
 	"maps"
 	"strings"
 
 	sitter "github.com/smacker/go-tree-sitter"
 )
 
-func getSuites(source []byte, tree *sitter.Tree, options ParseOptions) ([]HttpSuite, []Diagnostic) {
+// requestBoundaries are the node types that start something new and therefore
+// end the text region belonging to the preceding request.
+var requestBoundaries = map[string]struct{}{
+	"request":              {},
+	"comment":              {},
+	"variable_declaration": {},
+}
+
+// maxRecoveryDepth bounds how many times a request region is re-parsed after
+// the grammar folds the rest of the document into an ERROR node.
+const maxRecoveryDepth = 8
+
+func getSuites(ctx context.Context, source []byte, tree *sitter.Tree, options ParseOptions) ([]HttpSuite, []Diagnostic) {
+	return collectSuites(ctx, source, tree, options, 0)
+}
+
+func collectSuites(ctx context.Context, source []byte, tree *sitter.Tree, options ParseOptions, depth int) ([]HttpSuite, []Diagnostic) {
 	suites := []HttpSuite{}
 	diagnostics := []Diagnostic{}
 	pendingName := ""
@@ -17,9 +34,14 @@ func getSuites(source []byte, tree *sitter.Tree, options ParseOptions) ([]HttpSu
 	}
 
 	rootNode := tree.RootNode()
+	consumedUntil := uint32(0)
 
 	for i := 0; i < int(rootNode.ChildCount()); i++ {
 		node := rootNode.Child(i)
+		if node.StartByte() < consumedUntil {
+			// Already read as part of the preceding request region.
+			continue
+		}
 		nodeType := node.Type()
 
 		switch nodeType {
@@ -35,11 +57,10 @@ func getSuites(source []byte, tree *sitter.Tree, options ParseOptions) ([]HttpSu
 				pendingName = name
 			}
 		case "request":
-			suite, err := getSuite(source, node)
-			if err != nil {
-				diagnostics = append(diagnostics, newDiagnostic(node, err.Error()))
-				continue
-			}
+			regionEnd := requestRegionEnd(rootNode, i, uint32(len(source)))
+			consumedUntil = regionEnd
+			regionText, remainder := clipRequestRegion(string(source[node.StartByte():regionEnd]))
+			suite := getSuite(source, node, regionText)
 			if pendingName != "" {
 				suite.Name = pendingName
 				pendingName = ""
@@ -55,20 +76,61 @@ func getSuites(source []byte, tree *sitter.Tree, options ParseOptions) ([]HttpSu
 			if suite.Name == "" {
 				suite.Name = strings.TrimSpace(suite.Method + " " + suite.Uri)
 			}
-			if node.HasError() {
-				diagnostics = append(diagnostics, newDiagnostic(node, "request contains syntax that could not be parsed completely"))
-			}
 			suites = append(suites, suite)
-		case "ERROR":
-			if len(suites) > 0 && suites[len(suites)-1].Body == "" {
-				suites[len(suites)-1].Body = strings.TrimSpace(node.Content(source))
-				diagnostics = append(diagnostics, newDiagnostic(node, "unrecognized content was treated as the previous request body"))
-			} else {
-				diagnostics = append(diagnostics, newDiagnostic(node, "unrecognized content"))
+			if remainder != "" && !holdsOnlyComments(remainder) {
+				lineOffset := int(node.StartPoint().Row) + strings.Count(regionText, "\n")
+				recovered, recoveredDiagnostics := recoverRemainder(ctx, remainder, options, variables, depth, lineOffset)
+				suites = append(suites, recovered...)
+				diagnostics = append(diagnostics, recoveredDiagnostics...)
 			}
+		case "ERROR":
+			diagnostics = append(diagnostics, newDiagnostic(node, "unrecognized content"))
 		}
 	}
 
+	return suites, diagnostics
+}
+
+// requestRegionEnd returns the byte offset at which the request at index ends.
+// Everything up to the next boundary node belongs to the request, including the
+// ERROR nodes the grammar produces for bodies and for header values it cannot
+// read.
+func requestRegionEnd(rootNode *sitter.Node, index int, sourceLength uint32) uint32 {
+	for next := index + 1; next < int(rootNode.ChildCount()); next++ {
+		sibling := rootNode.Child(next)
+		if _, boundary := requestBoundaries[sibling.Type()]; boundary {
+			return sibling.StartByte()
+		}
+	}
+	return sourceLength
+}
+
+// recoverRemainder re-parses the text the grammar folded into the ERROR node of
+// a request it could not read. Without this the requests inside that text would
+// be missing from the document.
+func recoverRemainder(ctx context.Context, text string, options ParseOptions, variables map[string]string, depth, lineOffset int) ([]HttpSuite, []Diagnostic) {
+	unrecognized := []Diagnostic{{Line: lineOffset + 1, Column: 1, Message: "unrecognized content after the request body"}}
+	if depth >= maxRecoveryDepth {
+		return nil, unrecognized
+	}
+
+	nestedParser := getParser()
+	defer nestedParser.Close()
+	source := []byte(text)
+	tree, err := getTree(ctx, source, nestedParser)
+	if err != nil {
+		return nil, unrecognized
+	}
+	defer tree.Close()
+
+	nestedOptions := ParseOptions{Variables: variables, SecretVariables: options.SecretVariables}
+	suites, diagnostics := collectSuites(ctx, source, tree, nestedOptions, depth+1)
+	if len(suites) == 0 {
+		return nil, unrecognized
+	}
+	for index := range diagnostics {
+		diagnostics[index].Line += lineOffset
+	}
 	return suites, diagnostics
 }
 

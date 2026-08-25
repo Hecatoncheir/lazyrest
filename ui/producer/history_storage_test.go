@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -18,7 +19,7 @@ func TestHistoryPersistsAndRedactsSecrets(t *testing.T) {
 	secret := "super-secret"
 	entry := sanitizedHistoryEntry(parserhttp.HttpSuite{
 		Name: "Secret " + secret, Uri: "https://example.test?token=" + secret, Body: secret,
-		Header: map[string]string{"Authorization": "Bearer " + secret, "Accept": secret}, SecretValues: []string{secret},
+		Header: http.Header{"Authorization": {"Bearer " + secret}, "Accept": {secret}}, SecretValues: []string{secret},
 	}, runner.Response{Body: secret, Header: http.Header{"Set-Cookie": {secret}, "X-Value": {secret}}}, errors.New("failed "+secret), time.Now())
 	widget := &Producer{historyPath: path, history: []HistoryEntry{entry}}
 	if err := widget.saveHistory(); err != nil {
@@ -59,5 +60,68 @@ func TestHistoryRejectsCorruptedFileWithoutReplacingCurrentState(t *testing.T) {
 	}
 	if len(widget.history) != 1 {
 		t.Fatal("corrupted history replaced in-memory state")
+	}
+}
+
+func TestHistoryReadsVersionOneHeaders(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "history.json")
+	contents := `{
+  "version": 1,
+  "entries": [
+    {
+      "suite": {
+        "Name": "List users",
+        "Method": "GET",
+        "Uri": "https://example.test/users",
+        "Header": {"Accept": "application/json"},
+        "Body": "",
+        "BodyType": "",
+        "IsHurl": false,
+        "HurlFilePath": "",
+        "SecretValues": null
+      },
+      "response": {"Code": "200 OK", "StatusCode": 200},
+      "created_at": "2026-08-25T00:00:00Z"
+    }
+  ]
+}`
+	if err := os.WriteFile(path, []byte(contents), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	widget := &Producer{historyPath: path}
+	if err := widget.loadHistory(); err != nil {
+		t.Fatal(err)
+	}
+	if len(widget.history) != 1 {
+		t.Fatalf("version 1 history was not restored: %+v", widget.history)
+	}
+	if got := widget.history[0].Suite.Header.Get("Accept"); got != "application/json" {
+		t.Fatalf("version 1 header was not migrated: %q", got)
+	}
+}
+
+func TestHistoryKeepsRepeatedHeadersAcrossReload(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "history.json")
+	entry := sanitizedHistoryEntry(parserhttp.HttpSuite{
+		Method: "GET",
+		Uri:    "https://example.test",
+		Header: http.Header{"Accept": {"application/json", "text/html"}},
+	}, runner.Response{Code: "200 OK"}, nil, time.Now())
+
+	widget := &Producer{historyPath: path, history: []HistoryEntry{entry}}
+	if err := widget.saveHistory(); err != nil {
+		t.Fatal(err)
+	}
+
+	restored := &Producer{historyPath: path}
+	if err := restored.loadHistory(); err != nil {
+		t.Fatal(err)
+	}
+	if len(restored.history) != 1 {
+		t.Fatalf("history was not restored: %+v", restored.history)
+	}
+	if values := restored.history[0].Suite.Header.Values("Accept"); !slices.Equal(values, []string{"application/json", "text/html"}) {
+		t.Fatalf("repeated header did not survive a reload: %#v", values)
 	}
 }

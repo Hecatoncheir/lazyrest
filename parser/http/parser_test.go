@@ -152,8 +152,8 @@ X-Missing: {{missing}}
 	if suite.Uri != "https://example.com/users" {
 		t.Errorf("unexpected resolved URI: %q", suite.Uri)
 	}
-	if suite.Header["Authorization"] != "Bearer secret-value" {
-		t.Errorf("unexpected resolved header: %q", suite.Header["Authorization"])
+	if suite.Header.Get("Authorization") != "Bearer secret-value" {
+		t.Errorf("unexpected resolved header: %q", suite.Header.Get("Authorization"))
 	}
 	foundMissing := false
 	for _, diagnostic := range result.Diagnostics {
@@ -201,8 +201,8 @@ Authorization: Bearer {{token}}
 	if suite.Uri != "https://api.example.com/v1/users" {
 		t.Fatalf("unexpected resolved URI: %q", suite.Uri)
 	}
-	if suite.Header["Authorization"] != "Bearer private-token" {
-		t.Fatalf("unexpected resolved secret header: %q", suite.Header["Authorization"])
+	if suite.Header.Get("Authorization") != "Bearer private-token" {
+		t.Fatalf("unexpected resolved secret header: %q", suite.Header.Get("Authorization"))
 	}
 	if !slices.Contains(suite.SecretValues, "private-token") {
 		t.Fatalf("resolved secret was not marked for redaction: %#v", suite.SecretValues)
@@ -235,5 +235,97 @@ func TestParseFileWithOptions_ReportsVariableCycle(t *testing.T) {
 	}
 	if !found {
 		t.Fatalf("expected cycle diagnostic, got %+v", result.Diagnostics)
+	}
+}
+
+func TestParseFile_RepeatedHeadersSurviveAndStayOutOfTheBody(t *testing.T) {
+	filePath := filepath.Join(t.TempDir(), "headers.http")
+	content := `# @name repeated
+GET https://example.com/c
+Cookie: a=1
+Cookie: b=2
+Accept: */*
+X-After: yes
+
+# @name second
+GET https://example.com/f
+Accept: text/html
+`
+	if err := os.WriteFile(filePath, []byte(content), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	parser, err := NewParser()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer parser.Close()
+
+	result, err := parser.ParseFile(context.Background(), filePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(result.Suites) != 2 {
+		t.Fatalf("expected two requests, got %d: %+v", len(result.Suites), result.Suites)
+	}
+
+	first := result.Suites[0]
+	if values := first.Header.Values("Cookie"); !slices.Equal(values, []string{"a=1", "b=2"}) {
+		t.Errorf("repeated header was not kept: %#v", values)
+	}
+	if first.Header.Get("Accept") != "*/*" || first.Header.Get("X-After") != "yes" {
+		t.Errorf("headers were lost: %#v", first.Header)
+	}
+	if first.Body != "" {
+		t.Errorf("a header was sent as the body: %q", first.Body)
+	}
+	// The grammar folds everything after the repeated headers into a single
+	// ERROR node; the request inside it has to be recovered.
+	second := result.Suites[1]
+	if second.Name != "second" || second.Uri != "https://example.com/f" {
+		t.Errorf("the following request was not recovered: %+v", second)
+	}
+	if second.Header.Get("Accept") != "text/html" {
+		t.Errorf("recovered request lost its headers: %#v", second.Header)
+	}
+	if len(result.Diagnostics) != 0 {
+		t.Errorf("recovered content produced diagnostics: %+v", result.Diagnostics)
+	}
+}
+
+func TestParseFile_SeparatorIsNotPartOfTheBody(t *testing.T) {
+	filePath := filepath.Join(t.TempDir(), "separator.http")
+	content := `# @name inline body
+POST https://example.com/e
+Content-Type: application/json
+
+{"a": 1}
+
+### plain separator
+GET https://example.com/f
+Accept: text/html
+`
+	if err := os.WriteFile(filePath, []byte(content), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	parser, err := NewParser()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer parser.Close()
+
+	result, err := parser.ParseFile(context.Background(), filePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(result.Suites) == 0 {
+		t.Fatal("expected at least one request")
+	}
+	if result.Suites[0].Body != `{"a": 1}` {
+		t.Errorf("separator leaked into the body: %q", result.Suites[0].Body)
+	}
+	if len(result.Diagnostics) != 0 {
+		t.Errorf("a plain separator produced diagnostics: %+v", result.Diagnostics)
 	}
 }

@@ -1,6 +1,7 @@
 package ui
 
 import (
+	nethttp "net/http"
 	"sync"
 
 	"github.com/Hecatoncheir/lazyrest/finder"
@@ -120,9 +121,9 @@ func cloneDirectory(directory finder.Directory) finder.Directory {
 
 func cloneSuite(suite parserhttp.HttpSuite) parserhttp.HttpSuite {
 	cloned := suite
-	cloned.Header = make(map[string]string, len(suite.Header))
-	for key, value := range suite.Header {
-		cloned.Header[key] = value
+	cloned.Header = suite.Header.Clone()
+	if cloned.Header == nil {
+		cloned.Header = nethttp.Header{}
 	}
 	cloned.SecretValues = append([]string(nil), suite.SecretValues...)
 	return cloned

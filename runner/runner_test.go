@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -22,7 +23,7 @@ func TestNewFromSuite(t *testing.T) {
 		Uri:      "http://example.com",
 		Body:     "",
 		BodyType: "",
-		Header:   map[string]string{"Accept": "application/json"},
+		Header:   http.Header{"Accept": []string{"application/json"}},
 	}
 
 	// 2. Execution
@@ -106,7 +107,7 @@ func TestExecute_WithBodyAndHeaders(t *testing.T) {
 		Uri:      "http://test.com/api/post",
 		Body:     testJSON,
 		BodyType: "json",
-		Header:   map[string]string{"X-Custom-Header": "CustomValue"},
+		Header:   http.Header{"X-Custom-Header": []string{"CustomValue"}},
 	}
 	runner := NewFromSuiteWithConfig(mockSuite, Config{
 		Client: &http.Client{Transport: roundTripFunc(func(r *http.Request) (*http.Response, error) {
@@ -152,6 +153,63 @@ type roundTripFunc func(*http.Request) (*http.Response, error)
 
 func (fn roundTripFunc) RoundTrip(request *http.Request) (*http.Response, error) {
 	return fn(request)
+}
+
+func TestExecute_SendsRepeatedHeaders(t *testing.T) {
+	suite := parser.HttpSuite{
+		Method: http.MethodGet,
+		Uri:    "http://example.test",
+		Header: http.Header{"Cookie": []string{"a=1", "b=2"}, "Accept": []string{"*/*"}},
+	}
+	var sent http.Header
+	runner := NewFromSuiteWithConfig(suite, Config{
+		Client: &http.Client{Transport: roundTripFunc(func(request *http.Request) (*http.Response, error) {
+			sent = request.Header.Clone()
+			return &http.Response{
+				StatusCode: http.StatusOK,
+				Body:       io.NopCloser(strings.NewReader("")),
+				Header:     make(http.Header),
+			}, nil
+		})},
+	})
+
+	if _, err := runner.Execute(context.Background(), nil); err != nil {
+		t.Fatal(err)
+	}
+	if values := sent.Values("Cookie"); !slices.Equal(values, []string{"a=1", "b=2"}) {
+		t.Fatalf("repeated header was not sent: %#v", values)
+	}
+	if sent.Get("Accept") != "*/*" {
+		t.Fatalf("header was not sent: %#v", sent)
+	}
+}
+
+func TestExecute_KeepsContentTypeDeclaredByTheRequest(t *testing.T) {
+	suite := parser.HttpSuite{
+		Method:   http.MethodPost,
+		Uri:      "http://example.test",
+		Body:     `{"a": 1}`,
+		BodyType: "json",
+		Header:   http.Header{"Content-Type": []string{"application/vnd.api+json"}},
+	}
+	var sent http.Header
+	runner := NewFromSuiteWithConfig(suite, Config{
+		Client: &http.Client{Transport: roundTripFunc(func(request *http.Request) (*http.Response, error) {
+			sent = request.Header.Clone()
+			return &http.Response{
+				StatusCode: http.StatusOK,
+				Body:       io.NopCloser(strings.NewReader("")),
+				Header:     make(http.Header),
+			}, nil
+		})},
+	})
+
+	if _, err := runner.Execute(context.Background(), nil); err != nil {
+		t.Fatal(err)
+	}
+	if values := sent.Values("Content-Type"); !slices.Equal(values, []string{"application/vnd.api+json"}) {
+		t.Fatalf("the declared Content-Type was not kept: %#v", values)
+	}
 }
 
 func TestExecute_RespectsContextCancellation(t *testing.T) {

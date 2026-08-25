@@ -156,7 +156,7 @@ func TestTUIProducerAnimatesProgressWhileWaiting(t *testing.T) {
 			Name:   "Slow request",
 			Method: http.MethodGet,
 			Uri:    "https://example.test/slow",
-			Header: map[string]string{},
+			Header: http.Header{},
 		})
 	})
 

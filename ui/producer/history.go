@@ -73,21 +73,7 @@ func renderExecutionResultWithLocale(suite http.HttpSuite, response runner.Respo
 	request.WriteString("[yellow]" + translator.Text("request") + ":[white]\n")
 	request.WriteString(tview.Escape(fmt.Sprintf("%s %s\n", suite.Method, redactSecrets(suite.Uri, suite.SecretValues))))
 
-	headerKeys := make([]string, 0, len(suite.Header))
-	for key := range suite.Header {
-		headerKeys = append(headerKeys, key)
-	}
-	slices.Sort(headerKeys)
-	for _, key := range headerKeys {
-		displayKey := redactSecrets(key, suite.SecretValues)
-		value := suite.Header[key]
-		if isSensitiveHeader(key) {
-			value = "<redacted>"
-		} else {
-			value = redactSecrets(value, suite.SecretValues)
-		}
-		request.WriteString(tview.Escape(fmt.Sprintf("%s: %s\n", displayKey, value)))
-	}
+	request.WriteString(tview.Escape(renderHeaders(suite.Header, suite.SecretValues)))
 	if suite.Body != "" {
 		request.WriteString("\n[yellow]" + translator.Text("body") + ":[white]\n")
 		request.WriteString(tview.Escape(redactSecrets(suite.Body, suite.SecretValues)))

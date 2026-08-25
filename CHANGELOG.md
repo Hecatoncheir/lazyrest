@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+### Fixed
+- Repeated headers such as `Cookie` are kept instead of discarding every header of the request and sending the first one as the body.
+- A header value containing `*`, for example `Accept: */*`, no longer swallows the headers that follow it.
+- Content the grammar cannot read is no longer appended to the request body, and requests folded into it are recovered instead of disappearing from the list.
+- A `###` separator or a naming comment that follows an inline body is no longer sent as part of that body.
+
+### Changed
+- Request headers are stored as `net/http.Header`, so a request can carry several values for the same name. Persisted history is written as version 2; version 1 files are still read.
+
 ## [v0.10.1] - 2026-08-25
 ### Fixed
 - `Ctrl` keybindings now support Unicode characters for non-Latin keyboard layouts.

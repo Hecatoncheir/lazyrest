@@ -77,9 +77,9 @@ func TestRenderExecutionResult_RedactsSensitiveHeaders(t *testing.T) {
 	suite := parserhttp.HttpSuite{
 		Method: "GET",
 		Uri:    "https://example.com",
-		Header: map[string]string{
-			"Authorization": "Bearer secret",
-			"Accept":        "application/json",
+		Header: nethttp.Header{
+			"Authorization": []string{"Bearer secret"},
+			"Accept":        []string{"application/json"},
 		},
 	}
 	text := renderExecutionResult(suite, runner.Response{Code: "200 OK"}, nil)
@@ -92,5 +92,18 @@ func TestRenderExecutionResult_RedactsSensitiveHeaders(t *testing.T) {
 	}
 	if !strings.Contains(text, "Accept: application/json") {
 		t.Fatalf("regular header is missing: %q", text)
+	}
+}
+
+func TestRenderExecutionResult_ShowsRepeatedRequestHeaders(t *testing.T) {
+	suite := parserhttp.HttpSuite{
+		Method: "GET",
+		Uri:    "https://example.com",
+		Header: nethttp.Header{"Accept": []string{"application/json", "text/html"}},
+	}
+
+	text := renderExecutionResult(suite, runner.Response{Code: "200 OK"}, nil)
+	if !strings.Contains(text, "Accept: application/json, text/html") {
+		t.Fatalf("repeated request header is not shown: %q", text)
 	}
 }

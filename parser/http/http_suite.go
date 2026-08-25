@@ -1,10 +1,12 @@
 package http
 
+import nethttp "net/http"
+
 type HttpSuite struct {
 	Name         string
 	Method       string
 	Uri          string
-	Header       map[string]string
+	Header       nethttp.Header
 	Body         string
 	BodyType     string
 	IsHurl       bool
@@ -14,6 +16,6 @@ type HttpSuite struct {
 
 func NewHttpSuite() HttpSuite {
 	return HttpSuite{
-		Header: map[string]string{},
+		Header: nethttp.Header{},
 	}
 }

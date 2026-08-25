@@ -146,17 +146,15 @@ func (runner *Runner) Execute(ctx context.Context, onProgress ProgressCallback) 
 		contentType = bodyType // Fallback to what's provided
 	}
 
-	if contentType != "" && contentType != "raw" {
-		value := fmt.Sprintf("%v; charset=utf-8", contentType)
-		request.Header.Add("Content-Type", value)
-	}
-
 	requestHeader := runner.suite.Header
-	for key, value := range requestHeader {
-		// If Content-Type is already set from bodyType, and user provided one, we use the user's one.
-		if strings.EqualFold(key, "Content-Type") {
-			request.Header.Set("Content-Type", value)
-		} else {
+	// A Content-Type declared by the request itself wins over the one implied
+	// by the body type.
+	if contentType != "" && contentType != "raw" && !hasHeader(requestHeader, "Content-Type") {
+		value := fmt.Sprintf("%v; charset=utf-8", contentType)
+		request.Header.Set("Content-Type", value)
+	}
+	for key, values := range requestHeader {
+		for _, value := range values {
 			request.Header.Add(key, value)
 		}
 	}
@@ -201,6 +199,15 @@ func (runner *Runner) Execute(ctx context.Context, onProgress ProgressCallback) 
 		Protocol:      result.Proto,
 	}
 	return response, nil
+}
+
+func hasHeader(header http.Header, name string) bool {
+	for key := range header {
+		if strings.EqualFold(key, name) {
+			return true
+		}
+	}
+	return false
 }
 
 func (runner *Runner) executeHurl(ctx context.Context) (Response, error) {

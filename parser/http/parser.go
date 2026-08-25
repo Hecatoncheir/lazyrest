@@ -41,7 +41,7 @@ func (parser *Parser) ParseFileWithOptions(ctx context.Context, filePath string,
 	}
 	defer tree.Close()
 
-	suites, diagnostics := getSuites(source, tree, options)
+	suites, diagnostics := getSuites(ctx, source, tree, options)
 	return ParseResult{Suites: suites, Diagnostics: diagnostics}, nil
 }
 

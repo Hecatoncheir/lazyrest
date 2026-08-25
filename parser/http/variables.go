@@ -1,6 +1,7 @@
 package http
 
 import (
+	nethttp "net/http"
 	"regexp"
 	"slices"
 	"strconv"
@@ -80,9 +81,12 @@ func resolveSuiteVariables(suite *HttpSuite, variables map[string]string) Variab
 	resolver := newVariableResolver(variables)
 	suite.Uri = resolver.resolveText(suite.Uri, nil)
 	suite.Body = resolver.resolveText(suite.Body, nil)
-	resolvedHeaders := make(map[string]string, len(suite.Header))
-	for key, value := range suite.Header {
-		resolvedHeaders[resolver.resolveText(key, nil)] = resolver.resolveText(value, nil)
+	resolvedHeaders := make(nethttp.Header, len(suite.Header))
+	for key, values := range suite.Header {
+		resolvedKey := resolver.resolveText(key, nil)
+		for _, value := range values {
+			resolvedHeaders.Add(resolvedKey, resolver.resolveText(value, nil))
+		}
 	}
 	suite.Header = resolvedHeaders
 
