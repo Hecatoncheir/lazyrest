@@ -7,6 +7,8 @@ All notable changes to this project will be documented in this file.
 - Layered project configuration through `.lazyrest.yml` and an explicit `--config` file.
 - Configuration CLI commands: `--generate-config`, `--print-config`, and `--validate-config`.
 - Persistent, size-limited request history in `~/.config/lazyrest/history.json` with secret redaction and secure file permissions.
+- Built-in Simplified Chinese (`zh`) localization.
+- Built-in `gruvbox`, `catppuccin-mocha`, `tokyo-night`, `dracula`, and `nord` theme presets.
 
 ### Changed
 - Keybinding validation now rejects conflicts within the same UI context while allowing reuse across independent panels.

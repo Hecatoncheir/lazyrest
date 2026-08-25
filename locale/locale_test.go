@@ -7,7 +7,7 @@ import (
 )
 
 func TestBuiltInLanguagesAndOverrides(t *testing.T) {
-	for _, language := range []string{"en", "ru", "es"} {
+	for _, language := range []string{"en", "ru", "es", "zh"} {
 		translator, err := New(language, nil)
 		if err != nil {
 			t.Fatal(err)
@@ -22,6 +22,16 @@ func TestBuiltInLanguagesAndOverrides(t *testing.T) {
 	}
 	if translator.Text("files") != "Мои файлы" || translator.Text("suite") == "Suite" {
 		t.Fatal("override or built-in Russian translation was not applied")
+	}
+}
+
+func TestChineseDiagnosticCounter(t *testing.T) {
+	translator, err := New("zh", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := translator.PluralDiagnostics(2); got != "2 条诊断" {
+		t.Fatalf("unexpected Chinese diagnostic counter: %q", got)
 	}
 }
 

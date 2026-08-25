@@ -197,27 +197,11 @@ lazyrest merges configuration in this order, with later layers taking priority:
 Each action accepts one or more keys. Configured keys replace the defaults for that action; actions omitted from the file keep their default bindings. Reusing a key in separate panels is allowed, while conflicting actions in the same context fail validation with an actionable error.
 
 ```yaml
-language: ru
+language: zh
 
 theme:
-  background: "#1d2021"
-  panel_background: "#504945"
-  panel_focus: "#3c3836"
-  foreground: "#fbf1c7"
-  muted: "#bdae93"
-  accent: "#83a598"
-  border: "#bdae93"
-  border_focus: "#fbf1c7"
-  selection_background: "#fbf1c7"
-  selection_foreground: "#282828"
-  progress: "#fabd2f"
-  progress_foreground: "#3c3836"
-  success: "#b8bb26"
-  success_foreground: "#3c3836"
-  failure: "#d65d0e"
-  failure_foreground: "#fbf1c7"
-  breadcrumb: "#bdae93"
-  breadcrumb_foreground: "#504945"
+  preset: catppuccin-mocha
+  accent: "#89b4fa"
 
 languages:
   en:
@@ -238,6 +222,12 @@ languages:
     producer: "Resultado"
     success: "Correcto"
     failed: "Error"
+  zh:
+    files: "文件"
+    suites: "请求列表"
+    producer: "响应"
+    success: "成功"
+    failed: "失败"
 
 keybindings:
   help: ["?", "f1"]
@@ -264,9 +254,9 @@ keybindings:
   reload_config: ["ctrl+r"]
 ```
 
-The built-in languages are English (`en`), Russian (`ru`), and Spanish (`es`). The `languages` section is optional and overrides individual built-in strings. Missing strings fall back to the selected built-in language and then to English. A new language can be added by defining it under `languages` and selecting its code with `language`.
+The built-in languages are English (`en`), Russian (`ru`), Spanish (`es`), and Simplified Chinese (`zh`). The `languages` section is optional and overrides individual built-in strings. Missing strings fall back to the selected built-in language and then to English. A new language can be added by defining it under `languages` and selecting its code with `language`.
 
-All theme colors are optional hexadecimal RGB values. Omitted colors keep the built-in Gruvbox palette. Press `Ctrl+r` or choose **Reload configuration** from the command palette to apply language, translations, keybindings, and theme changes without restarting lazyrest. Invalid configuration leaves the current settings active and displays an error in the footer.
+The built-in theme presets are `gruvbox` (default), `catppuccin-mocha`, `tokyo-night`, `dracula`, and `nord`. Every theme color remains an optional hexadecimal RGB override applied on top of the selected preset. Press `Ctrl+r` or choose **Reload configuration** from the command palette to apply language, translations, keybindings, and theme changes without restarting lazyrest. Invalid configuration leaves the current settings active and displays an error in the footer.
 
 Supported named keys are `enter`, `esc`, `backspace`, `tab`, arrow keys, `home`, `end`, `pgup`, `pgdn`, `f1` through `f12`, and `ctrl+a` through `ctrl+z`. Single non-whitespace printable characters are case-sensitive.
 

@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/Hecatoncheir/lazyrest/keymap"
+	"github.com/Hecatoncheir/lazyrest/ui/theme"
 	"github.com/gdamore/tcell/v2"
 )
 
@@ -18,7 +19,7 @@ languages:
 keybindings:
   command_palette: [":", "ctrl+p"]
 theme:
-  background: "#010203"
+  preset: nord
 `
 	if err := os.WriteFile(path, []byte(contents), 0o600); err != nil {
 		t.Fatal(err)
@@ -33,8 +34,8 @@ theme:
 	if !settings.Keybindings.Matches(keymap.CommandPalette, tcell.NewEventKey(tcell.KeyRune, ':', tcell.ModNone)) {
 		t.Fatal("keybindings were not loaded")
 	}
-	if settings.Theme.Background == tcell.ColorDefault {
-		t.Fatal("theme was not loaded")
+	if settings.Theme.Background == tcell.ColorDefault || settings.Theme.Background == theme.NewDefault().Background {
+		t.Fatal("theme preset was not loaded")
 	}
 }
 
