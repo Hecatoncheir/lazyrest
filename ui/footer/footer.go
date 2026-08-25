@@ -14,6 +14,7 @@ type Footer struct {
 	suiteElement         *tview.TextView
 	environmentElement   *tview.TextView
 	statusElement        *tview.TextView
+	progressElement      *tview.TextView
 	selectedFile         *finder.File
 	suiteName            string
 	status               string

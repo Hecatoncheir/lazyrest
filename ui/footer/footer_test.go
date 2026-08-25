@@ -11,14 +11,17 @@ import (
 	"github.com/rivo/tview"
 )
 
-func TestFooterKeepsSuiteAfterFileSelection(t *testing.T) {
+func TestFooterShowsSelectedFileAndHidesSuite(t *testing.T) {
 	widget := New()
 	widget.Build(Parameters{RootDirectoryPath: "/workspace", Theme: theme.NewDefault()})
 	widget.SelectFile(finder.File{Name: "requests.http", Path: "/workspace/requests.http"})
 	widget.UpdateSuite("List users")
 
-	if got := widget.suiteElement.GetText(true); got != " Suite: List users " {
-		t.Fatalf("unexpected suite breadcrumb: %q", got)
+	if widget.suiteElement != nil {
+		t.Fatal("suite segment must not be rendered")
+	}
+	if widget.selectedFile == nil || widget.selectedFile.Name != "requests.http" {
+		t.Fatal("selected file must be rendered")
 	}
 }
 
@@ -31,9 +34,6 @@ func TestFooterShowsSelectedEnvironment(t *testing.T) {
 	})
 	widget.UpdateSuite("List users")
 
-	if got := widget.suiteElement.GetText(true); got != " Suite: List users " {
-		t.Fatalf("unexpected suite breadcrumb: %q", got)
-	}
 	if got := widget.environmentElement.GetText(true); got != " Env: development" {
 		t.Fatalf("unexpected environment status: %q", got)
 	}
@@ -76,7 +76,7 @@ func TestSuiteSegmentUsesMatchingPowerlineArrow(t *testing.T) {
 	}
 }
 
-func TestFooterAppliesIndicatorStateToSuiteAndProgress(t *testing.T) {
+func TestFooterKeepsProgressDefaultAndColorsRequestState(t *testing.T) {
 	footerTheme := theme.NewDefault().Footer
 	tests := []struct {
 		name       string
@@ -112,10 +112,81 @@ func TestFooterAppliesIndicatorStateToSuiteAndProgress(t *testing.T) {
 			widget.UpdateStatus("Running [====>-------]")
 			widget.UpdateIndicatorState(test.state)
 
-			assertTextViewColors(t, widget.suiteElement, test.foreground, test.background)
 			assertTextViewColors(t, widget.statusElement, test.foreground, test.background)
+			assertTextViewColors(t, widget.progressElement, footerTheme.SuiteForeground, footerTheme.SuiteBackground)
 		})
 	}
+}
+
+func TestSplitStatus(t *testing.T) {
+	status, progress := splitStatus("Success [============]")
+	if status != "Success" || progress != "[============]" {
+		t.Fatalf("unexpected split: status=%q progress=%q", status, progress)
+	}
+}
+
+func TestCompletedStatusHasNoProgressAndUsesLeftArrow(t *testing.T) {
+	footerTheme := theme.NewDefault().Footer
+	widget := New()
+	widget.Build(Parameters{RootDirectoryPath: "/workspace", Theme: theme.NewDefault()})
+	widget.UpdateStatus("Success")
+	widget.UpdateIndicatorState(IndicatorSuccess)
+
+	if got := widget.progressElement.GetText(true); got != "" {
+		t.Fatalf("completed status contains progress: %q", got)
+	}
+
+	screen := tcell.NewSimulationScreen("UTF-8")
+	if err := screen.Init(); err != nil {
+		t.Fatalf("initialize simulation screen: %v", err)
+	}
+	t.Cleanup(screen.Fini)
+	screen.SetSize(80, 1)
+	widget.Element.SetRect(0, 0, 80, 1)
+	widget.Element.Draw(screen)
+	screen.Show()
+
+	cells, _, _ := screen.GetContents()
+	for _, cell := range cells {
+		if cell.Runes[0] != symbols.ArrowLeft {
+			continue
+		}
+		foreground, background, _ := cell.Style.Decompose()
+		if foreground != footerTheme.SuiteSuccess.Background || background != footerTheme.Background {
+			t.Fatalf("unexpected status arrow colors: foreground=%v background=%v", foreground, background)
+		}
+		return
+	}
+	t.Fatal("status left arrow was not rendered")
+}
+
+func TestProgressUsesLeftArrow(t *testing.T) {
+	footerTheme := theme.NewDefault().Footer
+	widget := New()
+	widget.Build(Parameters{RootDirectoryPath: "/workspace", Theme: theme.NewDefault()})
+	widget.UpdateStatus("Running [====>-------]")
+
+	screen := tcell.NewSimulationScreen("UTF-8")
+	if err := screen.Init(); err != nil {
+		t.Fatalf("initialize simulation screen: %v", err)
+	}
+	t.Cleanup(screen.Fini)
+	screen.SetSize(80, 1)
+	widget.Element.SetRect(0, 0, 80, 1)
+	widget.Element.Draw(screen)
+	screen.Show()
+
+	cells, _, _ := screen.GetContents()
+	for _, cell := range cells {
+		if cell.Runes[0] != symbols.ArrowLeft {
+			continue
+		}
+		foreground, background, _ := cell.Style.Decompose()
+		if foreground == footerTheme.SuiteBackground && background == footerTheme.Background {
+			return
+		}
+	}
+	t.Fatal("progress left arrow was not rendered")
 }
 
 func TestDefaultFooterIndicatorPalette(t *testing.T) {

@@ -41,7 +41,7 @@ func TestTUIRemainsInteractiveDuringBackgroundStartup(t *testing.T) {
 	waitFor(t, "startup loading state", func() bool {
 		return application.Model.Snapshot().Files.Phase == PhaseLoading
 	})
-	waitForScreenText(t, application, screen, "Loading [")
+	waitForScreenText(t, application, screen, " Loading")
 
 	screen.InjectKey(tcell.KeyRune, '?', tcell.ModNone)
 	waitFor(t, "help during startup", func() bool {
@@ -148,7 +148,7 @@ func TestTUIProducerAnimatesProgressWhileWaiting(t *testing.T) {
 
 	waitForScreenText(t, application, screen, "Running request")
 	waitForScreenText(t, application, screen, "====>")
-	waitForScreenText(t, application, screen, "Running [")
+	waitForScreenText(t, application, screen, " Running")
 	firstFrame := applicationText(application, screen)
 	waitFor(t, "animated progress bar", func() bool {
 		text := applicationText(application, screen)
@@ -160,7 +160,7 @@ func TestTUIProducerAnimatesProgressWhileWaiting(t *testing.T) {
 		request := application.Model.Snapshot().Request
 		return request.Phase == PhaseReady && request.Outcome == OutcomeSuccess
 	})
-	waitForScreenText(t, application, screen, "Success [")
+	waitForScreenText(t, application, screen, " Success")
 }
 
 type uiRoundTripFunc func(*http.Request) (*http.Response, error)

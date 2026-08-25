@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v0.6.2] - 2026-08-25
+### Changed
+- Footer request progress is shown as a separate yellow powerline segment and disappears when execution finishes.
+- Completed request status uses a dedicated green or orange powerline segment while keeping the selected file breadcrumb visible.
+- The redundant `Suite:` segment is no longer displayed in the footer.
+
 ## [v0.6.1] - 2026-08-24
 ### Changed
 - Suite and footer progress indicators now use yellow while idle or running, green after successful requests, and orange after errors or unsuccessful responses.

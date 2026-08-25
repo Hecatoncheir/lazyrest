@@ -134,9 +134,7 @@ func (application *Application) refreshStatus() {
 	case state.Startup.Phase == PhaseFailed || state.Files.Phase == PhaseFailed || state.Parser.Phase == PhaseFailed:
 		status = "Error — press d"
 	case state.Request.Outcome == OutcomeSuccess:
-		status = "Success " + uiprogress.Body(1, 1, footerProgressWidth, footerProgressPulse)
-	case state.Request.Outcome == OutcomeFailure && state.Request.Phase == PhaseReady:
-		status = "Failed " + uiprogress.Body(1, 1, footerProgressWidth, footerProgressPulse)
+		status = "Success"
 	case state.Request.Outcome == OutcomeFailure:
 		status = "Failed"
 	case len(state.Diagnostics) > 0:

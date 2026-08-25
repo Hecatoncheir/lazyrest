@@ -1,6 +1,10 @@
 package footer
 
-import "github.com/rivo/tview"
+import (
+	"strings"
+
+	"github.com/rivo/tview"
+)
 
 func (widget *Footer) render() {
 	if widget.Element == nil {
@@ -50,25 +54,54 @@ func (widget *Footer) render() {
 	statusText.SetTextAlign(tview.AlignLeft)
 	statusText.SetTextColor(indicatorTheme.Foreground)
 	statusText.SetBackgroundColor(indicatorTheme.Background)
-	status := ""
-	if widget.status != "" {
-		status = " " + widget.status + " "
+	status, progress := splitStatus(widget.status)
+	if status != "" {
+		status = " " + status + " "
 	}
 	statusText.SetText(status)
 	widget.statusElement = statusText
 
-	layout.AddItem(breadcrumbs, 0, 1, false)
-	if widget.suiteName != "" {
-		suiteSegment, suiteText, suiteWidth := buildSuiteElement(widget.suiteName, footerTheme, indicatorTheme)
-		widget.suiteElement = suiteText
-		layout.AddItem(suiteSegment, suiteWidth, 0, false)
-	} else {
-		widget.suiteElement = nil
+	progressText := tview.NewTextView()
+	progressText.SetTextAlign(tview.AlignLeft)
+	progressText.SetTextColor(footerTheme.SuiteForeground)
+	progressText.SetBackgroundColor(footerTheme.SuiteBackground)
+	if progress != "" {
+		progress = " " + progress + " "
 	}
+	progressText.SetText(progress)
+	widget.progressElement = progressText
+
+	layout.AddItem(breadcrumbs, 0, 1, false)
+	widget.suiteElement = nil
 	if environment != "" {
 		layout.AddItem(environmentText, tview.TaggedStringWidth(environment), 0, false)
 	}
-	if status != "" {
-		layout.AddItem(statusText, tview.TaggedStringWidth(status), 0, false)
+	if progress != "" {
+		progressArrow, progressArrowWidth := buildArrowLeftElement(footerTheme.Background, footerTheme.SuiteBackground)
+		progressSegment := tview.NewFlex().
+			SetDirection(tview.FlexRowCSS).
+			AddItem(progressArrow, progressArrowWidth, 0, false).
+			AddItem(progressText, tview.TaggedStringWidth(progress), 0, false)
+		layout.AddItem(progressSegment, progressArrowWidth+tview.TaggedStringWidth(progress), 0, false)
 	}
+	if status != "" {
+		separatorBackground := footerTheme.Background
+		if progress != "" {
+			separatorBackground = footerTheme.SuiteBackground
+		}
+		statusArrow, statusArrowWidth := buildArrowLeftElement(separatorBackground, indicatorTheme.Background)
+		statusSegment := tview.NewFlex().
+			SetDirection(tview.FlexRowCSS).
+			AddItem(statusArrow, statusArrowWidth, 0, false).
+			AddItem(statusText, tview.TaggedStringWidth(status), 0, false)
+		layout.AddItem(statusSegment, statusArrowWidth+tview.TaggedStringWidth(status), 0, false)
+	}
+}
+
+func splitStatus(value string) (status, progress string) {
+	index := strings.LastIndex(value, " [")
+	if index == -1 {
+		return value, ""
+	}
+	return value[:index], value[index+1:]
 }
