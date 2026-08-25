@@ -1,8 +1,10 @@
 package suite
 
 import (
-	"fmt"
+	"strings"
+
 	"github.com/Hecatoncheir/lazyrest/parser/http"
+	"github.com/Hecatoncheir/lazyrest/ui/syntax"
 
 	"github.com/rivo/tview"
 )
@@ -10,14 +12,7 @@ import (
 func (widget *Suite) ChangeSuite(suite http.HttpSuite) {
 	widget.suite = suite
 	element := widget.Element.(*tview.TextView)
-	text := fmt.Sprintf(
-		widget.locale.Text("request")+": %v %v\n"+
-			widget.locale.Text("body")+"(%v): %v",
-		suite.Method,
-		suite.Redact(suite.Uri),
-		suite.BodyType,
-		suite.Redact(suite.Body),
-	)
+	text := widget.render(suite)
 	theme := widget.theme
 	element.
 		Clear().
@@ -39,6 +34,27 @@ func (widget *Suite) ChangeSuite(suite http.HttpSuite) {
 		element.
 			SetBackgroundColor(theme.Background)
 	})
+}
+
+// render draws the request, colouring the body by the format it declares. The
+// text is markup, so every part of it has to be escaped or highlighted.
+func (widget *Suite) render(suite http.HttpSuite) string {
+	var out strings.Builder
+	out.WriteString(widget.locale.Text("request") + ": ")
+	out.WriteString(tview.Escape(strings.TrimSpace(suite.Method + " " + suite.Redact(suite.Uri))))
+
+	body := suite.Redact(suite.Body)
+	if body == "" {
+		return out.String()
+	}
+
+	label := widget.locale.Text("body")
+	if suite.BodyType != "" {
+		label += "(" + suite.BodyType + ")"
+	}
+	out.WriteString("\n" + tview.Escape(label) + ":\n")
+	out.WriteString(syntax.Highlight(body, syntax.LanguageForBodyType(suite.BodyType), widget.syntax))
+	return out.String()
 }
 
 func (widget *Suite) Clear() {

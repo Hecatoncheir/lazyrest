@@ -6,6 +6,7 @@ import (
 	"github.com/Hecatoncheir/lazyrest/locale"
 	"github.com/Hecatoncheir/lazyrest/parser/http"
 	"github.com/Hecatoncheir/lazyrest/runner"
+	"github.com/Hecatoncheir/lazyrest/ui/syntax"
 	"github.com/Hecatoncheir/lazyrest/ui/theme"
 	"sync"
 
@@ -42,6 +43,7 @@ type Producer struct {
 	keybindings      *keymap.Bindings
 	locale           *locale.Translator
 	historyPath      string
+	syntax           syntax.Palette
 	historyMutex     sync.Mutex
 	historyRequested uint64
 	historyWritten   uint64
@@ -119,6 +121,7 @@ func (widget *Producer) Build(parameters Parameters) tview.Primitive {
 	widget.keybindings = parameters.Keybindings
 	widget.locale = parameters.Locale
 	widget.historyPath = parameters.HistoryPath
+	widget.syntax = parameters.Theme.Syntax
 	_ = widget.loadHistory()
 	widget.bodyViewMode = BodyViewPretty
 	theme := parameters.Theme.Producer

@@ -146,3 +146,16 @@ func colorTag(color tcell.Color) string {
 	}
 	return fmt.Sprintf("[#%06x]", hex)
 }
+
+// LanguageForBodyType maps the body type a request declares to its scanner.
+func LanguageForBodyType(bodyType string) Language {
+	switch bodyType {
+	case "json":
+		return LanguageJSON
+	case "xml":
+		return LanguageXML
+	case "graphql":
+		return LanguageGraphQL
+	}
+	return LanguagePlain
+}

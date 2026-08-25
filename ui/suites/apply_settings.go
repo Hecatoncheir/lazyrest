@@ -9,6 +9,7 @@ import (
 
 func (widget *Suites) ApplySettings(uiTheme theme.Theme, translator *locale.Translator, bindings *keymap.Bindings) {
 	widget.theme = uiTheme.Suites
+	widget.syntax = uiTheme.Syntax
 	widget.locale = translator
 	widget.keybindings = bindings
 	element := widget.Element.(*tview.List)

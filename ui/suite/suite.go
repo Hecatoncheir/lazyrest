@@ -4,6 +4,7 @@ import (
 	"github.com/Hecatoncheir/lazyrest/keymap"
 	"github.com/Hecatoncheir/lazyrest/locale"
 	"github.com/Hecatoncheir/lazyrest/parser/http"
+	"github.com/Hecatoncheir/lazyrest/ui/syntax"
 	"github.com/Hecatoncheir/lazyrest/ui/theme"
 
 	"github.com/rivo/tview"
@@ -21,6 +22,7 @@ type Suite struct {
 	onRunCallback    OnRunCallbackType
 	keybindings      *keymap.Bindings
 	locale           *locale.Translator
+	syntax           syntax.Palette
 }
 
 func (widget *Suite) Build(parameters Parameters) tview.Primitive {
@@ -38,8 +40,11 @@ func (widget *Suite) Build(parameters Parameters) tview.Primitive {
 	theme := parameters.Theme.Suite
 	widget.theme = theme
 
+	widget.syntax = parameters.Theme.Syntax
+
 	element := tview.NewTextView()
 	element.
+		SetDynamicColors(true).
 		SetTextColor(theme.Foreground).
 		SetBackgroundColor(theme.Background)
 

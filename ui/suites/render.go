@@ -3,8 +3,20 @@ package suites
 import (
 	"strings"
 
+	"github.com/Hecatoncheir/lazyrest/parser/http"
+	"github.com/Hecatoncheir/lazyrest/ui/syntax"
 	"github.com/rivo/tview"
 )
+
+// bodyPreview renders the body of a request as one highlighted line, since a
+// list row cannot show more than that.
+func (widget *Suites) bodyPreview(suite http.HttpSuite) string {
+	body := strings.Join(strings.Fields(suite.Redact(suite.Body)), " ")
+	if body == "" {
+		return ""
+	}
+	return syntax.Highlight(body, syntax.LanguageForBodyType(suite.BodyType), widget.syntax)
+}
 
 func (widget *Suites) render() {
 	element := widget.Element.(*tview.List)
@@ -33,7 +45,7 @@ func (widget *Suites) render() {
 		if label == "" {
 			label = suite.Method + " " + suite.Redact(suite.Uri)
 		}
-		element.AddItem(label, suite.Redact(suite.Body), 0, func() {
+		element.AddItem(label, widget.bodyPreview(suite), 0, func() {
 			widget.onSuiteSelectCallback(suite)
 		}).
 			SetWrapAround(true).

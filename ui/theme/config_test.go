@@ -83,11 +83,11 @@ func TestSyntaxColorsFollowTheSemanticPalette(t *testing.T) {
 		got  tcell.Color
 		want string
 	}{
-		{role: "string", got: configured.Producer.Syntax.String, want: "#50fa7b"},
-		{role: "key", got: configured.Producer.Syntax.Key, want: "#8be9fd"},
-		{role: "number", got: configured.Producer.Syntax.Number, want: "#f1fa8c"},
-		{role: "literal", got: configured.Producer.Syntax.Literal, want: "#ff5555"},
-		{role: "punctuation", got: configured.Producer.Syntax.Punctuation, want: "#6272a4"},
+		{role: "string", got: configured.Syntax.String, want: "#50fa7b"},
+		{role: "key", got: configured.Syntax.Key, want: "#8be9fd"},
+		{role: "number", got: configured.Syntax.Number, want: "#f1fa8c"},
+		{role: "literal", got: configured.Syntax.Literal, want: "#ff5555"},
+		{role: "punctuation", got: configured.Syntax.Punctuation, want: "#6272a4"},
 	}
 	for _, testCase := range cases {
 		if want := appcolor.Color(testCase.want).ToTerminal(); testCase.got != want {
@@ -102,7 +102,7 @@ func TestEveryPresetDefinesSyntaxColors(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		colors := configured.Producer.Syntax
+		colors := configured.Syntax
 		for role, color := range map[string]tcell.Color{
 			"key": colors.Key, "string": colors.String, "number": colors.Number,
 			"literal": colors.Literal, "keyword": colors.Keyword,

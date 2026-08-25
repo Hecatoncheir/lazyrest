@@ -67,15 +67,7 @@ func requestLanguage(suite parserhttp.HttpSuite, mode BodyViewMode) syntax.Langu
 	if mode == BodyViewRaw {
 		return syntax.LanguagePlain
 	}
-	switch suite.BodyType {
-	case "json":
-		return syntax.LanguageJSON
-	case "xml":
-		return syntax.LanguageXML
-	case parserhttp.BodyTypeGraphQL:
-		return syntax.LanguageGraphQL
-	}
-	return syntax.LanguagePlain
+	return syntax.LanguageForBodyType(suite.BodyType)
 }
 
 func jsonLanguage(mode BodyViewMode) syntax.Language {

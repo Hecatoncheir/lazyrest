@@ -2,6 +2,7 @@ package theme
 
 import (
 	"github.com/Hecatoncheir/lazyrest/color"
+	"github.com/Hecatoncheir/lazyrest/ui/syntax"
 
 	"github.com/rivo/tview"
 )
@@ -67,16 +68,6 @@ func NewDefault() Theme {
 			BackgroundFocus: color.Color("#3c3836").ToTerminal(),
 			Border:          color.Color("#bdae93").ToTerminal(),
 			BorderFocus:     color.Color("#fbf1c7").ToTerminal(),
-			Syntax: SyntaxTheme{
-				Key:         color.Color("#83a598").ToTerminal(),
-				String:      color.Color("#b8bb26").ToTerminal(),
-				Number:      color.Color("#fabd2f").ToTerminal(),
-				Literal:     color.Color("#d65d0e").ToTerminal(),
-				Keyword:     color.Color("#d65d0e").ToTerminal(),
-				Variable:    color.Color("#fabd2f").ToTerminal(),
-				Punctuation: color.Color("#bdae93").ToTerminal(),
-				Comment:     color.Color("#bdae93").ToTerminal(),
-			},
 		},
 		Footer: FooterTheme{
 			Background:      color.Color("#504945").ToTerminal(),
@@ -106,6 +97,16 @@ func NewDefault() Theme {
 				ArrowForeground:              color.Color("#fbf1c7").ToTerminal(),
 			},
 		},
+	}
+	theme.Syntax = syntax.Palette{
+		Key:         color.Color("#83a598").ToTerminal(),
+		String:      color.Color("#b8bb26").ToTerminal(),
+		Number:      color.Color("#fabd2f").ToTerminal(),
+		Literal:     color.Color("#d65d0e").ToTerminal(),
+		Keyword:     color.Color("#d65d0e").ToTerminal(),
+		Variable:    color.Color("#fabd2f").ToTerminal(),
+		Punctuation: color.Color("#bdae93").ToTerminal(),
+		Comment:     color.Color("#bdae93").ToTerminal(),
 	}
 	return theme
 }

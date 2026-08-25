@@ -7,6 +7,7 @@ import (
 	"github.com/Hecatoncheir/lazyrest/keymap"
 	"github.com/Hecatoncheir/lazyrest/locale"
 	"github.com/Hecatoncheir/lazyrest/parser/http"
+	"github.com/Hecatoncheir/lazyrest/ui/syntax"
 	"github.com/Hecatoncheir/lazyrest/ui/theme"
 
 	"github.com/rivo/tview"
@@ -27,6 +28,7 @@ func (widget *Suites) SetParseOptions(options http.ParseOptions) {
 type Suites struct {
 	Element               tview.Primitive
 	theme                 theme.SuitesTheme
+	syntax                syntax.Palette
 	suites                []http.HttpSuite
 	diagnosticCount       int
 	selectedSuite         http.HttpSuite
@@ -57,8 +59,12 @@ func (widget *Suites) Build(parameters Parameters) tview.Primitive {
 
 	theme := parameters.Theme.Suites
 	widget.theme = theme
+	widget.syntax = parameters.Theme.Syntax
 
 	element := tview.NewList()
+	// The body preview carries markup, so the list must not escape it. The
+	// main text keeps tview's own escaping.
+	element.SetUseStyleTags(false, true)
 
 	box := tview.NewBox().
 		SetBorder(true).

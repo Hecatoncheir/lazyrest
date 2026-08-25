@@ -11,7 +11,6 @@ import (
 	"github.com/Hecatoncheir/lazyrest/parser/http"
 	"github.com/Hecatoncheir/lazyrest/runner"
 	"github.com/Hecatoncheir/lazyrest/ui/syntax"
-	"github.com/Hecatoncheir/lazyrest/ui/theme"
 
 	"github.com/rivo/tview"
 )
@@ -59,20 +58,7 @@ func (widget *Producer) renderEntry(entry HistoryEntry) string {
 }
 
 func (widget *Producer) renderResult(suite http.HttpSuite, response runner.Response, err error) string {
-	return renderExecutionResultWithLocale(suite, response, err, widget.bodyViewMode, widget.locale, syntaxPalette(widget.theme.Syntax))
-}
-
-func syntaxPalette(colors theme.SyntaxTheme) syntax.Palette {
-	return syntax.Palette{
-		Key:         colors.Key,
-		String:      colors.String,
-		Number:      colors.Number,
-		Literal:     colors.Literal,
-		Keyword:     colors.Keyword,
-		Variable:    colors.Variable,
-		Punctuation: colors.Punctuation,
-		Comment:     colors.Comment,
-	}
+	return renderExecutionResultWithLocale(suite, response, err, widget.bodyViewMode, widget.locale, widget.syntax)
 }
 
 func (widget *Producer) setText(text string) {
