@@ -329,3 +329,70 @@ Accept: text/html
 		t.Errorf("a plain separator produced diagnostics: %+v", result.Diagnostics)
 	}
 }
+
+func TestParseFile_SendsExternalBodyFile(t *testing.T) {
+	directory := t.TempDir()
+	if err := os.WriteFile(filepath.Join(directory, "payload.json"), []byte(`{"token": "{{token}}"}`), 0644); err != nil {
+		t.Fatal(err)
+	}
+	filePath := filepath.Join(directory, "external.http")
+	content := `# @name upload
+POST https://example.com/upload
+Content-Type: application/json
+
+< ./payload.json
+`
+	if err := os.WriteFile(filePath, []byte(content), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	parser, err := NewParser()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer parser.Close()
+
+	result, err := parser.ParseFileWithOptions(context.Background(), filePath, ParseOptions{
+		Variables: map[string]string{"token": "resolved"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(result.Suites) != 1 {
+		t.Fatalf("expected one request, got %d", len(result.Suites))
+	}
+	if body := result.Suites[0].Body; body != `{"token": "resolved"}` {
+		t.Fatalf("external body was not loaded: %q", body)
+	}
+	if len(result.Diagnostics) != 0 {
+		t.Fatalf("unexpected diagnostics: %+v", result.Diagnostics)
+	}
+}
+
+func TestParseFile_ReportsMissingExternalBodyFile(t *testing.T) {
+	directory := t.TempDir()
+	filePath := filepath.Join(directory, "external.http")
+	if err := os.WriteFile(filePath, []byte("POST https://example.com/upload\n\n< ./missing.json\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	parser, err := NewParser()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer parser.Close()
+
+	result, err := parser.ParseFile(context.Background(), filePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	found := false
+	for _, diagnostic := range result.Diagnostics {
+		if strings.Contains(diagnostic.Message, "read request body file") {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatalf("missing body file was not reported: %+v", result.Diagnostics)
+	}
+}

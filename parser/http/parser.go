@@ -3,6 +3,7 @@ package http
 import (
 	"context"
 	"os"
+	"path/filepath"
 
 	sitter "github.com/smacker/go-tree-sitter"
 )
@@ -35,6 +36,7 @@ func (parser *Parser) ParseFileWithOptions(ctx context.Context, filePath string,
 	if err != nil {
 		return ParseResult{}, err
 	}
+	options.baseDirectory = filepath.Dir(filePath)
 	tree, err := getTree(ctx, source, parser.treesitter)
 	if err != nil {
 		return ParseResult{}, err

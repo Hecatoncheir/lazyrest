@@ -212,6 +212,32 @@ func TestExecute_KeepsContentTypeDeclaredByTheRequest(t *testing.T) {
 	}
 }
 
+func TestExecute_SendsDeclaredHostHeader(t *testing.T) {
+	suite := parser.HttpSuite{
+		Method: http.MethodGet,
+		Uri:    "http://127.0.0.1:8080/users",
+		Header: http.Header{"Host": []string{"virtual.example.test"}},
+	}
+	var sentHost string
+	runner := NewFromSuiteWithConfig(suite, Config{
+		Client: &http.Client{Transport: roundTripFunc(func(request *http.Request) (*http.Response, error) {
+			sentHost = request.Host
+			return &http.Response{
+				StatusCode: http.StatusOK,
+				Body:       io.NopCloser(strings.NewReader("")),
+				Header:     make(http.Header),
+			}, nil
+		})},
+	})
+
+	if _, err := runner.Execute(context.Background(), nil); err != nil {
+		t.Fatal(err)
+	}
+	if sentHost != "virtual.example.test" {
+		t.Fatalf("declared Host was not sent: %q", sentHost)
+	}
+}
+
 func TestExecute_RespectsContextCancellation(t *testing.T) {
 	suite := parser.HttpSuite{Method: http.MethodGet, Uri: "http://example.test"}
 	runner := NewFromSuiteWithConfig(suite, Config{

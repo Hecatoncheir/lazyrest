@@ -149,7 +149,7 @@ func (runner *Runner) Execute(ctx context.Context, onProgress ProgressCallback) 
 	requestHeader := runner.suite.Header
 	// A Content-Type declared by the request itself wins over the one implied
 	// by the body type.
-	if contentType != "" && contentType != "raw" && !hasHeader(requestHeader, "Content-Type") {
+	if _, declared := headerValue(requestHeader, "Content-Type"); contentType != "" && contentType != "raw" && !declared {
 		value := fmt.Sprintf("%v; charset=utf-8", contentType)
 		request.Header.Set("Content-Type", value)
 	}
@@ -157,6 +157,11 @@ func (runner *Runner) Execute(ctx context.Context, onProgress ProgressCallback) 
 		for _, value := range values {
 			request.Header.Add(key, value)
 		}
+	}
+	// net/http takes the Host header from the request field, not from the
+	// header map.
+	if host, declared := headerValue(requestHeader, "Host"); declared && host != "" {
+		request.Host = host
 	}
 
 	begin := time.Now()
@@ -201,13 +206,19 @@ func (runner *Runner) Execute(ctx context.Context, onProgress ProgressCallback) 
 	return response, nil
 }
 
-func hasHeader(header http.Header, name string) bool {
-	for key := range header {
-		if strings.EqualFold(key, name) {
-			return true
+// headerValue returns the first value declared for name, matching the name
+// case-insensitively, and whether it was declared at all.
+func headerValue(header http.Header, name string) (string, bool) {
+	for key, values := range header {
+		if !strings.EqualFold(key, name) {
+			continue
 		}
+		if len(values) == 0 {
+			return "", true
+		}
+		return values[0], true
 	}
-	return false
+	return "", false
 }
 
 func (runner *Runner) executeHurl(ctx context.Context) (Response, error) {

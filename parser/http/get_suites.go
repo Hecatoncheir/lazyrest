@@ -2,7 +2,10 @@ package http
 
 import (
 	"context"
+	"fmt"
 	"maps"
+	"os"
+	"path/filepath"
 	"strings"
 
 	sitter "github.com/smacker/go-tree-sitter"
@@ -15,6 +18,9 @@ var requestBoundaries = map[string]struct{}{
 	"comment":              {},
 	"variable_declaration": {},
 }
+
+// maxExternalBodyBytes caps the size of a file a request may send as its body.
+const maxExternalBodyBytes = int64(10 << 20)
 
 // maxRecoveryDepth bounds how many times a request region is re-parsed after
 // the grammar folds the rest of the document into an ERROR node.
@@ -64,6 +70,11 @@ func collectSuites(ctx context.Context, source []byte, tree *sitter.Tree, option
 			if pendingName != "" {
 				suite.Name = pendingName
 				pendingName = ""
+			}
+			// The body is loaded before substitution so that the file can use
+			// variables too.
+			if err := loadExternalBody(&suite, options.baseDirectory); err != nil {
+				diagnostics = append(diagnostics, newDiagnostic(node, err.Error()))
 			}
 			resolution := resolveSuiteVariables(&suite, variables)
 			suite.SecretValues = resolveSecretVariables(options.SecretVariables, variables)
@@ -123,7 +134,7 @@ func recoverRemainder(ctx context.Context, text string, options ParseOptions, va
 	}
 	defer tree.Close()
 
-	nestedOptions := ParseOptions{Variables: variables, SecretVariables: options.SecretVariables}
+	nestedOptions := ParseOptions{Variables: variables, SecretVariables: options.SecretVariables, baseDirectory: options.baseDirectory}
 	suites, diagnostics := collectSuites(ctx, source, tree, nestedOptions, depth+1)
 	if len(suites) == 0 {
 		return nil, unrecognized
@@ -132,6 +143,33 @@ func recoverRemainder(ctx context.Context, text string, options ParseOptions, va
 		diagnostics[index].Line += lineOffset
 	}
 	return suites, diagnostics
+}
+
+// loadExternalBody replaces a body that names a file with the contents of that
+// file, resolved against the directory of the parsed file.
+func loadExternalBody(suite *HttpSuite, baseDirectory string) error {
+	path, external := externalBodyPath(suite.Body)
+	if !external {
+		return nil
+	}
+	if !filepath.IsAbs(path) {
+		path = filepath.Join(baseDirectory, path)
+	}
+
+	info, err := os.Stat(path)
+	if err != nil {
+		return fmt.Errorf("read request body file: %w", err)
+	}
+	if info.Size() > maxExternalBodyBytes {
+		return fmt.Errorf("request body file %s is larger than %d bytes", path, maxExternalBodyBytes)
+	}
+	contents, err := os.ReadFile(path)
+	if err != nil {
+		return fmt.Errorf("read request body file: %w", err)
+	}
+
+	suite.Body = string(contents)
+	return nil
 }
 
 func newDiagnostic(node *sitter.Node, message string) Diagnostic {

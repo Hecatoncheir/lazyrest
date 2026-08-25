@@ -8,6 +8,10 @@ All notable changes to this project will be documented in this file.
 - A header value containing `*`, for example `Accept: */*`, no longer swallows the headers that follow it.
 - Content the grammar cannot read is no longer appended to the request body, and requests folded into it are recovered instead of disappearing from the list.
 - A `###` separator or a naming comment that follows an inline body is no longer sent as part of that body.
+- A `Host` header declared by a request is now sent instead of being dropped by `net/http`.
+
+### Added
+- A request body can be read from a file with `< ./payload.json`, resolved next to the `.http` file and limited to 10 MiB.
 
 ### Changed
 - Request headers are stored as `net/http.Header`, so a request can carry several values for the same name. Persisted history is written as version 2; version 1 files are still read.

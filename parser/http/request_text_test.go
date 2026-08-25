@@ -122,3 +122,32 @@ func TestHoldsOnlyComments(t *testing.T) {
 		t.Error("a request line was treated as comment-only")
 	}
 }
+
+func TestExternalBodyPath(t *testing.T) {
+	cases := []struct {
+		body     string
+		wantPath string
+		wantOk   bool
+	}{
+		{body: "< ./payload.json", wantPath: "./payload.json", wantOk: true},
+		{body: "<@ ./payload.json", wantPath: "./payload.json", wantOk: true},
+		{body: "<@utf-8 ../shared/payload.json", wantPath: "../shared/payload.json", wantOk: true},
+		{body: `<?xml version="1.0"?>`},
+		{body: "<tag>hello</tag>"},
+		{body: "<message> text </message>"},
+		{body: "< ./payload.json\n{\"a\": 1}"},
+		{body: `{"a": 1}`},
+	}
+
+	for _, testCase := range cases {
+		t.Run(testCase.body, func(t *testing.T) {
+			path, ok := externalBodyPath(testCase.body)
+			if ok != testCase.wantOk {
+				t.Fatalf("unexpected detection: %v, want %v", ok, testCase.wantOk)
+			}
+			if path != testCase.wantPath {
+				t.Fatalf("unexpected path: %q, want %q", path, testCase.wantPath)
+			}
+		})
+	}
+}

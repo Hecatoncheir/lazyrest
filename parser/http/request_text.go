@@ -6,6 +6,10 @@ import (
 	"strings"
 )
 
+// externalBodyPattern matches a body that names a file to send, written as
+// `< ./payload.json`, optionally with the JetBrains encoding marker.
+var externalBodyPattern = regexp.MustCompile(`^<@?(?:[A-Za-z0-9_-]+)?[ \t]+(\S.*)$`)
+
 // headerLinePattern matches the "Name:" prefix of a header line. The name is an
 // RFC 7230 token, optionally assembled from {{variable}} placeholders, which
 // keeps body lines such as `{"key": "value"}` from being read as headers.
@@ -114,4 +118,18 @@ func holdsOnlyComments(text string) bool {
 		}
 	}
 	return true
+}
+
+// externalBodyPath reports the file a body refers to, if the body is nothing
+// but such a reference.
+func externalBodyPath(body string) (string, bool) {
+	body = strings.TrimSpace(body)
+	if strings.Contains(body, "\n") {
+		return "", false
+	}
+	match := externalBodyPattern.FindStringSubmatch(body)
+	if match == nil {
+		return "", false
+	}
+	return strings.TrimSpace(match[1]), true
 }

@@ -146,6 +146,15 @@ Authorization: Bearer {{token}}
 Accept: application/json
 ```
 
+A request body can be read from a file next to the `.http` file. Variables inside the file are substituted as usual:
+
+```http
+POST https://{{host}}/users
+Content-Type: application/json
+
+< ./payload.json
+```
+
 Sensitive headers such as `Authorization`, cookies, API keys, tokens, and secrets are redacted from the response pane.
 
 ## Environments
