@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [Unreleased]
+## [v0.10.0] - 2026-08-25
 ### Added
 - Layered project configuration through `.lazyrest.yml` and an explicit `--config` file.
 - Configuration CLI commands: `--generate-config`, `--print-config`, and `--validate-config`.
