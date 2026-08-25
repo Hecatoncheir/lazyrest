@@ -13,11 +13,15 @@ Content-Type: application/xml
 # @name Send GraphQL
 POST {{baseUrl}}/anything
 Accept: application/json
-Content-Type: application/graphql
+X-REQUEST-TYPE: GraphQL
 
-query Example {
-  viewer {
+query Example($id: ID!) {
+  viewer(id: $id) {
     id
     name
   }
+}
+
+{
+  "id": "lazyrest-example-001"
 }

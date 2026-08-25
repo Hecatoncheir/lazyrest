@@ -19,6 +19,7 @@
 - Tree-sitter parsing with a dedicated diagnostics window and named requests.
 - Public/private environment profiles plus recursive `{{variable}}` substitution.
 - Cancellable HTTP and Hurl execution with animated Producer/footer progress bars, timeout, and bounded response bodies.
+- GraphQL requests encoded the way servers expect, with a variables block and errors surfaced from `200` responses.
 - Response headers, protocol metadata, and Pretty/Raw JSON or XML bodies.
 - File/request/response search and an in-memory history of the last 50 runs.
 - Mouse and Vim-style keyboard navigation.
@@ -170,6 +171,34 @@ Content-Type: application/json
 ```
 
 Sensitive headers such as `Authorization`, cookies, API keys, tokens, and secrets are redacted from the response pane.
+
+### GraphQL
+
+A request is treated as GraphQL when its body is a GraphQL document or when it
+carries `X-REQUEST-TYPE: GraphQL`. Write the query, then an optional JSON object
+of variables after a blank line:
+
+```http
+POST https://{{host}}/graphql
+X-REQUEST-TYPE: GraphQL
+
+query GetUser($id: ID!) {
+  user(id: $id) { name }
+}
+
+{
+  "id": "{{userId}}"
+}
+```
+
+lazyrest sends this as `application/json` with a `{"query": …, "variables": …}`
+body, which is what the GraphQL over HTTP specification requires and what
+servers accept. When the document names exactly one operation, its name is sent
+as `operationName`.
+
+GraphQL answers with `200` even when the operation failed, so an `errors` array
+in the response is listed separately and marks the run as failed. To send the
+raw query instead, declare `Content-Type: application/graphql` yourself.
 
 ## Environments
 

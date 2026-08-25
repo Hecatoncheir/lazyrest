@@ -12,8 +12,12 @@ type HttpSuite struct {
 	IsHurl       bool
 	HurlFilePath string
 	// Variables are passed to Hurl, which does its own substitution.
-	Variables    map[string]string
-	SecretValues []string
+	Variables map[string]string
+	// GraphQLVariables and GraphQLOperation complete a GraphQL request whose
+	// query is held in Body.
+	GraphQLVariables string
+	GraphQLOperation string
+	SecretValues     []string
 }
 
 func NewHttpSuite() HttpSuite {

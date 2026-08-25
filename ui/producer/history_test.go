@@ -107,3 +107,34 @@ func TestRenderExecutionResult_ShowsRepeatedRequestHeaders(t *testing.T) {
 		t.Fatalf("repeated request header is not shown: %q", text)
 	}
 }
+
+func TestRenderExecutionResult_ShowsGraphQLQueryVariablesAndErrors(t *testing.T) {
+	suite := parserhttp.HttpSuite{
+		Method:           "POST",
+		Uri:              "https://example.com/graphql",
+		Body:             "query GetUser($id: ID!) {\n  user(id: $id) { name }\n}",
+		BodyType:         parserhttp.BodyTypeGraphQL,
+		GraphQLVariables: `{"id":"42"}`,
+		Header:           nethttp.Header{},
+	}
+	response := runner.Response{
+		Code:          "200 OK",
+		StatusCode:    200,
+		Body:          `{"data":null,"errors":[{"message":"Unknown field"}]}`,
+		GraphQLErrors: []string{"Unknown field"},
+	}
+
+	text := renderExecutionResult(suite, response, nil)
+	if !strings.Contains(text, "Query:") {
+		t.Errorf("the query is not labelled: %q", text)
+	}
+	if !strings.Contains(text, "Variables:") || !strings.Contains(text, "\"id\": \"42\"") {
+		t.Errorf("variables are not shown separately: %q", text)
+	}
+	if !strings.Contains(text, "GraphQL errors:") || !strings.Contains(text, "- Unknown field") {
+		t.Errorf("GraphQL errors are not shown: %q", text)
+	}
+	if !strings.Contains(text, "[red]") {
+		t.Errorf("a failed GraphQL response is not marked as failed: %q", text)
+	}
+}

@@ -74,13 +74,24 @@ func renderExecutionResultWithLocale(suite http.HttpSuite, response runner.Respo
 	request.WriteString(tview.Escape(fmt.Sprintf("%s %s\n", suite.Method, redactSecrets(suite.Uri, suite.SecretValues))))
 
 	request.WriteString(tview.Escape(renderHeaders(suite.Header, suite.SecretValues)))
+	bodyLabel := "body"
+	if suite.BodyType == http.BodyTypeGraphQL {
+		bodyLabel = "query"
+	}
 	if suite.Body != "" {
-		request.WriteString("\n[yellow]" + translator.Text("body") + ":[white]\n")
+		request.WriteString("\n[yellow]" + translator.Text(bodyLabel) + ":[white]\n")
 		request.WriteString(tview.Escape(redactSecrets(suite.Body, suite.SecretValues)))
+	}
+	if suite.GraphQLVariables != "" {
+		request.WriteString("\n\n[yellow]" + translator.Text("variables") + ":[white]\n")
+		request.WriteString(tview.Escape(redactSecrets(prettyJSON(suite.GraphQLVariables), suite.SecretValues)))
 	}
 
 	responseColor := "white"
 	switch {
+	case len(response.GraphQLErrors) > 0:
+		// GraphQL answers with 200 even when the operation failed.
+		responseColor = "red"
 	case strings.HasPrefix(response.Code, "2"):
 		responseColor = "green"
 	case strings.HasPrefix(response.Code, "3"):
@@ -94,6 +105,12 @@ func renderExecutionResultWithLocale(suite http.HttpSuite, response runner.Respo
 	responseDetails.WriteString(response.ToMiniString())
 	if response.Protocol != "" {
 		responseDetails.WriteString(translator.Text("protocol") + ": " + response.Protocol + "\n")
+	}
+	if len(response.GraphQLErrors) > 0 {
+		responseDetails.WriteString("\n" + translator.Text("graphql_errors") + ":\n")
+		for _, message := range response.GraphQLErrors {
+			responseDetails.WriteString("- " + redactSecrets(message, suite.SecretValues) + "\n")
+		}
 	}
 	if len(response.Header) > 0 {
 		responseDetails.WriteString("\n" + translator.Text("headers") + ":\n")

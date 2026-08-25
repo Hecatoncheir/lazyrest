@@ -76,6 +76,7 @@ func collectSuites(ctx context.Context, source []byte, tree *sitter.Tree, option
 			if err := loadExternalBody(&suite, options.baseDirectory); err != nil {
 				diagnostics = append(diagnostics, newDiagnostic(node, err.Error()))
 			}
+			applyGraphQL(&suite)
 			resolution := resolveSuiteVariables(&suite, variables)
 			suite.SecretValues = resolveSecretVariables(options.SecretVariables, variables)
 			for _, name := range resolution.Missing {

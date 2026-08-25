@@ -81,6 +81,7 @@ func resolveSuiteVariables(suite *HttpSuite, variables map[string]string) Variab
 	resolver := newVariableResolver(variables)
 	suite.Uri = resolver.resolveText(suite.Uri, nil)
 	suite.Body = resolver.resolveText(suite.Body, nil)
+	suite.GraphQLVariables = resolver.resolveText(suite.GraphQLVariables, nil)
 	resolvedHeaders := make(nethttp.Header, len(suite.Header))
 	for key, values := range suite.Header {
 		resolvedKey := resolver.resolveText(key, nil)

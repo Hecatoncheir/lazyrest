@@ -125,27 +125,14 @@ func (runner *Runner) Execute(ctx context.Context, onProgress ProgressCallback) 
 		return runner.executeHurl(ctx)
 	}
 
-	method := runner.suite.Method
-	url := runner.suite.Uri
-	requestBody := runner.suite.Body
-	requestBodyReader := bytes.NewBuffer([]byte(requestBody))
-
-	request, err := http.NewRequestWithContext(ctx, method, url, requestBodyReader)
+	requestBody, contentType, err := runner.requestPayload()
 	if err != nil {
 		return Response{}, err
 	}
 
-	bodyType := runner.suite.BodyType
-	contentType := ""
-	switch bodyType {
-	case "json":
-		contentType = "application/json"
-	case "xml":
-		contentType = "application/xml"
-	case "graphql":
-		contentType = "application/graphql"
-	default:
-		contentType = bodyType // Fallback to what's provided
+	request, err := http.NewRequestWithContext(ctx, runner.suite.Method, runner.suite.Uri, bytes.NewBufferString(requestBody))
+	if err != nil {
+		return Response{}, err
 	}
 
 	requestHeader := runner.suite.Header
@@ -195,8 +182,14 @@ func (runner *Runner) Execute(ctx context.Context, onProgress ProgressCallback) 
 
 	diff := time.Since(begin)
 
+	graphQLErrors := []string(nil)
+	if runner.suite.BodyType == parser.BodyTypeGraphQL {
+		graphQLErrors = graphQLErrorMessages(responseBody)
+	}
+
 	response := Response{
 		Body:          string(responseBody),
+		GraphQLErrors: graphQLErrors,
 		ContentLength: len(responseBody),
 		Code:          fmt.Sprintf("%d %s", result.StatusCode, http.StatusText(result.StatusCode)),
 		StatusCode:    result.StatusCode,
@@ -206,6 +199,32 @@ func (runner *Runner) Execute(ctx context.Context, onProgress ProgressCallback) 
 		Protocol:      result.Proto,
 	}
 	return response, nil
+}
+
+// requestPayload returns the body to send and the content type it implies.
+func (runner *Runner) requestPayload() (string, string, error) {
+	suite := runner.suite
+	switch suite.BodyType {
+	case "json":
+		return suite.Body, "application/json", nil
+	case "xml":
+		return suite.Body, "application/xml", nil
+	case parser.BodyTypeGraphQL:
+		// A request that asks for application/graphql keeps the raw query as
+		// its body. Every other GraphQL request is sent the way the GraphQL
+		// over HTTP specification requires, which is what servers accept.
+		if declared, _ := headerValue(suite.Header, "Content-Type"); strings.Contains(strings.ToLower(declared), "application/graphql") {
+			return suite.Body, "application/graphql", nil
+		}
+		encoded, err := encodeGraphQL(suite)
+		if err != nil {
+			return "", "", err
+		}
+		return encoded, "application/json", nil
+	default:
+		// Fall back to whatever the request declared.
+		return suite.Body, suite.BodyType, nil
+	}
 }
 
 // headerValue returns the first value declared for name, matching the name

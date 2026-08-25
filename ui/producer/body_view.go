@@ -80,3 +80,13 @@ func formatXML(body string) (string, bool) {
 	}
 	return output.String(), true
 }
+
+// prettyJSON formats a JSON document for display, leaving it untouched when it
+// cannot be parsed.
+func prettyJSON(text string) string {
+	var output bytes.Buffer
+	if err := json.Indent(&output, []byte(text), "", "  "); err != nil {
+		return text
+	}
+	return output.String()
+}

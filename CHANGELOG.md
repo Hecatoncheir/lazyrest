@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+### Added
+- GraphQL requests are sent as `application/json` with a `{"query": …, "variables": …}` body, the form the GraphQL over HTTP specification requires. A request is recognized from its body or from `X-REQUEST-TYPE: GraphQL`, variables are written as a JSON object after the query, and the operation name is sent when the document names exactly one.
+- The response pane lists the `errors` of a GraphQL response and marks the run as failed, which a `200` status alone would hide.
+
+### Changed
+- A GraphQL request previously went out as `application/graphql` with the raw query as its body, which most servers reject. Declare `Content-Type: application/graphql` to keep that form.
+
 ## [v0.11.0] - 2026-08-25
 ### Fixed
 - Repeated headers such as `Cookie` are kept instead of discarding every header of the request and sending the first one as the body.
