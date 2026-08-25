@@ -25,6 +25,16 @@ func TestBuiltInLanguagesAndOverrides(t *testing.T) {
 	}
 }
 
+func TestBuiltInLanguagesContainEveryEnglishKey(t *testing.T) {
+	for language, translations := range builtins {
+		for key := range builtins["en"] {
+			if _, ok := translations[key]; !ok {
+				t.Errorf("language %s is missing translation %q", language, key)
+			}
+		}
+	}
+}
+
 func TestChineseDiagnosticCounter(t *testing.T) {
 	translator, err := New("zh", nil)
 	if err != nil {

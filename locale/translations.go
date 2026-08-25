@@ -1,129 +1,39 @@
 package locale
 
-var builtins = map[string]map[string]string{
-	"en": {
-		"files": "Files", "suites": "Suites", "suite": "Suite", "producer": "Producer",
-		"loading": "loading", "reloading": "reloading", "loading_files": "Loading files...",
-		"unable_scan": "Unable to scan directory: %v", "warning": "Warning: %s",
-		"no_files": "No files found in directory: %v", "loading_file": "Suites — loading %s",
-		"loading_short": "Loading...", "error": "Error: %s", "diagnostics_count": " — %d diagnostics [d]",
-		"no_requests": "No runnable requests — press d for diagnostics",
-		"request":     "Request", "body": "Body", "running_request": "Running request...",
-		"history": "history", "raw": "Raw", "pretty": "Pretty", "response": "Response", "response_error": "Response error", "headers": "Headers",
-		"protocol": "Protocol", "environment": "Env", "running": "Running", "parsing": "Parsing",
-		"success": "Success", "failed": "Failed", "error_press": "Error — press d",
-		"diagnostics_press": "%d diagnostics — press d",
-		"diagnostics":       "Diagnostics", "help": "Help", "close": "close",
-		"startup": "Startup", "loading_environment": "Loading environment...", "startup_error": "Startup error",
-		"file_discovery": "File discovery", "scanning": "Scanning %s...", "file_discovery_error": "File discovery error",
-		"file_discovery_warnings": "File discovery warnings", "parser": "Parser", "parser_parsing": "Parsing %s...",
-		"parser_error": "Parser error", "no_diagnostics_for": "No diagnostics for %s.",
-		"parser_diagnostics_for": "Parser diagnostics for %s", "select_file_diagnostics": "Select an .http file to see parser diagnostics.",
-		"no_diagnostics": "No diagnostics.", "global": "Global", "files_help": "Files", "suites_help": "Suites and Suite",
-		"producer_help": "Producer", "help_toggle": "Open or close this help", "diagnostics_toggle": "Open or close diagnostics",
-		"quit": "Quit lazyrest", "focus_left": "Move focus left", "focus_down": "Move focus down", "focus_up": "Move focus up",
-		"focus_right": "Move focus right", "open_file": "Open a directory or parse a request file", "search_files": "Search files",
-		"next_match": "Next match", "previous_match": "Previous match", "reload_files": "Reload files in the background",
-		"move_down": "Move down", "move_up": "Move up", "open_request": "Open the selected request",
-		"execute_request": "Execute the selected request", "go_back": "Go back", "search_response": "Search the response",
-		"toggle_body": "Toggle Pretty / Raw body", "previous_history": "Previous history entry", "next_history": "Next history entry",
-		"cancel_back": "Cancel the active request and go back", "search_finish": "Search input captures printable keys. Use %s to finish searching.",
-		"command_palette": "Command palette", "reload_config": "Reload configuration", "reload_files_command": "Reload files",
-		"choose_theme": "Choose theme", "theme_picker": "Choose theme", "theme_changed": "Theme changed to %s",
-		"config_reloaded": "Configuration reloaded", "config_error": "Configuration error: %s", "bytes": "%d bytes",
-		"diagnostics_one": "%d diagnostic", "diagnostics_many": "%d diagnostics",
-		"press_d": "press d",
-	},
-	"ru": {
-		"files": "Файлы", "suites": "Запросы", "suite": "Запрос", "producer": "Результат",
-		"loading": "загрузка", "reloading": "обновление", "loading_files": "Загрузка файлов...",
-		"unable_scan": "Не удалось просканировать каталог: %v", "warning": "Предупреждение: %s",
-		"no_files": "В каталоге не найдены файлы: %v", "loading_file": "Запросы — загрузка %s",
-		"loading_short": "Загрузка...", "error": "Ошибка: %s", "diagnostics_count": " — диагностик: %d [d]",
-		"no_requests": "Нет доступных запросов — нажмите d для диагностики",
-		"request":     "Запрос", "body": "Тело", "running_request": "Выполнение запроса...",
-		"history": "история", "raw": "Исходный", "pretty": "Форматированный", "response": "Ответ", "response_error": "Ошибка ответа", "headers": "Заголовки",
-		"protocol": "Протокол", "environment": "Окружение", "running": "Выполнение", "parsing": "Разбор", "success": "Успешно",
-		"failed": "Ошибка", "error_press": "Ошибка — нажмите d", "diagnostics_press": "Диагностик: %d — нажмите d",
-		"diagnostics": "Диагностика", "help": "Справка", "close": "закрыть",
-		"startup": "Запуск", "loading_environment": "Загрузка окружения...", "startup_error": "Ошибка запуска",
-		"file_discovery": "Поиск файлов", "scanning": "Сканирование %s...", "file_discovery_error": "Ошибка поиска файлов",
-		"file_discovery_warnings": "Предупреждения поиска файлов", "parser": "Парсер", "parser_parsing": "Разбор %s...",
-		"parser_error": "Ошибка парсера", "no_diagnostics_for": "Для %s нет диагностик.",
-		"parser_diagnostics_for": "Диагностика парсера для %s", "select_file_diagnostics": "Выберите файл .http для просмотра диагностики.",
-		"no_diagnostics": "Диагностик нет.", "global": "Общие", "files_help": "Файлы", "suites_help": "Запросы",
-		"producer_help": "Результат", "help_toggle": "Открыть или закрыть справку", "diagnostics_toggle": "Открыть или закрыть диагностику",
-		"quit": "Выйти из lazyrest", "focus_left": "Переместить фокус влево", "focus_down": "Переместить фокус вниз",
-		"focus_up": "Переместить фокус вверх", "focus_right": "Переместить фокус вправо",
-		"open_file": "Открыть каталог или разобрать файл запросов", "search_files": "Искать файлы", "next_match": "Следующее совпадение",
-		"previous_match": "Предыдущее совпадение", "reload_files": "Обновить файлы в фоне", "move_down": "Перейти вниз",
-		"move_up": "Перейти вверх", "open_request": "Открыть выбранный запрос", "execute_request": "Выполнить выбранный запрос",
-		"go_back": "Назад", "search_response": "Искать в ответе", "toggle_body": "Переключить форматированный/исходный вид",
-		"previous_history": "Предыдущий элемент истории", "next_history": "Следующий элемент истории",
-		"cancel_back": "Отменить активный запрос и вернуться", "search_finish": "При поиске печатные клавиши вводят текст. Для завершения используйте %s.",
-		"command_palette": "Палитра команд", "reload_config": "Перезагрузить конфигурацию", "reload_files_command": "Обновить файлы",
-		"choose_theme": "Выбрать тему", "theme_picker": "Выбор темы", "theme_changed": "Выбрана тема %s",
-		"config_reloaded": "Конфигурация перезагружена", "config_error": "Ошибка конфигурации: %s", "bytes": "%d байт",
-		"diagnostics_one": "%d диагностика", "diagnostics_few": "%d диагностики", "diagnostics_many": "%d диагностик",
-		"press_d": "нажмите d",
-	},
-	"es": {
-		"files": "Archivos", "suites": "Solicitudes", "suite": "Solicitud", "producer": "Resultado",
-		"loading": "cargando", "reloading": "recargando", "loading_files": "Cargando archivos...",
-		"unable_scan": "No se pudo explorar el directorio: %v", "warning": "Advertencia: %s", "no_files": "No se encontraron archivos en: %v",
-		"loading_file": "Solicitudes — cargando %s", "loading_short": "Cargando...", "error": "Error: %s",
-		"diagnostics_count": " — %d diagnósticos [d]", "no_requests": "No hay solicitudes ejecutables — pulsa d para ver diagnósticos",
-		"request": "Solicitud", "body": "Cuerpo", "running_request": "Ejecutando solicitud...", "history": "historial",
-		"raw": "Sin formato", "pretty": "Formateado", "response": "Respuesta", "response_error": "Error de respuesta", "headers": "Encabezados", "protocol": "Protocolo", "environment": "Entorno",
-		"running": "Ejecutando", "parsing": "Analizando", "success": "Correcto", "failed": "Error",
-		"error_press": "Error — pulsa d", "diagnostics_press": "%d diagnósticos — pulsa d", "diagnostics": "Diagnósticos",
-		"help": "Ayuda", "close": "cerrar", "startup": "Inicio", "loading_environment": "Cargando entorno...", "startup_error": "Error de inicio",
-		"file_discovery": "Búsqueda de archivos", "scanning": "Explorando %s...", "file_discovery_error": "Error de búsqueda de archivos",
-		"file_discovery_warnings": "Advertencias de búsqueda", "parser": "Analizador", "parser_parsing": "Analizando %s...",
-		"parser_error": "Error del analizador", "no_diagnostics_for": "No hay diagnósticos para %s.",
-		"parser_diagnostics_for": "Diagnósticos del analizador para %s", "select_file_diagnostics": "Selecciona un archivo .http para ver diagnósticos.",
-		"no_diagnostics": "No hay diagnósticos.", "global": "Global", "files_help": "Archivos", "suites_help": "Solicitudes",
-		"producer_help": "Resultado", "help_toggle": "Abrir o cerrar esta ayuda", "diagnostics_toggle": "Abrir o cerrar diagnósticos",
-		"quit": "Salir de lazyrest", "focus_left": "Mover el foco a la izquierda", "focus_down": "Mover el foco abajo",
-		"focus_up": "Mover el foco arriba", "focus_right": "Mover el foco a la derecha", "open_file": "Abrir un directorio o analizar un archivo",
-		"search_files": "Buscar archivos", "next_match": "Siguiente coincidencia", "previous_match": "Coincidencia anterior",
-		"reload_files": "Recargar archivos en segundo plano", "move_down": "Mover abajo", "move_up": "Mover arriba",
-		"open_request": "Abrir la solicitud seleccionada", "execute_request": "Ejecutar la solicitud seleccionada", "go_back": "Volver",
-		"search_response": "Buscar en la respuesta", "toggle_body": "Alternar vista formateada/sin formato",
-		"previous_history": "Entrada anterior del historial", "next_history": "Entrada siguiente del historial",
-		"cancel_back": "Cancelar la solicitud activa y volver", "search_finish": "La búsqueda captura teclas imprimibles. Usa %s para terminar.",
-		"command_palette": "Paleta de comandos", "reload_config": "Recargar configuración", "reload_files_command": "Recargar archivos",
-		"choose_theme": "Elegir tema", "theme_picker": "Elegir tema", "theme_changed": "Tema cambiado a %s",
-		"config_reloaded": "Configuración recargada", "config_error": "Error de configuración: %s", "bytes": "%d bytes",
-		"diagnostics_one": "%d diagnóstico", "diagnostics_many": "%d diagnósticos",
-		"press_d": "pulsa d",
-	},
-	"zh": {
-		"files": "文件", "suites": "请求列表", "suite": "请求", "producer": "响应",
-		"loading": "加载中", "reloading": "重新加载中", "loading_files": "正在加载文件...",
-		"unable_scan": "无法扫描目录：%v", "warning": "警告：%s", "no_files": "目录中未找到文件：%v",
-		"loading_file": "请求列表 — 正在加载 %s", "loading_short": "加载中...", "error": "错误：%s",
-		"diagnostics_count": " — %d 条诊断 [d]", "no_requests": "没有可运行的请求 — 按 d 查看诊断",
-		"request": "请求", "body": "请求体", "running_request": "正在执行请求...", "history": "历史",
-		"raw": "原始", "pretty": "格式化", "response": "响应", "response_error": "响应错误", "headers": "响应头",
-		"protocol": "协议", "environment": "环境", "running": "执行中", "parsing": "解析中", "success": "成功", "failed": "失败",
-		"error_press": "错误 — 按 d", "diagnostics_press": "%d 条诊断 — 按 d", "diagnostics": "诊断", "help": "帮助", "close": "关闭",
-		"startup": "启动", "loading_environment": "正在加载环境...", "startup_error": "启动错误",
-		"file_discovery": "文件发现", "scanning": "正在扫描 %s...", "file_discovery_error": "文件发现错误",
-		"file_discovery_warnings": "文件发现警告", "parser": "解析器", "parser_parsing": "正在解析 %s...", "parser_error": "解析器错误",
-		"no_diagnostics_for": "%s 没有诊断信息。", "parser_diagnostics_for": "%s 的解析器诊断",
-		"select_file_diagnostics": "请选择一个 .http 文件以查看解析器诊断。", "no_diagnostics": "没有诊断信息。",
-		"global": "全局", "files_help": "文件", "suites_help": "请求列表和请求", "producer_help": "响应",
-		"help_toggle": "打开或关闭帮助", "diagnostics_toggle": "打开或关闭诊断", "quit": "退出 lazyrest",
-		"focus_left": "向左移动焦点", "focus_down": "向下移动焦点", "focus_up": "向上移动焦点", "focus_right": "向右移动焦点",
-		"open_file": "打开目录或解析请求文件", "search_files": "搜索文件", "next_match": "下一个匹配项", "previous_match": "上一个匹配项",
-		"reload_files": "在后台重新加载文件", "move_down": "向下移动", "move_up": "向上移动", "open_request": "打开选中的请求",
-		"execute_request": "执行选中的请求", "go_back": "返回", "search_response": "搜索响应", "toggle_body": "切换格式化/原始响应体",
-		"previous_history": "上一条历史记录", "next_history": "下一条历史记录", "cancel_back": "取消当前请求并返回",
-		"search_finish": "搜索输入会捕获可打印按键。使用 %s 完成搜索。", "command_palette": "命令面板",
-		"reload_config": "重新加载配置", "reload_files_command": "重新加载文件", "config_reloaded": "配置已重新加载",
-		"choose_theme": "选择主题", "theme_picker": "选择主题", "theme_changed": "主题已更改为 %s",
-		"config_error": "配置错误：%s", "bytes": "%d 字节", "diagnostics_one": "%d 条诊断", "diagnostics_many": "%d 条诊断",
-		"press_d": "按 d",
-	},
+import (
+	"embed"
+	"fmt"
+	"path/filepath"
+	"strings"
+
+	"gopkg.in/yaml.v3"
+)
+
+//go:embed languages/*.yml
+var languageFiles embed.FS
+
+var builtins = mustLoadBuiltins()
+
+func mustLoadBuiltins() map[string]map[string]string {
+	entries, err := languageFiles.ReadDir("languages")
+	if err != nil {
+		panic(fmt.Errorf("read embedded languages: %w", err))
+	}
+	result := make(map[string]map[string]string, len(entries))
+	for _, entry := range entries {
+		if entry.IsDir() || filepath.Ext(entry.Name()) != ".yml" {
+			continue
+		}
+		contents, err := languageFiles.ReadFile("languages/" + entry.Name())
+		if err != nil {
+			panic(fmt.Errorf("read embedded language %s: %w", entry.Name(), err))
+		}
+		translations := map[string]string{}
+		if err := yaml.Unmarshal(contents, &translations); err != nil {
+			panic(fmt.Errorf("parse embedded language %s: %w", entry.Name(), err))
+		}
+		code := strings.TrimSuffix(entry.Name(), filepath.Ext(entry.Name()))
+		result[code] = translations
+	}
+	return result
 }
