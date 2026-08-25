@@ -19,7 +19,7 @@ func scanXMLTag(text string, start int, out *writer) int {
 	end := xmlTagEnd(text, start)
 	tag := text[start:end]
 	if strings.HasPrefix(tag, "<!--") {
-		out.token(tag, out.palette.Comment)
+		out.token(tag, roleComment)
 		return end
 	}
 
@@ -28,13 +28,13 @@ func scanXMLTag(text string, start int, out *writer) int {
 	for cursor < len(tag) && strings.IndexByte("/?!", tag[cursor]) >= 0 {
 		cursor++
 	}
-	out.token(tag[:cursor], out.palette.Punctuation)
+	out.token(tag[:cursor], rolePunctuation)
 
 	nameEnd := cursor
 	for nameEnd < len(tag) && isNameByte(tag[nameEnd]) {
 		nameEnd++
 	}
-	out.token(tag[cursor:nameEnd], out.palette.Key)
+	out.token(tag[cursor:nameEnd], roleKey)
 	cursor = nameEnd
 
 	for cursor < len(tag) {
@@ -42,10 +42,10 @@ func scanXMLTag(text string, start int, out *writer) int {
 		switch {
 		case character == '"' || character == '\'':
 			stop := scanQuoted(tag, cursor)
-			out.token(tag[cursor:stop], out.palette.String)
+			out.token(tag[cursor:stop], roleString)
 			cursor = stop
 		case strings.IndexByte("=>/?", character) >= 0:
-			out.token(tag[cursor:cursor+1], out.palette.Punctuation)
+			out.token(tag[cursor:cursor+1], rolePunctuation)
 			cursor++
 		case isSpace(character):
 			stop := cursor
@@ -62,7 +62,7 @@ func scanXMLTag(text string, start int, out *writer) int {
 			if stop == cursor {
 				stop++
 			}
-			out.token(tag[cursor:stop], out.palette.Variable)
+			out.token(tag[cursor:stop], roleVariable)
 			cursor = stop
 		}
 	}
@@ -108,22 +108,22 @@ func scanGraphQL(text string, out *writer) {
 			} else {
 				end += index
 			}
-			out.token(text[index:end], out.palette.Comment)
+			out.token(text[index:end], roleComment)
 			index = end
 		case character == '"':
 			end := scanQuoted(text, index)
-			out.token(text[index:end], out.palette.String)
+			out.token(text[index:end], roleString)
 			index = end
 		case character == '$':
 			end := index + 1
 			for end < len(text) && isNameByte(text[end]) {
 				end++
 			}
-			out.token(text[index:end], out.palette.Variable)
+			out.token(text[index:end], roleVariable)
 			index = end
 		case isDigit(character) || character == '-':
 			end := scanNumber(text, index)
-			out.token(text[index:end], out.palette.Number)
+			out.token(text[index:end], roleNumber)
 			index = end
 		case isNameStart(character):
 			end := index
@@ -133,15 +133,15 @@ func scanGraphQL(text string, out *writer) {
 			word := text[index:end]
 			switch {
 			case isGraphQLKeyword(word):
-				out.token(word, out.palette.Keyword)
+				out.token(word, roleKeyword)
 			case word == "true" || word == "false" || word == "null":
-				out.token(word, out.palette.Literal)
+				out.token(word, roleLiteral)
 			default:
 				out.plain(word)
 			}
 			index = end
 		case strings.IndexByte(graphQLPunctuation, character) >= 0:
-			out.token(text[index:index+1], out.palette.Punctuation)
+			out.token(text[index:index+1], rolePunctuation)
 			index++
 		default:
 			end := index

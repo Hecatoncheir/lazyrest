@@ -37,14 +37,30 @@ type Palette struct {
 	Comment     tcell.Color
 }
 
+// role names the kind of a token, which the writer turns into markup.
+type role uint8
+
+const (
+	rolePlain role = iota
+	roleKey
+	roleString
+	roleNumber
+	roleLiteral
+	roleKeyword
+	roleVariable
+	rolePunctuation
+	roleComment
+	roleCount
+)
+
 // Highlight returns render-ready markup: the text is escaped, so the caller
 // must not escape it again.
 func Highlight(text string, language Language, palette Palette) string {
 	if language == LanguagePlain || len(text) > MaxHighlightBytes {
-		return tview.Escape(text)
+		return escape(text)
 	}
 
-	writer := &writer{palette: palette}
+	writer := newWriter(palette, len(text))
 	switch language {
 	case LanguageJSON:
 		scanJSON(text, writer)
@@ -53,38 +69,71 @@ func Highlight(text string, language Language, palette Palette) string {
 	case LanguageGraphQL:
 		scanGraphQL(text, writer)
 	default:
-		return tview.Escape(text)
+		return escape(text)
 	}
 	return writer.String()
 }
 
 type writer struct {
-	out     strings.Builder
-	palette Palette
+	out strings.Builder
+	// tags holds the markup of every role, built once so that highlighting
+	// never formats a colour per token.
+	tags [roleCount]string
+}
+
+func newWriter(palette Palette, size int) *writer {
+	w := &writer{}
+	w.tags[roleKey] = colorTag(palette.Key)
+	w.tags[roleString] = colorTag(palette.String)
+	w.tags[roleNumber] = colorTag(palette.Number)
+	w.tags[roleLiteral] = colorTag(palette.Literal)
+	w.tags[roleKeyword] = colorTag(palette.Keyword)
+	w.tags[roleVariable] = colorTag(palette.Variable)
+	w.tags[rolePunctuation] = colorTag(palette.Punctuation)
+	w.tags[roleComment] = colorTag(palette.Comment)
+	w.out.Grow(size + size/2)
+	return w
 }
 
 // token writes text in the colour of its role, restoring the pane foreground
 // afterwards.
-func (w *writer) token(text string, color tcell.Color) {
+func (w *writer) token(text string, kind role) {
 	if text == "" {
 		return
 	}
-	tag := colorTag(color)
+	tag := w.tags[kind]
 	if tag == "" {
 		w.plain(text)
 		return
 	}
 	w.out.WriteString(tag)
-	w.out.WriteString(tview.Escape(text))
+	w.write(text)
 	w.out.WriteString("[-]")
 }
 
 func (w *writer) plain(text string) {
+	w.write(text)
+}
+
+func (w *writer) write(text string) {
+	// tview.Escape runs a regular expression, which dominated highlighting
+	// even though almost no token contains a bracket at all.
+	if strings.IndexByte(text, '[') < 0 {
+		w.out.WriteString(text)
+		return
+	}
 	w.out.WriteString(tview.Escape(text))
 }
 
 func (w *writer) String() string {
 	return w.out.String()
+}
+
+func escape(text string) string {
+	if strings.IndexByte(text, '[') < 0 {
+		return text
+	}
+	return tview.Escape(text)
 }
 
 func colorTag(color tcell.Color) string {

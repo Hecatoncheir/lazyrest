@@ -11,22 +11,22 @@ func scanJSON(text string, out *writer) {
 		switch {
 		case character == '"':
 			end := scanQuoted(text, index)
-			role := out.palette.String
+			kind := roleString
 			if followedByColon(text, end) {
-				role = out.palette.Key
+				kind = roleKey
 			}
-			out.token(text[index:end], role)
+			out.token(text[index:end], kind)
 			index = end
 		case character == '-' || isDigit(character):
 			end := scanNumber(text, index)
-			out.token(text[index:end], out.palette.Number)
+			out.token(text[index:end], roleNumber)
 			index = end
 		case strings.IndexByte(jsonPunctuation, character) >= 0:
-			out.token(text[index:index+1], out.palette.Punctuation)
+			out.token(text[index:index+1], rolePunctuation)
 			index++
 		default:
 			if literal := literalAt(text, index); literal != "" {
-				out.token(literal, out.palette.Literal)
+				out.token(literal, roleLiteral)
 				index += len(literal)
 				continue
 			}
