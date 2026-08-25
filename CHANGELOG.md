@@ -16,6 +16,7 @@ All notable changes to this project will be documented in this file.
 ### Added
 - A request body can be read from a file with `< ./payload.json`, resolved next to the `.http` file and limited to 10 MiB.
 - The selected environment is passed to Hurl, so `.hurl` files resolve the same variables as `.http` files. The values go through a private file rather than the command line.
+- Releases now carry prebuilt archives with checksums for linux/amd64, linux/arm64, darwin/amd64, darwin/arm64, and windows/amd64, so installing no longer requires a Go toolchain and a C compiler.
 
 ### Changed
 - Request headers are stored as `net/http.Header`, so a request can carry several values for the same name. Persisted history is written as version 2; version 1 files are still read.

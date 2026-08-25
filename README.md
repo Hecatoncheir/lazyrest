@@ -30,6 +30,20 @@
 
 ## Installation
 
+Prebuilt archives for Linux, macOS, and Windows are attached to every
+[release](https://github.com/Hecatoncheir/lazyrest/releases). Download the one
+matching your platform, verify it against `SHA256SUMS`, and put `lazyrest` on
+your `$PATH`:
+
+```sh
+tar -xzf lazyrest-linux-amd64.tar.gz && sudo install lazyrest /usr/local/bin/
+```
+
+macOS builds are not notarized, so the first launch needs
+`xattr -d com.apple.quarantine lazyrest`.
+
+Or install from source, which requires the Go toolchain and a C compiler:
+
 ```sh
 go install github.com/Hecatoncheir/lazyrest@latest
 ```

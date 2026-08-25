@@ -36,8 +36,87 @@ jobs:
       - name: Build Project
         run: go build -v ./...
 
-  release:
+  binaries:
     needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Tree-sitter needs CGO, so every target is built on a runner that can
+          # produce it natively or with a cross compiler from apt.
+          - os: ubuntu-22.04
+            goos: linux
+            goarch: amd64
+            name: lazyrest-linux-amd64
+          - os: ubuntu-22.04
+            goos: linux
+            goarch: arm64
+            cc: aarch64-linux-gnu-gcc
+            packages: gcc-aarch64-linux-gnu
+            name: lazyrest-linux-arm64
+          - os: macos-13
+            goos: darwin
+            goarch: amd64
+            name: lazyrest-darwin-amd64
+          - os: macos-latest
+            goos: darwin
+            goarch: arm64
+            name: lazyrest-darwin-arm64
+          - os: windows-latest
+            goos: windows
+            goarch: amd64
+            extension: .exe
+            name: lazyrest-windows-amd64
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Go
+        uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          cache-dependency-path: go.sum
+
+      - name: Install cross compiler
+        if: matrix.packages != ''
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ${{ matrix.packages }}
+
+      - name: Build
+        shell: bash
+        env:
+          CGO_ENABLED: "1"
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+        run: |
+          if [ -n "${{ matrix.cc }}" ]; then
+            export CC="${{ matrix.cc }}"
+          fi
+          mkdir -p build
+          go build -trimpath -ldflags "-s -w" -o "build/lazyrest${{ matrix.extension }}" .
+
+      - name: Package
+        shell: bash
+        run: |
+          cp LICENSE README.md build/
+          mkdir -p dist
+          if [ "${{ matrix.goos }}" = "windows" ]; then
+            (cd build && 7z a "../dist/${{ matrix.name }}.zip" .)
+          else
+            tar -czf "dist/${{ matrix.name }}.tar.gz" -C build .
+          fi
+
+      - name: Upload archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.name }}
+          path: dist/*
+          if-no-files-found: error
+
+  release:
+    needs: binaries
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     permissions:
@@ -46,6 +125,12 @@ jobs:
       - uses: actions/checkout@v6
         with:
           fetch-depth: 0
+
+      - name: Download archives
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
 
       - name: Extract Changelog
         id: changelog
@@ -60,10 +145,16 @@ jobs:
           echo "$CHANGELOG" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
 
+      - name: Checksums
+        run: |
+          cd dist
+          sha256sum * > SHA256SUMS
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v3
         with:
           body: ${{ steps.changelog.outputs.body }}
+          files: dist/*
           generate_release_notes: false # We are providing our own from changelog
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
