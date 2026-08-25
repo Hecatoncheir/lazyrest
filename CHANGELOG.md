@@ -2,14 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
-## [Unreleased]
+## [v0.11.0] - 2026-08-25
 ### Fixed
 - Repeated headers such as `Cookie` are kept instead of discarding every header of the request and sending the first one as the body.
 - A header value containing `*`, for example `Accept: */*`, no longer swallows the headers that follow it.
 - Content the grammar cannot read is no longer appended to the request body, and requests folded into it are recovered instead of disappearing from the list.
 - A `###` separator or a naming comment that follows an inline body is no longer sent as part of that body.
 - A `Host` header declared by a request is now sent instead of being dropped by `net/http`.
-
 - Secret values are now redacted from Hurl output, errors, and history, which previously kept them in clear text.
 - Persisted history no longer stalls the interface after every request and no longer grows without bound: bodies are limited to 64 KiB per entry in the file and the write happens in the background. The response pane keeps the full body.
 
