@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"maps"
 	nethttp "net/http"
 	"sync"
 
@@ -126,6 +127,7 @@ func cloneSuite(suite parserhttp.HttpSuite) parserhttp.HttpSuite {
 		cloned.Header = nethttp.Header{}
 	}
 	cloned.SecretValues = append([]string(nil), suite.SecretValues...)
+	cloned.Variables = maps.Clone(suite.Variables)
 	return cloned
 }
 

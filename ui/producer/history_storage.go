@@ -148,6 +148,7 @@ func sanitizedHistoryEntry(suite parserhttp.HttpSuite, response runner.Response,
 	suite.Uri = redactSecrets(suite.Uri, secrets)
 	suite.Body = redactSecrets(suite.Body, secrets)
 	suite.HurlFilePath = ""
+	suite.Variables = nil
 	suite.Header = sanitizeHeaders(suite.Header, secrets)
 	suite.SecretValues = nil
 	response.Body = redactSecrets(response.Body, secrets)

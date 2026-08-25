@@ -2,7 +2,11 @@ package hurl
 
 import (
 	"os"
+	"path/filepath"
+	"slices"
 	"testing"
+
+	"github.com/Hecatoncheir/lazyrest/parser/http"
 )
 
 func TestGetSuitesFromFile(t *testing.T) {
@@ -66,5 +70,43 @@ func TestGetSuitesFromFile_FileNotFound(t *testing.T) {
 
 	if _, err := parser.GetSuitesFromFile("missing.hurl"); err == nil {
 		t.Error("expected file-not-found error")
+	}
+}
+
+func TestGetSuitesFromFileWithOptions_CarriesVariablesAndSecrets(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "workflow.hurl")
+	if err := os.WriteFile(path, []byte("GET {{baseUrl}}/users\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	parser, err := NewParser()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	suites, err := parser.GetSuitesFromFileWithOptions(path, http.ParseOptions{
+		Variables: map[string]string{
+			"host":    "api.example.com",
+			"baseUrl": "https://{{host}}",
+			"token":   "private-token",
+		},
+		SecretVariables: []string{"token"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(suites) != 1 {
+		t.Fatalf("expected one runnable Hurl file, got %d", len(suites))
+	}
+
+	suite := suites[0]
+	if suite.Variables["baseUrl"] != "https://api.example.com" {
+		t.Errorf("nested variable was not resolved: %#v", suite.Variables)
+	}
+	if !slices.Contains(suite.SecretValues, "private-token") {
+		t.Errorf("secret was not marked for redaction: %#v", suite.SecretValues)
+	}
+	if suite.Redact("token is private-token") != "token is <redacted>" {
+		t.Errorf("Hurl output would not be redacted: %q", suite.Redact("token is private-token"))
 	}
 }

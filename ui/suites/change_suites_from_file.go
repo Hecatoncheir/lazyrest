@@ -79,7 +79,7 @@ func (widget *Suites) LoadSuitesFromFile(ctx context.Context, file finder.File) 
 		if pErr != nil {
 			return LoadResult{Err: pErr}
 		}
-		suites, err := parser.GetSuitesFromFile(file.Path)
+		suites, err := parser.GetSuitesFromFileWithOptions(file.Path, widget.parseOptions)
 		if err == nil {
 			err = ctx.Err()
 		}

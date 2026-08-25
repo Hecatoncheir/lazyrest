@@ -15,6 +15,10 @@ func NewParser() (*Parser, error) {
 }
 
 func (p *Parser) GetSuitesFromFile(filePath string) ([]http.HttpSuite, error) {
+	return p.GetSuitesFromFileWithOptions(filePath, http.ParseOptions{})
+}
+
+func (p *Parser) GetSuitesFromFileWithOptions(filePath string, options http.ParseOptions) ([]http.HttpSuite, error) {
 	info, err := os.Stat(filePath)
 	if err != nil {
 		return nil, err
@@ -30,5 +34,7 @@ func (p *Parser) GetSuitesFromFile(filePath string) ([]http.HttpSuite, error) {
 		Header:       nethttp.Header{},
 		IsHurl:       true,
 		HurlFilePath: filePath,
+		Variables:    http.ResolveVariables(options.Variables),
+		SecretValues: http.ResolveSecretValues(options),
 	}}, nil
 }

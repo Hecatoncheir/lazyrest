@@ -8,7 +8,9 @@ import (
 	parser "github.com/Hecatoncheir/lazyrest/parser/http"
 	"io"
 	"net/http"
+	"os"
 	"os/exec"
+	"slices"
 	"strings"
 	"time"
 )
@@ -230,7 +232,19 @@ func (runner *Runner) executeHurl(ctx context.Context) (Response, error) {
 		return Response{}, fmt.Errorf("Hurl executable %q was not found: %w", runner.hurlExecutable, err)
 	}
 
-	cmd := exec.CommandContext(ctx, executable, "--json", runner.suite.HurlFilePath)
+	variablesPath, removeVariables, err := writeHurlVariables(runner.suite.Variables)
+	if err != nil {
+		return Response{}, err
+	}
+	defer removeVariables()
+
+	arguments := []string{"--json"}
+	if variablesPath != "" {
+		arguments = append(arguments, "--variables-file", variablesPath)
+	}
+	arguments = append(arguments, runner.suite.HurlFilePath)
+
+	cmd := exec.CommandContext(ctx, executable, arguments...)
 	stdout := &limitedBuffer{limit: runner.maxResponseBytes}
 	stderr := &limitedBuffer{limit: maxStderrBytes}
 	cmd.Stdout = stdout
@@ -262,4 +276,43 @@ func (runner *Runner) executeHurl(ctx context.Context) (Response, error) {
 		ContentLength: stdout.Len(),
 		Truncated:     stdout.truncated,
 	}, nil
+}
+
+// writeHurlVariables hands the environment to Hurl through a file instead of
+// the command line, which would expose secret values to every process able to
+// list the process table. The returned function removes the file.
+func writeHurlVariables(variables map[string]string) (string, func(), error) {
+	nothingToRemove := func() {}
+	lines := make([]string, 0, len(variables))
+	for name, value := range variables {
+		if name == "" || strings.ContainsAny(name, "=\r\n") || strings.ContainsAny(value, "\r\n") {
+			continue
+		}
+		lines = append(lines, name+"="+value)
+	}
+	if len(lines) == 0 {
+		return "", nothingToRemove, nil
+	}
+	slices.Sort(lines)
+
+	file, err := os.CreateTemp("", "lazyrest-variables-*.properties")
+	if err != nil {
+		return "", nothingToRemove, fmt.Errorf("create Hurl variables file: %w", err)
+	}
+	remove := func() { _ = os.Remove(file.Name()) }
+	if err := file.Chmod(0o600); err != nil {
+		file.Close()
+		remove()
+		return "", nothingToRemove, fmt.Errorf("secure Hurl variables file: %w", err)
+	}
+	if _, err := file.WriteString(strings.Join(lines, "\n") + "\n"); err != nil {
+		file.Close()
+		remove()
+		return "", nothingToRemove, fmt.Errorf("write Hurl variables file: %w", err)
+	}
+	if err := file.Close(); err != nil {
+		remove()
+		return "", nothingToRemove, fmt.Errorf("close Hurl variables file: %w", err)
+	}
+	return file.Name(), remove, nil
 }

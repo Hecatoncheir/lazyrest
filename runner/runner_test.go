@@ -329,3 +329,93 @@ func TestExecuteHurl_UsesConfiguredExecutable(t *testing.T) {
 		t.Fatalf("unexpected Hurl response: %+v", response)
 	}
 }
+
+func TestWriteHurlVariables(t *testing.T) {
+	path, remove, err := writeHurlVariables(map[string]string{
+		"token":   "private-token",
+		"baseUrl": "https://api.example.com",
+		"broken":  "line\nbreak",
+		"":        "unnamed",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer remove()
+
+	contents, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(contents) != "baseUrl=https://api.example.com\ntoken=private-token\n" {
+		t.Fatalf("unexpected variables file: %q", string(contents))
+	}
+	info, err := os.Stat(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if info.Mode().Perm() != 0o600 {
+		t.Fatalf("unexpected permissions: %o", info.Mode().Perm())
+	}
+
+	remove()
+	if _, err := os.Stat(path); !os.IsNotExist(err) {
+		t.Fatal("variables file was not removed")
+	}
+}
+
+func TestWriteHurlVariables_WithoutVariables(t *testing.T) {
+	path, remove, err := writeHurlVariables(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer remove()
+	if path != "" {
+		t.Fatalf("expected no variables file, got %q", path)
+	}
+}
+
+func TestExecuteHurl_PassesVariablesToHurl(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("the stub executable is a shell script")
+	}
+	directory := t.TempDir()
+	capturedPath := filepath.Join(directory, "captured")
+	stub := filepath.Join(directory, "hurl")
+	script := "#!/bin/sh\n" +
+		": > \"$LAZYREST_TEST_CAPTURE\"\n" +
+		"while [ $# -gt 0 ]; do\n" +
+		"  if [ \"$1\" = \"--variables-file\" ]; then shift; cat \"$1\" >> \"$LAZYREST_TEST_CAPTURE\"; fi\n" +
+		"  shift\n" +
+		"done\n" +
+		"echo '{\"entries\":[]}'\n"
+	if err := os.WriteFile(stub, []byte(script), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	hurlFile := filepath.Join(directory, "workflow.hurl")
+	if err := os.WriteFile(hurlFile, []byte("GET {{baseUrl}}/users\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("LAZYREST_TEST_CAPTURE", capturedPath)
+
+	suite := parser.HttpSuite{
+		IsHurl:       true,
+		HurlFilePath: hurlFile,
+		Variables:    map[string]string{"baseUrl": "https://api.example.com"},
+	}
+	runner := NewFromSuiteWithConfig(suite, Config{HurlExecutable: stub})
+
+	response, err := runner.Execute(context.Background(), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(response.Body, "entries") {
+		t.Fatalf("unexpected Hurl output: %q", response.Body)
+	}
+	captured, err := os.ReadFile(capturedPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.TrimSpace(string(captured)) != "baseUrl=https://api.example.com" {
+		t.Fatalf("variables did not reach Hurl: %q", string(captured))
+	}
+}

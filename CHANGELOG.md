@@ -10,8 +10,11 @@ All notable changes to this project will be documented in this file.
 - A `###` separator or a naming comment that follows an inline body is no longer sent as part of that body.
 - A `Host` header declared by a request is now sent instead of being dropped by `net/http`.
 
+- Secret values are now redacted from Hurl output, errors, and history, which previously kept them in clear text.
+
 ### Added
 - A request body can be read from a file with `< ./payload.json`, resolved next to the `.http` file and limited to 10 MiB.
+- The selected environment is passed to Hurl, so `.hurl` files resolve the same variables as `.http` files. The values go through a private file rather than the command line.
 
 ### Changed
 - Request headers are stored as `net/http.Header`, so a request can carry several values for the same name. Persisted history is written as version 2; version 1 files are still read.

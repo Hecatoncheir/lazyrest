@@ -179,7 +179,7 @@ Put secrets in `http-client.private.env.json`, which is ignored by Git:
 }
 ```
 
-Use the values as `{{baseUrl}}` or `{{token}}` in `.http` files. Private values override public ones, while declarations inside an `.http` file override both. Undefined variables and reference cycles appear as parser diagnostics. Private values are redacted from requests, responses, errors, and history output.
+Use the values as `{{baseUrl}}` or `{{token}}` in `.http` files. They are also handed to Hurl through a private file, so `.hurl` files can use the same variables. Private values override public ones, while declarations inside an `.http` file override both. Undefined variables and reference cycles appear as parser diagnostics. Private values are redacted from requests, responses, errors, and history output.
 
 ## Examples
 

@@ -11,6 +11,8 @@ type HttpSuite struct {
 	BodyType     string
 	IsHurl       bool
 	HurlFilePath string
+	// Variables are passed to Hurl, which does its own substitution.
+	Variables    map[string]string
 	SecretValues []string
 }
 

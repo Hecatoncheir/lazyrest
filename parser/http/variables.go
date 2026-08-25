@@ -121,3 +121,20 @@ func resolveSecretVariables(names []string, variables map[string]string) []strin
 	slices.Sort(result)
 	return result
 }
+
+// ResolveVariables returns the variables with their nested {{references}}
+// resolved, which is the form other tools need them in.
+func ResolveVariables(variables map[string]string) map[string]string {
+	resolver := newVariableResolver(variables)
+	resolved := make(map[string]string, len(variables))
+	for name := range variables {
+		resolved[name] = resolver.resolveName(name, nil)
+	}
+	return resolved
+}
+
+// ResolveSecretValues returns the resolved values of the variables named as
+// secret. Those are the values that have to be redacted from output.
+func ResolveSecretValues(options ParseOptions) []string {
+	return resolveSecretVariables(options.SecretVariables, options.Variables)
+}

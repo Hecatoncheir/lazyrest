@@ -125,3 +125,22 @@ func TestHistoryKeepsRepeatedHeadersAcrossReload(t *testing.T) {
 		t.Fatalf("repeated header did not survive a reload: %#v", values)
 	}
 }
+
+func TestHistoryDoesNotPersistHurlVariables(t *testing.T) {
+	secret := "private-token"
+	entry := sanitizedHistoryEntry(parserhttp.HttpSuite{
+		Method:       "HURL",
+		Uri:          "workflow.hurl",
+		IsHurl:       true,
+		HurlFilePath: "/home/user/workflow.hurl",
+		Variables:    map[string]string{"token": secret},
+		SecretValues: []string{secret},
+	}, runner.Response{Body: "token is " + secret}, nil, time.Now())
+
+	if entry.Suite.Variables != nil {
+		t.Fatalf("variables were kept in history: %#v", entry.Suite.Variables)
+	}
+	if strings.Contains(entry.Response.Body, secret) {
+		t.Fatalf("Hurl output was not redacted: %q", entry.Response.Body)
+	}
+}
