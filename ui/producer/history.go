@@ -31,7 +31,7 @@ func (widget *Producer) addHistory(suite http.HttpSuite, response runner.Respons
 	widget.historyIndex = len(widget.history) - 1
 	widget.historyVisible = false
 	widget.updateTitle()
-	_ = widget.saveHistory()
+	widget.persistHistory()
 }
 
 func (widget *Producer) showHistory(delta int) {

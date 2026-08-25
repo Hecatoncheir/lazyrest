@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"time"
+	"unicode/utf8"
 
 	parserhttp "github.com/Hecatoncheir/lazyrest/parser/http"
 	"github.com/Hecatoncheir/lazyrest/runner"
@@ -16,6 +17,11 @@ import (
 // historyVersion is the format written by this version of lazyrest. Version 1
 // stored a single value per request header; it is still read.
 const historyVersion = 2
+
+// maxHistoryBodyBytes caps the body kept per entry. Without it a run of large
+// responses would grow the history file to hundreds of megabytes and make every
+// following run re-encode all of it.
+const maxHistoryBodyBytes = 64 << 10
 
 type storedHistory struct {
 	Version int                  `json:"version"`
@@ -99,23 +105,83 @@ func (widget *Producer) loadHistory() error {
 	return nil
 }
 
+// persistHistory writes the history without blocking the UI: encoding and
+// writing hundreds of kilobytes on the draw goroutine froze the interface after
+// every request. Only the newest snapshot reaches the file.
+func (widget *Producer) persistHistory() {
+	if widget.historyPath == "" {
+		return
+	}
+	stored := widget.buildStoredHistory()
+
+	widget.historyMutex.Lock()
+	widget.historyRequested++
+	generation := widget.historyRequested
+	widget.historyMutex.Unlock()
+
+	widget.historyWrites.Add(1)
+	go func() {
+		defer widget.historyWrites.Done()
+		widget.historyMutex.Lock()
+		defer widget.historyMutex.Unlock()
+		if generation <= widget.historyWritten {
+			return
+		}
+		widget.historyWritten = generation
+		_ = writeHistory(widget.historyPath, stored)
+	}()
+}
+
 func (widget *Producer) saveHistory() error {
 	if widget.historyPath == "" {
 		return nil
 	}
+	return writeHistory(widget.historyPath, widget.buildStoredHistory())
+}
+
+func (widget *Producer) buildStoredHistory() storedHistory {
 	stored := storedHistory{Version: historyVersion, Entries: make([]storedHistoryEntry, 0, len(widget.history))}
 	for _, entry := range widget.history {
 		errorText := ""
 		if entry.Err != nil {
 			errorText = entry.Err.Error()
 		}
-		stored.Entries = append(stored.Entries, storedHistoryEntry{Suite: newStoredSuite(entry.Suite), Response: entry.Response, Error: errorText, CreatedAt: entry.CreatedAt})
+		suite, response := boundedEntryBodies(entry.Suite, entry.Response)
+		stored.Entries = append(stored.Entries, storedHistoryEntry{Suite: newStoredSuite(suite), Response: response, Error: errorText, CreatedAt: entry.CreatedAt})
 	}
+	return stored
+}
+
+// boundedEntryBodies limits what a single entry contributes to the file. The
+// in-memory entry keeps its full bodies so that the pane still shows them.
+func boundedEntryBodies(suite parserhttp.HttpSuite, response runner.Response) (parserhttp.HttpSuite, runner.Response) {
+	if body, cut := truncateBody(suite.Body); cut {
+		suite.Body = body + "\n... truncated"
+	}
+	if body, cut := truncateBody(response.Body); cut {
+		response.Body = body
+		response.Truncated = true
+	}
+	return suite, response
+}
+
+func truncateBody(body string) (string, bool) {
+	if len(body) <= maxHistoryBodyBytes {
+		return body, false
+	}
+	cut := body[:maxHistoryBodyBytes]
+	for len(cut) > 0 && !utf8.ValidString(cut) {
+		cut = cut[:len(cut)-1]
+	}
+	return cut, true
+}
+
+func writeHistory(path string, stored storedHistory) error {
 	contents, err := json.MarshalIndent(stored, "", "  ")
 	if err != nil {
 		return fmt.Errorf("encode history: %w", err)
 	}
-	directory := filepath.Dir(widget.historyPath)
+	directory := filepath.Dir(path)
 	if err := os.MkdirAll(directory, 0o700); err != nil {
 		return fmt.Errorf("create history directory: %w", err)
 	}
@@ -136,7 +202,7 @@ func (widget *Producer) saveHistory() error {
 	if err := temporary.Close(); err != nil {
 		return fmt.Errorf("close history: %w", err)
 	}
-	if err := os.Rename(temporaryPath, widget.historyPath); err != nil {
+	if err := os.Rename(temporaryPath, path); err != nil {
 		return fmt.Errorf("replace history: %w", err)
 	}
 	return nil

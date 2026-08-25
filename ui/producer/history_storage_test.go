@@ -2,6 +2,7 @@ package producer
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -142,5 +143,84 @@ func TestHistoryDoesNotPersistHurlVariables(t *testing.T) {
 	}
 	if strings.Contains(entry.Response.Body, secret) {
 		t.Fatalf("Hurl output was not redacted: %q", entry.Response.Body)
+	}
+}
+
+func TestHistoryBoundsPersistedBodiesWithoutTouchingMemory(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "history.json")
+	large := strings.Repeat("x", maxHistoryBodyBytes*2)
+	entry := sanitizedHistoryEntry(parserhttp.HttpSuite{
+		Method: "GET",
+		Uri:    "https://example.test",
+		Body:   large,
+	}, runner.Response{Code: "200 OK", Body: large}, nil, time.Now())
+
+	widget := &Producer{historyPath: path, history: []HistoryEntry{entry}}
+	if err := widget.saveHistory(); err != nil {
+		t.Fatal(err)
+	}
+
+	if len(widget.history[0].Response.Body) != len(large) {
+		t.Fatal("the in-memory entry was truncated")
+	}
+	info, err := os.Stat(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if info.Size() > 4*maxHistoryBodyBytes {
+		t.Fatalf("history file was not bounded: %d bytes", info.Size())
+	}
+
+	restored := &Producer{historyPath: path}
+	if err := restored.loadHistory(); err != nil {
+		t.Fatal(err)
+	}
+	stored := restored.history[0]
+	if len(stored.Response.Body) != maxHistoryBodyBytes || !stored.Response.Truncated {
+		t.Fatalf("response body was not bounded: %d bytes truncated=%v", len(stored.Response.Body), stored.Response.Truncated)
+	}
+	if !strings.HasSuffix(stored.Suite.Body, "... truncated") {
+		t.Fatal("a truncated request body was not marked")
+	}
+}
+
+func TestPersistHistoryWritesOutsideTheCaller(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "lazyrest", "history.json")
+	entry := sanitizedHistoryEntry(parserhttp.HttpSuite{
+		Method: "GET",
+		Uri:    "https://example.test",
+	}, runner.Response{Code: "200 OK"}, nil, time.Now())
+
+	widget := &Producer{historyPath: path, history: []HistoryEntry{entry}}
+	widget.persistHistory()
+	widget.WaitForHistory()
+
+	restored := &Producer{historyPath: path}
+	if err := restored.loadHistory(); err != nil {
+		t.Fatal(err)
+	}
+	if len(restored.history) != 1 || restored.history[0].Suite.Uri != "https://example.test" {
+		t.Fatalf("history was not written: %+v", restored.history)
+	}
+}
+
+func TestPersistHistoryKeepsTheNewestSnapshot(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "history.json")
+	widget := &Producer{historyPath: path}
+	for index := range 5 {
+		widget.history = append(widget.history, sanitizedHistoryEntry(parserhttp.HttpSuite{
+			Method: "GET",
+			Uri:    fmt.Sprintf("https://example.test/%d", index),
+		}, runner.Response{Code: "200 OK"}, nil, time.Now()))
+		widget.persistHistory()
+	}
+	widget.WaitForHistory()
+
+	restored := &Producer{historyPath: path}
+	if err := restored.loadHistory(); err != nil {
+		t.Fatal(err)
+	}
+	if len(restored.history) != 5 {
+		t.Fatalf("the newest snapshot did not win: %d entries", len(restored.history))
 	}
 }

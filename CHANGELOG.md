@@ -11,6 +11,7 @@ All notable changes to this project will be documented in this file.
 - A `Host` header declared by a request is now sent instead of being dropped by `net/http`.
 
 - Secret values are now redacted from Hurl output, errors, and history, which previously kept them in clear text.
+- Persisted history no longer stalls the interface after every request and no longer grows without bound: bodies are limited to 64 KiB per entry in the file and the write happens in the background. The response pane keeps the full body.
 
 ### Added
 - A request body can be read from a file with `< ./payload.json`, resolved next to the `.http` file and limited to 10 MiB.

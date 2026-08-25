@@ -42,6 +42,19 @@ type Producer struct {
 	keybindings      *keymap.Bindings
 	locale           *locale.Translator
 	historyPath      string
+	historyMutex     sync.Mutex
+	historyRequested uint64
+	historyWritten   uint64
+	historyWrites    sync.WaitGroup
+}
+
+// WaitForHistory blocks until every pending history write has finished. It is
+// called before the application exits so that the last run is not lost.
+func (widget *Producer) WaitForHistory() {
+	if widget == nil {
+		return
+	}
+	widget.historyWrites.Wait()
 }
 
 func (widget *Producer) StartRun() (context.Context, uint64) {

@@ -283,7 +283,7 @@ lazyrest --config ./custom.yml --generate-config
 
 ## Persistent history
 
-The latest 50 request results are stored in `~/.config/lazyrest/history.json` and restored on the next launch. Known secret values and sensitive headers such as `Authorization`, cookies, and API keys are redacted before writing. The directory uses permissions `0700`, the history file uses `0600`, and updates are atomic. Delete the file to clear persistent history.
+The latest 50 request results are stored in `~/.config/lazyrest/history.json` and restored on the next launch. Bodies are limited to 64 KiB per entry in the file, while the response pane keeps the full body of the current session. Writing happens in the background, so a large response does not stall the interface. Known secret values and sensitive headers such as `Authorization`, cookies, and API keys are redacted before writing. The directory uses permissions `0700`, the history file uses `0600`, and updates are atomic. Delete the file to clear persistent history.
 
 ## Navigation
 
