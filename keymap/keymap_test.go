@@ -26,6 +26,39 @@ func TestBindingsSupportMultipleKeys(t *testing.T) {
 	}
 }
 
+func TestBindingsSupportControlKeysFromNonLatinLayouts(t *testing.T) {
+	bindings, err := New(map[string][]string{
+		"focus_left":      {"ctrl+h", "ctrl+р"},
+		"focus_down":      {"ctrl+j", "ctrl+о"},
+		"focus_up":        {"ctrl+k", "ctrl+л"},
+		"focus_right":     {"ctrl+l", "ctrl+д"},
+		"command_palette": {":", "ctrl+p", "ctrl+з"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	tests := []struct {
+		action Action
+		key    rune
+	}{
+		{FocusLeft, 'р'},
+		{FocusDown, 'о'},
+		{FocusUp, 'л'},
+		{FocusRight, 'д'},
+		{CommandPalette, 'з'},
+	}
+	for _, test := range tests {
+		event := tcell.NewEventKey(tcell.KeyRune, test.key, tcell.ModCtrl)
+		if !bindings.Matches(test.action, event) {
+			t.Errorf("expected ctrl+%c to match %s", test.key, test.action)
+		}
+		if bindings.Matches(test.action, tcell.NewEventKey(tcell.KeyRune, test.key, tcell.ModNone)) {
+			t.Errorf("expected unmodified %c not to match %s", test.key, test.action)
+		}
+	}
+}
+
 func TestLoadMergesConfiguredAndDefaultBindings(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "config.yml")
 	if err := os.WriteFile(path, []byte("keybindings:\n  help: ['h', '?']\n"), 0o600); err != nil {

@@ -67,9 +67,10 @@ type Bindings struct {
 }
 
 type key struct {
-	name string
-	rune rune
-	code tcell.Key
+	name      string
+	rune      rune
+	code      tcell.Key
+	modifiers tcell.ModMask
 }
 
 func New(overrides map[string][]string) (*Bindings, error) {
@@ -177,14 +178,14 @@ func (bindings *Bindings) validateConflicts() error {
 
 func (candidate key) identity() string {
 	if candidate.rune != 0 {
-		return fmt.Sprintf("r:%U", candidate.rune)
+		return fmt.Sprintf("r:%U:m:%d", candidate.rune, candidate.modifiers)
 	}
 	return fmt.Sprintf("k:%d", candidate.code)
 }
 
 func (candidate key) matches(event *tcell.EventKey) bool {
 	if candidate.rune != 0 {
-		return event.Key() == tcell.KeyRune && event.Rune() == candidate.rune && event.Modifiers()&tcell.ModCtrl == 0
+		return event.Key() == tcell.KeyRune && event.Rune() == candidate.rune && event.Modifiers()&tcell.ModCtrl == candidate.modifiers
 	}
 	if candidate.code == tcell.KeyCtrlH && event.Key() == tcell.KeyBackspace {
 		return true
@@ -205,6 +206,7 @@ func parse(value string) (key, error) {
 		if letter >= 'a' && letter <= 'z' {
 			return key{name: normalized, code: tcell.Key(int(tcell.KeyCtrlA) + int(letter-'a'))}, nil
 		}
+		return key{name: normalized, rune: letter, modifiers: tcell.ModCtrl}, nil
 	}
 	special := map[string]tcell.Key{
 		"enter": tcell.KeyEnter, "esc": tcell.KeyEsc, "escape": tcell.KeyEsc,

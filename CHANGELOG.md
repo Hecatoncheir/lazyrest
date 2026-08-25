@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v0.10.1] - 2026-08-25
+### Fixed
+- `Ctrl` keybindings now support Unicode characters for non-Latin keyboard layouts.
+
 ## [v0.10.0] - 2026-08-25
 ### Added
 - Layered project configuration through `.lazyrest.yml` and an explicit `--config` file.
