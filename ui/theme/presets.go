@@ -33,6 +33,12 @@ var presets = map[string]Config{
 		ProgressForeground: "#2e3440", Success: "#a3be8c", SuccessForeground: "#2e3440", Failure: "#bf616a", FailureForeground: "#eceff4",
 		Breadcrumb: "#b48ead", BreadcrumbForeground: "#2e3440",
 	},
+	"monokai": {
+		Background: "#272822", PanelBackground: "#3e3d32", PanelFocus: "#49483e", Foreground: "#f8f8f2", Muted: "#a59f85", Accent: "#66d9ef",
+		Border: "#75715e", BorderFocus: "#f8f8f2", SelectionBackground: "#66d9ef", SelectionForeground: "#272822", Progress: "#e6db74",
+		ProgressForeground: "#272822", Success: "#a6e22e", SuccessForeground: "#272822", Failure: "#f92672", FailureForeground: "#f8f8f2",
+		Breadcrumb: "#ae81ff", BreadcrumbForeground: "#272822",
+	},
 }
 
 func resolvePreset(overrides Config) (Config, error) {

@@ -23,7 +23,7 @@ func TestFromConfigRejectsInvalidColor(t *testing.T) {
 }
 
 func TestBuiltInPresets(t *testing.T) {
-	for _, name := range []string{"gruvbox", "catppuccin-mocha", "tokyo-night", "dracula", "nord"} {
+	for _, name := range []string{"gruvbox", "catppuccin-mocha", "tokyo-night", "dracula", "nord", "monokai"} {
 		if _, err := FromConfig(Config{Preset: name}); err != nil {
 			t.Fatalf("preset %s failed: %v", name, err)
 		}
