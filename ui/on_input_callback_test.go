@@ -61,12 +61,12 @@ func TestCtrlHNavigationAcceptsBackspaceEvent(t *testing.T) {
 }
 
 func TestConfiguredNavigationSupportsMultipleKeys(t *testing.T) {
-	bindings, err := keymap.New(map[string][]string{"focus_right": {"l", "ctrl+l"}})
+	bindings, err := keymap.New(map[string][]string{"focus_right": {"right", "ctrl+l"}})
 	if err != nil {
 		t.Fatal(err)
 	}
 	for _, event := range []*tcell.EventKey{
-		tcell.NewEventKey(tcell.KeyRune, 'l', tcell.ModNone),
+		tcell.NewEventKey(tcell.KeyRight, 0, tcell.ModNone),
 		tcell.NewEventKey(tcell.KeyCtrlL, 0, tcell.ModCtrl),
 	} {
 		application := newNavigationTestApplication()

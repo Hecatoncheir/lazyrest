@@ -108,7 +108,6 @@ func onInputCallback(application *Application) onInputCallbackType {
 			case bindings.Matches(keymap.FocusRight, event):
 				switch focused {
 				case application.HttpFilesTree.Element:
-					application.HttpFilesTree.OpenCurrentFile()
 					target = application.Suites.Element
 				case application.Suite.Element, application.Suites.Element:
 					target = application.Producer.Element

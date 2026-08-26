@@ -45,7 +45,7 @@ var defaults = map[Action][]string{
 	FocusDown:       {"ctrl+j"},
 	FocusUp:         {"ctrl+k"},
 	FocusRight:      {"ctrl+l"},
-	Open:            {"enter"},
+	Open:            {"enter", "l"},
 	Run:             {"enter"},
 	Back:            {"esc"},
 	Search:          {"/"},

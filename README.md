@@ -344,7 +344,7 @@ keybindings:
   focus_down: ["ctrl+j"]
   focus_up: ["ctrl+k"]
   focus_right: ["ctrl+l"]
-  open: ["enter", "o"]
+  open: ["enter", "l"]
   run: ["enter", "r"]
   back: ["esc"]
   search: ["/"]
@@ -398,13 +398,13 @@ The latest 50 request results are stored in `~/.config/lazyrest/history.json` an
 ## Navigation
 
 - `j` / `k` or arrows: move and scroll.
-- `Enter`: select a file/request or execute the selected request.
+- `Enter` / `l`: select a file/request; `Enter` executes it from the Suite pane.
 - `Esc`: go back; in the response pane it also cancels the active run.
 - `Ctrl+h/j/k/l`: move between areas according to the following map:
 
 | Focused area | Shortcut | Destination |
 | --- | --- | --- |
-| Files | `Ctrl+l` | Open the selected file in Suites |
+| Files | `Ctrl+l` | Suites |
 | Suites | `Ctrl+h` | Files |
 | Suites | `Ctrl+j` | Suite |
 | Suites | `Ctrl+l` | Producer |

@@ -97,8 +97,8 @@ func TestTUIDiagnosticsAndHelpWorkflow(t *testing.T) {
 		treeView.SetCurrentNode(node)
 		application.Element.SetFocus(treeView)
 	})
-	screen.InjectKey(tcell.KeyCtrlL, 0, tcell.ModCtrl)
-	waitFor(t, "Ctrl+l file selection", func() bool {
+	screen.InjectKey(tcell.KeyRune, 'l', tcell.ModNone)
+	waitFor(t, "l file selection", func() bool {
 		state := application.Model.Snapshot()
 		return state.SelectedFile != nil && state.SelectedFile.Path == filePath &&
 			application.Element.GetFocus() == application.Suites.Element
@@ -124,6 +124,40 @@ func TestTUIDiagnosticsAndHelpWorkflow(t *testing.T) {
 	waitFor(t, "closed overlay", func() bool {
 		return application.Model.Snapshot().Overlay == OverlayNone
 	})
+}
+
+func TestTUITreeCtrlLMovesFocusWithoutOpeningFile(t *testing.T) {
+	root := t.TempDir()
+	filePath := filepath.Join(root, "requests.http")
+	if err := os.WriteFile(filePath, []byte("GET https://example.com\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	application := BuildApplication(root, Config{})
+	screen, _ := runTestApplication(t, application)
+	application.Start()
+	waitFor(t, "file discovery", func() bool {
+		return application.Model.Snapshot().Files.Phase == PhaseReady
+	})
+
+	application.Element.QueueUpdateDraw(func() {
+		treeView := application.HttpFilesTree.Element.(*tview.TreeView)
+		node := findFileReference(treeView.GetRoot(), filePath)
+		if node == nil {
+			t.Errorf("request file %q is missing from the tree", filePath)
+			return
+		}
+		treeView.SetCurrentNode(node)
+		application.Element.SetFocus(treeView)
+	})
+
+	screen.InjectKey(tcell.KeyCtrlL, 0, tcell.ModCtrl)
+	waitFor(t, "Ctrl+l focus change", func() bool {
+		return application.Element.GetFocus() == application.Suites.Element
+	})
+	if selected := application.Model.Snapshot().SelectedFile; selected != nil {
+		t.Fatalf("Ctrl+l opened a file while moving focus: %+v", *selected)
+	}
 }
 
 func TestTUIProducerAnimatesProgressWhileWaiting(t *testing.T) {
