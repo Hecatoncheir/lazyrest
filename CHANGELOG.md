@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [Unreleased]
+## [v0.16.0] - 2026-08-26
 ### Added
 - Producer can save the complete plain-text response with `S`, matching what `Y` copies and respecting the active Pretty/Raw body mode.
 - Producer response search supports cyclic `n` / `N` navigation and shows the current/total match count.
