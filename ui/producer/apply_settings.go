@@ -27,9 +27,10 @@ func (widget *Producer) applyTheme(element *tview.TextView, focused bool) {
 }
 
 func applyProducerTheme(element *tview.TextView, uiTheme theme.ProducerTheme, focused bool) {
-	element.SetTitleColor(uiTheme.Title).SetBackgroundColor(uiTheme.Background).SetBorderColor(uiTheme.Border)
-	element.SetTextColor(uiTheme.Foreground)
+	element.SetTitleColor(uiTheme.Title).SetBorderColor(uiTheme.Border)
+	element.SetTextColor(uiTheme.Foreground).SetBackgroundColor(uiTheme.Background)
 	if focused {
-		element.SetTitleColor(uiTheme.TitleFocus).SetBackgroundColor(uiTheme.BackgroundFocus).SetBorderColor(uiTheme.BorderFocus)
+		element.SetTitleColor(uiTheme.TitleFocus).SetBorderColor(uiTheme.BorderFocus)
+		element.SetBackgroundColor(uiTheme.BackgroundFocus)
 	}
 }

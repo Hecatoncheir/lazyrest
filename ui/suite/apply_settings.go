@@ -23,9 +23,10 @@ func (widget *Suite) ApplySettings(uiTheme theme.Theme, translator *locale.Trans
 }
 
 func applySuiteTheme(element *tview.TextView, uiTheme theme.SuiteTheme, focused bool) {
-	element.SetTitleColor(uiTheme.Title).SetBackgroundColor(uiTheme.Background).SetBorderColor(uiTheme.Border)
-	element.SetTextColor(uiTheme.Foreground)
+	element.SetTitleColor(uiTheme.Title).SetBorderColor(uiTheme.Border)
+	element.SetTextColor(uiTheme.Foreground).SetBackgroundColor(uiTheme.Background)
 	if focused {
-		element.SetTitleColor(uiTheme.TitleFocus).SetBackgroundColor(uiTheme.BackgroundFocus).SetBorderColor(uiTheme.BorderFocus)
+		element.SetTitleColor(uiTheme.TitleFocus).SetBorderColor(uiTheme.BorderFocus)
+		element.SetBackgroundColor(uiTheme.BackgroundFocus)
 	}
 }

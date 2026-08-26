@@ -48,20 +48,6 @@ func (widget *Suite) Build(parameters Parameters) tview.Primitive {
 		SetTextColor(theme.Foreground).
 		SetBackgroundColor(theme.Background)
 
-	element.SetFocusFunc(func() {
-		element.
-			SetTitleColor(theme.TitleFocus).
-			SetBackgroundColor(theme.BackgroundFocus).
-			SetBorderColor(theme.BorderFocus)
-	})
-
-	element.SetBlurFunc(func() {
-		element.
-			SetTitleColor(theme.Title).
-			SetBackgroundColor(theme.Background).
-			SetBorderColor(theme.Border)
-	})
-
 	box := tview.NewBox().
 		SetBorder(true).
 		SetBorderColor(theme.Border).
@@ -69,21 +55,10 @@ func (widget *Suite) Build(parameters Parameters) tview.Primitive {
 		SetTitle(widget.locale.Text("suite")).
 		SetInputCapture(onInputCallback(widget))
 
-	box.SetFocusFunc(func() {
-		box.
-			SetTitleColor(theme.TitleFocus).
-			SetBackgroundColor(theme.BackgroundFocus).
-			SetBorderColor(theme.BorderFocus)
-	})
-
-	box.SetBlurFunc(func() {
-		box.
-			SetTitleColor(theme.Title).
-			SetBackgroundColor(theme.Background).
-			SetBorderColor(theme.Border)
-	})
-
 	element.Box = box
+	applySuiteTheme(element, widget.theme, element.HasFocus())
+	element.SetFocusFunc(func() { applySuiteTheme(element, widget.theme, true) })
+	element.SetBlurFunc(func() { applySuiteTheme(element, widget.theme, false) })
 
 	widget.Element = element
 	return element

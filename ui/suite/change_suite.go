@@ -18,22 +18,10 @@ func (widget *Suite) ChangeSuite(suite http.HttpSuite) {
 		Clear().
 		SetText(text).
 		SetWrap(true).
-		SetTitleColor(theme.TitleFocus).
-		SetBorderColor(theme.BorderFocus).
 		SetInputCapture(onInputCallback(widget))
-
-	element.
-		SetBackgroundColor(theme.BackgroundFocus)
-
-	element.SetFocusFunc(func() {
-		element.
-			SetBackgroundColor(theme.BackgroundFocus)
-	})
-
-	element.SetBlurFunc(func() {
-		element.
-			SetBackgroundColor(theme.Background)
-	})
+	applySuiteTheme(element, theme, element.HasFocus())
+	element.SetFocusFunc(func() { applySuiteTheme(element, widget.theme, true) })
+	element.SetBlurFunc(func() { applySuiteTheme(element, widget.theme, false) })
 }
 
 // render draws the request, colouring the body by the format it declares. The

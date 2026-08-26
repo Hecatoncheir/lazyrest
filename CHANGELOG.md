@@ -12,6 +12,7 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 - `q` closes the active help, diagnostics, palette, theme, or save window instead of quitting lazyrest; from the main interface it still quits, while `Ctrl+C` remains an unconditional exit.
+- Runtime theme changes now update the text background, border, and title state in filled Request and Result panes instead of leaving colours from the previous theme.
 
 ## [v0.15.0] - 2026-08-26
 ### Added

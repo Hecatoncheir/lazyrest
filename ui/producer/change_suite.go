@@ -100,8 +100,8 @@ func (widget *Producer) ChangeSuite(suite http.HttpSuite) {
 		SetText(initialText).
 		SetWrap(true).
 		SetTitleColor(widget.theme.TitleFocus).
-		SetBorderColor(widget.theme.BorderFocus).
-		SetBackgroundColor(widget.theme.BackgroundFocus)
+		SetBorderColor(widget.theme.BorderFocus)
+	element.SetBackgroundColor(widget.theme.BackgroundFocus)
 	widget.updateTitle()
 	widget.currentText = initialText
 
