@@ -17,7 +17,7 @@ A Terminal User Interface (TUI) application for parsing and executing `.http` an
 ### Tech Stack
 - **Language:** Go
 - **TUI Framework:** `tview` and `tcell`
-- **Parsing:** Tree-sitter (via `go-tree-sitter`)
+- **Parsing:** Hand written scanner, pure Go (no CGO)
 
 ### Core Modules
 - `main.go`: Entry point; initializes the UI with a target directory.
@@ -28,6 +28,6 @@ A Terminal User Interface (TUI) application for parsing and executing `.http` an
     - `producer/`: Handles the execution and display of individual requests.
     - `layout/` & `footer/`: Manage the overall screen layout and status information.
 - `finder/`: Implements file discovery logic, searching for relevant files in a directory tree.
-- `parser/`: Wraps tree-sitter to parse HTTP request files.
+- `parser/`: Reads HTTP request files with a line based scanner.
 - `runner/`: Executes the parsed HTTP requests.
 - `color/`: Provides color management for the TUI elements.

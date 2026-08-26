@@ -4,16 +4,14 @@ import (
 	"context"
 	"os"
 	"path/filepath"
-
-	sitter "github.com/smacker/go-tree-sitter"
 )
 
-func NewParser() (*Parser, error) {
-	return &Parser{treesitter: getParser()}, nil
-}
+// Parser reads .http files. It holds no state, so one parser can be reused for
+// any number of files.
+type Parser struct{}
 
-type Parser struct {
-	treesitter *sitter.Parser
+func NewParser() (*Parser, error) {
+	return &Parser{}, nil
 }
 
 func (parser *Parser) GetSuitesFromFile(filePath string) ([]HttpSuite, error) {
@@ -36,25 +34,17 @@ func (parser *Parser) ParseFileWithOptions(ctx context.Context, filePath string,
 	if err != nil {
 		return ParseResult{}, err
 	}
-	options.baseDirectory = filepath.Dir(filePath)
-	tree, err := getTree(ctx, source, parser.treesitter)
-	if err != nil {
+	if err := ctx.Err(); err != nil {
 		return ParseResult{}, err
 	}
-	defer tree.Close()
+	options.baseDirectory = filepath.Dir(filePath)
 
-	suites, diagnostics := getSuites(ctx, source, tree, options)
+	suites, diagnostics := parseDocument(string(source), options)
 	return ParseResult{Suites: suites, Diagnostics: diagnostics}, nil
 }
 
-func (parser *Parser) Reset() {
-	parser.treesitter.Reset()
-}
+// Reset and Close keep the parser interchangeable with one that holds
+// resources.
+func (parser *Parser) Reset() {}
 
-func (parser *Parser) Close() {
-	if parser == nil || parser.treesitter == nil {
-		return
-	}
-	parser.treesitter.Close()
-	parser.treesitter = nil
-}
+func (parser *Parser) Close() {}

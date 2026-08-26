@@ -16,7 +16,8 @@
 ## Features
 
 - Immediate TUI startup with background environment loading and recursive `.http` / `.hurl` discovery.
-- Tree-sitter parsing with a dedicated diagnostics window and named requests.
+- Pure Go, with no CGO and no external parser: `go install` and cross-compilation need nothing but the Go toolchain.
+- A dedicated diagnostics window and named requests.
 - Public/private environment profiles plus recursive `{{variable}}` substitution.
 - Cancellable HTTP and Hurl execution with animated Producer/footer progress bars, timeout, and bounded response bodies.
 - GraphQL requests encoded the way servers expect, with a variables block and errors surfaced from `200` responses.
@@ -44,7 +45,7 @@ tar -xzf lazyrest-linux-amd64.tar.gz && sudo install lazyrest /usr/local/bin/
 macOS builds are not notarized, so the first launch needs
 `xattr -d com.apple.quarantine lazyrest`.
 
-Or install from source, which requires the Go toolchain and a C compiler:
+Or install from source, which needs nothing but the Go toolchain:
 
 ```sh
 go install github.com/Hecatoncheir/lazyrest@latest
@@ -56,11 +57,10 @@ Or build the repository locally:
 go build -o lazyrest .
 ```
 
-Tree-sitter uses CGO. Cross-compilation therefore requires a C cross-compiler; for example, from macOS to Windows/amd64:
+The build is pure Go, so cross-compiling asks for no C toolchain:
 
 ```sh
-brew install mingw-w64
-env GOOS=windows GOARCH=amd64 CGO_ENABLED=1 CC=x86_64-w64-mingw32-gcc go build
+env GOOS=windows GOARCH=amd64 go build
 ```
 
 ## Neovim and LazyVim

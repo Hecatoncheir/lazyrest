@@ -2,8 +2,6 @@ module github.com/Hecatoncheir/lazyrest
 
 go 1.25.0
 
-require github.com/smacker/go-tree-sitter v0.0.0-20240827094217-dd81d9e9be82
-
 require (
 	github.com/gdamore/tcell/v2 v2.13.10
 	github.com/lucasb-eyer/go-colorful v1.4.1

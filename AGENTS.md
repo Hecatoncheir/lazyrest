@@ -2,14 +2,14 @@
 
 ## Project Structure & Module Organization
 
-`main.go` is the CLI entry point. `finder/` discovers `.http` and `.hurl` files, `parser/http/` owns Tree-sitter parsing, `parser/hurl/` adapts Hurl files, and `runner/` executes requests. Terminal UI code lives in `ui/`, split by component (`tree/`, `suites/`, `suite/`, `producer/`, `footer/`, and layout/theme packages). Tests are colocated with production code as `*_test.go`. Documentation, changelog, license, and preview assets (`preview.png`, `.gif`, `.mov`) live at the repository root.
+`main.go` is the CLI entry point. `finder/` discovers `.http` and `.hurl` files, `parser/http/` owns `.http` parsing, `parser/hurl/` adapts Hurl files, and `runner/` executes requests. Terminal UI code lives in `ui/`, split by component (`tree/`, `suites/`, `suite/`, `producer/`, `footer/`, and layout/theme packages). Tests are colocated with production code as `*_test.go`. Documentation, changelog, license, and preview assets (`preview.png`, `.gif`, `.mov`) live at the repository root.
 
-The request flow is broadly: file discovery → parsing → suite selection → execution → response rendering. Keep package boundaries aligned with that flow. Treat files under `parser/http/treesitter/src/` as generated grammar artifacts; update them only as part of an intentional parser regeneration.
+The request flow is broadly: file discovery → parsing → suite selection → execution → response rendering. Keep package boundaries aligned with that flow. The parser is a hand written scanner: `document.go` splits a file into blocks, `request_text.go` reads one request, and `body_type.go` names the format of a body. It uses no CGO, so keep it that way — the build must stay green with `CGO_ENABLED=0`.
 
 ## Build, Test, and Development Commands
 
 - `go run . .` runs the TUI against the current directory.
-- `go build ./...` compiles every package. Tree-sitter requires CGO and a working C compiler.
+- `go build ./...` compiles every package. The build is pure Go and needs no C toolchain.
 - `go test ./...` runs the standard unit tests.
 - `go test -race ./...` matches the CI test mode and checks concurrency safety.
 - `go vet ./...` runs Go's static analysis.

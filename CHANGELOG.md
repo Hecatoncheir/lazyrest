@@ -3,6 +3,13 @@
 All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
+### Changed
+- `.http` files are read by a hand written scanner instead of Tree-sitter. The build is now pure Go: `go install` and cross-compilation need no C compiler, and release archives for every platform are built on one runner.
+
+### Fixed
+- A body type declared through `Content-Type` is now honoured, so a single-line JSON body is recognized and `application/graphql` is no longer read as JSON.
+- A malformed variable declaration is reported as one instead of discarding the request that follows it.
+
 ### Added
 - Syntax highlighting for JSON, XML, and GraphQL across the Suites, Suite, and Producer panes, covering the body preview of the list, the selected request, the GraphQL variables, and the response. The colours are derived from the active theme, so every preset and override matches. Raw view stays unhighlighted, and bodies over 256 KiB are shown plain so that drawing stays responsive.
 - GraphQL requests are sent as `application/json` with a `{"query": …, "variables": …}` body, the form the GraphQL over HTTP specification requires. A request is recognized from its body or from `X-REQUEST-TYPE: GraphQL`, variables are written as a JSON object after the query, and the operation name is sent when the document names exactly one.

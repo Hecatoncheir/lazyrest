@@ -24,9 +24,7 @@ type requestText struct {
 }
 
 // parseRequestText reads a request the way an HTTP message is structured: a
-// request line, header lines, then the body after the first blank line. The
-// tree-sitter grammar cannot be relied on for this split because header values
-// containing `=` or `*`, and most bodies, produce ERROR nodes.
+// request line, header lines, then the body after the first blank line.
 func parseRequestText(text string) requestText {
 	parsed := requestText{Header: nethttp.Header{}}
 	lines := strings.SplitAfter(text, "\n")
@@ -88,36 +86,6 @@ func appendFoldedHeaderLine(header nethttp.Header, name, continuation string) {
 		return
 	}
 	values[len(values)-1] = strings.TrimSpace(values[len(values)-1] + " " + continuation)
-}
-
-// clipRequestRegion cuts the region at the line that starts the next request
-// block: a `###` separator or a naming comment. The grammar folds such a line
-// into the ERROR node it produces for a body it cannot read, and without the
-// cut the line would become part of the body.
-func clipRequestRegion(text string) (string, string) {
-	lines := strings.SplitAfter(text, "\n")
-	for index, line := range lines {
-		if index == 0 || !strings.HasPrefix(line, "#") {
-			continue
-		}
-		if !strings.HasPrefix(line, "###") && getNameFromComment(line) == "" {
-			continue
-		}
-		return strings.Join(lines[:index], ""), strings.Join(lines[index:], "")
-	}
-	return text, ""
-}
-
-// holdsOnlyComments reports whether text carries nothing but blank and comment
-// lines, which a separator between requests does.
-func holdsOnlyComments(text string) bool {
-	for _, line := range strings.Split(text, "\n") {
-		trimmed := strings.TrimSpace(line)
-		if trimmed != "" && !strings.HasPrefix(trimmed, "#") {
-			return false
-		}
-	}
-	return true
 }
 
 // externalBodyPath reports the file a body refers to, if the body is nothing
