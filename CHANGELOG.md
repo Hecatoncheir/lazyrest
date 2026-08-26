@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [Unreleased]
+## [v0.14.0] - 2026-08-26
 ### Added
 - `ignore` in the configuration names directories the file tree skips, on top of a built-in list that now also covers `.venv`, `.tox`, `target`, `dist`, and `build`. The lists of the configuration layers add up.
 - Symbolic links to directories are followed, each one once, so a tree that links back into itself still terminates. They were skipped entirely before.
