@@ -3,6 +3,7 @@ package producer
 import (
 	"encoding/json"
 	"fmt"
+	"path/filepath"
 	"strings"
 	"time"
 	"unicode"
@@ -14,11 +15,12 @@ import (
 // visible in Producer. Body follows the Pretty/Raw mode, while RawBody keeps
 // the unformatted body for saving to disk.
 type ResponseExport struct {
-	Body              string
-	RawBody           string
-	Full              string
-	SuggestedFileName string
-	Truncated         bool
+	Body                  string
+	RawBody               string
+	Full                  string
+	SuggestedFileName     string
+	SuggestedFullFileName string
+	Truncated             bool
 }
 
 // CurrentResponse returns the response represented by the pane. It deliberately
@@ -35,12 +37,18 @@ func (widget *Producer) CurrentResponse() (ResponseExport, bool) {
 	}
 	body, _ := formatResponseBody(entry.Response, widget.bodyViewMode)
 	return ResponseExport{
-		Body:              body,
-		RawBody:           entry.Response.Body,
-		Full:              fullResponseText(entry.Response, body),
-		SuggestedFileName: suggestedResponseFileName(entry),
-		Truncated:         entry.Response.Truncated,
+		Body:                  body,
+		RawBody:               entry.Response.Body,
+		Full:                  fullResponseText(entry.Response, body),
+		SuggestedFileName:     suggestedResponseFileName(entry),
+		SuggestedFullFileName: suggestedFullResponseFileName(entry),
+		Truncated:             entry.Response.Truncated,
 	}, true
+}
+
+func suggestedFullResponseFileName(entry HistoryEntry) string {
+	bodyName := suggestedResponseFileName(entry)
+	return strings.TrimSuffix(bodyName, filepath.Ext(bodyName)) + "-response.txt"
 }
 
 func fullResponseText(response runner.Response, body string) string {

@@ -133,6 +133,7 @@ func TestDefaultResponseExportBindings(t *testing.T) {
 		{CopyResponseBody, 'y'},
 		{CopyResponse, 'Y'},
 		{SaveResponse, 's'},
+		{SaveFullResponse, 'S'},
 	} {
 		if !bindings.Matches(test.action, tcell.NewEventKey(tcell.KeyRune, test.key, tcell.ModNone)) {
 			t.Errorf("%s does not match %q", test.action, test.key)

@@ -115,6 +115,7 @@ func (application *Application) closeOverlay() {
 	})
 	if wasSaveResponse {
 		application.pendingExport = nil
+		application.saveFullResponse = false
 		application.saveOverwritePath = ""
 	}
 	if application.previousFocus != nil {
@@ -276,6 +277,7 @@ func helpText(bindings *keymap.Bindings, translator *locale.Translator) string {
 		line(keymap.CopyResponseBody, translator.Text("copy_response_body")),
 		line(keymap.CopyResponse, translator.Text("copy_response")),
 		line(keymap.SaveResponse, translator.Text("save_response")),
+		line(keymap.SaveFullResponse, translator.Text("save_full_response")),
 		line(keymap.HistoryPrevious, translator.Text("previous_history")),
 		line(keymap.HistoryNext, translator.Text("next_history")),
 		line(keymap.Back, translator.Text("cancel_back")),

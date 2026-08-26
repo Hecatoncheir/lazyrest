@@ -33,7 +33,10 @@ func (application *Application) buildCommandPalette() {
 		application.copyResponse(true)
 	})
 	palette.AddItem(translator.Text("save_response"), "", 0, func() {
-		application.openSaveResponse()
+		application.openSaveResponse(false)
+	})
+	palette.AddItem(translator.Text("save_full_response"), "", 0, func() {
+		application.openSaveResponse(true)
 	})
 	palette.AddItem(translator.Text("diagnostics"), "", 0, func() {
 		application.openOverlay(OverlayDiagnostics)

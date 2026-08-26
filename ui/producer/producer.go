@@ -22,37 +22,38 @@ func (widget *Producer) IsSearching() bool {
 }
 
 type Producer struct {
-	Element          tview.Primitive
-	theme            theme.ProducerTheme
-	suite            http.HttpSuite
-	onEscapeCallback OnEscapeCallbackType
-	onProgress       func(current, total int64)
-	onRunFinished    func(runner.Response, error)
-	onCopyBody       func()
-	onCopyResponse   func()
-	onSaveResponse   func()
-	app              *tview.Application
-	runMutex         sync.Mutex
-	runID            uint64
-	cancelRun        context.CancelFunc
-	history          []HistoryEntry
-	historyIndex     int
-	historyVisible   bool
-	resultAvailable  bool
-	currentText      string
-	searchMode       bool
-	searchQuery      string
-	runnerConfig     runner.Config
-	bodyViewMode     BodyViewMode
-	keybindings      *keymap.Bindings
-	locale           *locale.Translator
-	historyPath      string
-	syntax           syntax.Palette
-	responses        http.ResponseStore
-	historyMutex     sync.Mutex
-	historyRequested uint64
-	historyWritten   uint64
-	historyWrites    sync.WaitGroup
+	Element            tview.Primitive
+	theme              theme.ProducerTheme
+	suite              http.HttpSuite
+	onEscapeCallback   OnEscapeCallbackType
+	onProgress         func(current, total int64)
+	onRunFinished      func(runner.Response, error)
+	onCopyBody         func()
+	onCopyResponse     func()
+	onSaveResponse     func()
+	onSaveFullResponse func()
+	app                *tview.Application
+	runMutex           sync.Mutex
+	runID              uint64
+	cancelRun          context.CancelFunc
+	history            []HistoryEntry
+	historyIndex       int
+	historyVisible     bool
+	resultAvailable    bool
+	currentText        string
+	searchMode         bool
+	searchQuery        string
+	runnerConfig       runner.Config
+	bodyViewMode       BodyViewMode
+	keybindings        *keymap.Bindings
+	locale             *locale.Translator
+	historyPath        string
+	syntax             syntax.Palette
+	responses          http.ResponseStore
+	historyMutex       sync.Mutex
+	historyRequested   uint64
+	historyWritten     uint64
+	historyWrites      sync.WaitGroup
 }
 
 // WaitForHistory blocks until every pending history write has finished. It is
@@ -124,6 +125,7 @@ func (widget *Producer) Build(parameters Parameters) tview.Primitive {
 	widget.onCopyBody = parameters.OnCopyBodyCallback
 	widget.onCopyResponse = parameters.OnCopyResponseCallback
 	widget.onSaveResponse = parameters.OnSaveResponseCallback
+	widget.onSaveFullResponse = parameters.OnSaveFullResponseCallback
 	widget.app = parameters.App
 	widget.runnerConfig = parameters.RunnerConfig
 	widget.keybindings = parameters.Keybindings

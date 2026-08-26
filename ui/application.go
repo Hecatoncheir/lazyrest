@@ -46,6 +46,7 @@ type Application struct {
 	previousFocus     tview.Primitive
 	screen            tcell.Screen
 	pendingExport     *producer.ResponseExport
+	saveFullResponse  bool
 	saveOverwritePath string
 	startOnce         sync.Once
 

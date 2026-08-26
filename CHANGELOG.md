@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+### Added
+- Producer can save the complete plain-text response with `S`, matching what `Y` copies and respecting the active Pretty/Raw body mode.
+
 ## [v0.15.0] - 2026-08-26
 ### Added
 - Producer can copy the visible Pretty/Raw response body with `y`, copy the complete plain-text response with `Y`, or save the unformatted body with `s`. Export follows the selected history entry, keeps secret redaction, reports truncated data, and requires confirmation before overwriting a private response file.

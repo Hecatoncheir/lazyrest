@@ -39,6 +39,9 @@ func TestCurrentResponseExportsTheVisibleBodyWithoutMarkupOrSecrets(t *testing.T
 	if !strings.Contains(exported.Body, "\n  \"name\": \"Ada\"") {
 		t.Fatalf("pretty body was not exported: %q", exported.Body)
 	}
+	if !strings.HasSuffix(exported.Full, exported.Body) {
+		t.Fatalf("full response does not use the visible pretty body: %q", exported.Full)
+	}
 	if strings.Contains(exported.Body, "secret-value") || strings.Contains(exported.Full, "secret-value") {
 		t.Fatalf("export contains a secret: %+v", exported)
 	}
@@ -53,6 +56,9 @@ func TestCurrentResponseExportsTheVisibleBodyWithoutMarkupOrSecrets(t *testing.T
 	if exported.SuggestedFileName != "list-users-20260826-140512.json" {
 		t.Fatalf("unexpected filename: %q", exported.SuggestedFileName)
 	}
+	if exported.SuggestedFullFileName != "list-users-20260826-140512-response.txt" {
+		t.Fatalf("unexpected full response filename: %q", exported.SuggestedFullFileName)
+	}
 	if !exported.Truncated {
 		t.Fatal("truncation state was lost")
 	}
@@ -61,6 +67,9 @@ func TestCurrentResponseExportsTheVisibleBodyWithoutMarkupOrSecrets(t *testing.T
 	raw, ok := widget.CurrentResponse()
 	if !ok || raw.Body != raw.RawBody || strings.Contains(raw.Body, "\n") {
 		t.Fatalf("raw body was not exported unchanged: %+v", raw)
+	}
+	if !strings.HasSuffix(raw.Full, raw.RawBody) {
+		t.Fatalf("full response does not use the visible raw body: %q", raw.Full)
 	}
 }
 

@@ -34,6 +34,7 @@ const (
 	CopyResponseBody Action = "copy_response_body"
 	CopyResponse     Action = "copy_response"
 	SaveResponse     Action = "save_response"
+	SaveFullResponse Action = "save_full_response"
 	HistoryPrevious  Action = "history_previous"
 	HistoryNext      Action = "history_next"
 	CommandPalette   Action = "command_palette"
@@ -62,6 +63,7 @@ var defaults = map[Action][]string{
 	CopyResponseBody: {"y"},
 	CopyResponse:     {"Y"},
 	SaveResponse:     {"s"},
+	SaveFullResponse: {"S"},
 	HistoryPrevious:  {"["},
 	HistoryNext:      {"]"},
 	CommandPalette:   {":", "ctrl+p"},
@@ -161,7 +163,7 @@ func (bindings *Bindings) validateConflicts() error {
 		{"files", append(append([]Action{}, global...), Open, Search, SearchNext, SearchPrevious, Reload)},
 		{"suites", append(append([]Action{}, global...), Open, Back, Search, MoveDown, MoveUp)},
 		{"suite", append(append([]Action{}, global...), Run, Back)},
-		{"producer", append(append([]Action{}, global...), Back, Search, HistoryPrevious, HistoryNext, ToggleBody, CopyResponseBody, CopyResponse, SaveResponse)},
+		{"producer", append(append([]Action{}, global...), Back, Search, HistoryPrevious, HistoryNext, ToggleBody, CopyResponseBody, CopyResponse, SaveResponse, SaveFullResponse)},
 		{"search", []Action{SearchFinish}},
 		{"overlay", []Action{Quit, Back, CommandPalette, ReloadConfig, Help, Diagnostics, MoveDown, MoveUp}},
 	}

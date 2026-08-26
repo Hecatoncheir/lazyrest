@@ -69,6 +69,11 @@ func onInputCallback(widget *Producer) func(event *tcell.EventKey) *tcell.EventK
 				widget.onSaveResponse()
 			}
 			return nil
+		case widget.keybindings.Matches(keymap.SaveFullResponse, event):
+			if widget.onSaveFullResponse != nil {
+				widget.onSaveFullResponse()
+			}
+			return nil
 		}
 		return event
 	}

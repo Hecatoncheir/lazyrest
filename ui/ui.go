@@ -101,18 +101,19 @@ func BuildApplication(rootDirectoryPath string, config Config) *Application {
 	// Producer
 	producerWidget := producer.New()
 	producerParameters := producer.Parameters{
-		Theme:                  uiTheme,
-		OnEscapeCallback:       onProducerEscape(applicationWidget),
-		OnProgressCallback:     onRunProgress(applicationWidget),
-		OnRunFinishedCallback:  onRunFinished(applicationWidget),
-		OnCopyBodyCallback:     func() { applicationWidget.copyResponse(false) },
-		OnCopyResponseCallback: func() { applicationWidget.copyResponse(true) },
-		OnSaveResponseCallback: applicationWidget.openSaveResponse,
-		App:                    applicationElement,
-		RunnerConfig:           config.Runner,
-		Keybindings:            config.Keybindings,
-		Locale:                 config.Locale,
-		HistoryPath:            config.HistoryPath,
+		Theme:                      uiTheme,
+		OnEscapeCallback:           onProducerEscape(applicationWidget),
+		OnProgressCallback:         onRunProgress(applicationWidget),
+		OnRunFinishedCallback:      onRunFinished(applicationWidget),
+		OnCopyBodyCallback:         func() { applicationWidget.copyResponse(false) },
+		OnCopyResponseCallback:     func() { applicationWidget.copyResponse(true) },
+		OnSaveResponseCallback:     func() { applicationWidget.openSaveResponse(false) },
+		OnSaveFullResponseCallback: func() { applicationWidget.openSaveResponse(true) },
+		App:                        applicationElement,
+		RunnerConfig:               config.Runner,
+		Keybindings:                config.Keybindings,
+		Locale:                     config.Locale,
+		HistoryPath:                config.HistoryPath,
 	}
 	producerWidget.Build(producerParameters)
 	applicationWidget.Producer = producerWidget

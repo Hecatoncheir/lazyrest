@@ -257,6 +257,18 @@ func TestTUIProducerCopiesAndSavesTheCurrentResponse(t *testing.T) {
 		return strings.HasPrefix(copied, "HTTP/1.1 200 OK\n") &&
 			strings.Contains(copied, "Content-Type: application/json\n\n"+rawBody)
 	})
+	fullResponse := applicationClipboard(application, screen)
+	fullSavedPath := filepath.Join(root, "exports", "items-response.txt")
+	screen.InjectKey(tcell.KeyRune, 'S', tcell.ModNone)
+	waitFor(t, "save full response dialog", func() bool {
+		return application.Model.CurrentOverlay() == OverlaySaveResponse
+	})
+	setInputText(t, application, application.SaveResponse, fullSavedPath)
+	screen.InjectKey(tcell.KeyEnter, 0, tcell.ModNone)
+	waitFor(t, "saved full response", func() bool {
+		contents, err := os.ReadFile(fullSavedPath)
+		return err == nil && string(contents) == fullResponse
+	})
 
 	savedPath := filepath.Join(root, "exports", "items.json")
 	screen.InjectKey(tcell.KeyRune, 's', tcell.ModNone)

@@ -9,16 +9,17 @@ import (
 )
 
 type Parameters struct {
-	Theme                  theme.Theme
-	OnEscapeCallback       OnEscapeCallbackType
-	OnProgressCallback     func(current, total int64)
-	OnRunFinishedCallback  func(runner.Response, error)
-	OnCopyBodyCallback     func()
-	OnCopyResponseCallback func()
-	OnSaveResponseCallback func()
-	App                    *tview.Application
-	RunnerConfig           runner.Config
-	Keybindings            *keymap.Bindings
-	Locale                 *locale.Translator
-	HistoryPath            string
+	Theme                      theme.Theme
+	OnEscapeCallback           OnEscapeCallbackType
+	OnProgressCallback         func(current, total int64)
+	OnRunFinishedCallback      func(runner.Response, error)
+	OnCopyBodyCallback         func()
+	OnCopyResponseCallback     func()
+	OnSaveResponseCallback     func()
+	OnSaveFullResponseCallback func()
+	App                        *tview.Application
+	RunnerConfig               runner.Config
+	Keybindings                *keymap.Bindings
+	Locale                     *locale.Translator
+	HistoryPath                string
 }

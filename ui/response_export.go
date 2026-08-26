@@ -52,7 +52,7 @@ func (application *Application) buildSaveResponseInput() {
 	})
 	input.SetChangedFunc(func(_ string) {
 		application.saveOverwritePath = ""
-		input.SetTitle(application.config.Locale.Text("save_response"))
+		input.SetTitle(application.saveResponseTitle())
 	})
 	application.SaveResponse = input
 	application.applySaveResponseTheme()
@@ -72,7 +72,14 @@ func (application *Application) applySaveResponseTheme() {
 	application.SaveResponse.SetTitleColor(uiTheme.TitleFocus)
 }
 
-func (application *Application) openSaveResponse() {
+func (application *Application) saveResponseTitle() string {
+	if application.saveFullResponse {
+		return application.config.Locale.Text("save_full_response")
+	}
+	return application.config.Locale.Text("save_response")
+}
+
+func (application *Application) openSaveResponse(full bool) {
 	exported, ok := application.Producer.CurrentResponse()
 	if !ok {
 		if application.Model.CurrentOverlay() != OverlayNone {
@@ -82,10 +89,15 @@ func (application *Application) openSaveResponse() {
 		return
 	}
 	application.pendingExport = &exported
+	application.saveFullResponse = full
 	application.saveOverwritePath = ""
 	root := application.Model.Snapshot().RootDirectoryPath
-	application.SaveResponse.SetText(filepath.Join(root, exported.SuggestedFileName))
-	application.SaveResponse.SetTitle(application.config.Locale.Text("save_response"))
+	fileName := exported.SuggestedFileName
+	if full {
+		fileName = exported.SuggestedFullFileName
+	}
+	application.SaveResponse.SetText(filepath.Join(root, fileName))
+	application.SaveResponse.SetTitle(application.saveResponseTitle())
 	application.openOverlay(OverlaySaveResponse)
 }
 
@@ -120,22 +132,30 @@ func (application *Application) saveResponse() {
 	}
 
 	exported := *application.pendingExport
+	full := application.saveFullResponse
 	application.pendingExport = nil
+	application.saveFullResponse = false
 	application.saveOverwritePath = ""
 	application.closeOverlay()
 	application.stopFooterProgress()
 	application.Footer.UpdateIndicatorState(footer.IndicatorDefault)
 	application.Footer.UpdateStatus(application.config.Locale.Text("saving_response"))
 
+	payload := exported.RawBody
+	savedMessage := "response_saved"
+	if full {
+		payload = exported.Full
+		savedMessage = "full_response_saved"
+	}
 	go func() {
-		err := writeResponseFile(path, []byte(exported.RawBody), exists)
+		err := writeResponseFile(path, []byte(payload), exists)
 		application.Element.QueueUpdateDraw(func() {
 			if err != nil {
 				application.showExportError(application.config.Locale.Format("save_response_error", err))
 				return
 			}
 			application.Footer.UpdateIndicatorState(footer.IndicatorSuccess)
-			status := application.config.Locale.Format("response_saved", len([]byte(exported.RawBody)), path)
+			status := application.config.Locale.Format(savedMessage, len([]byte(payload)), path)
 			if exported.Truncated {
 				status += " — " + application.config.Locale.Text("body_truncated")
 			}

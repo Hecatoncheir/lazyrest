@@ -359,6 +359,7 @@ keybindings:
   copy_response_body: ["y"]
   copy_response: ["Y"]
   save_response: ["s"]
+  save_full_response: ["S"]
   history_previous: ["["]
   history_next: ["]"]
   command_palette: [":", "ctrl+p"]
@@ -406,12 +407,14 @@ Pretty/Raw mode. `Y` copies the complete response — status, headers, and body 
 without the pane's labels or colour markup. Clipboard export uses the terminal's
 clipboard support, which may need OSC 52 to be enabled in the terminal.
 
-Press `s` to save the unformatted body. The path prompt suggests a name from the
-request, timestamp, and content type; relative paths are resolved from the
+Press `s` to save the unformatted body, or `S` to save the same complete response
+that `Y` copies, including the body in the active Pretty/Raw mode. The path prompt
+suggests a name from the request and timestamp, using the content type for a body
+or `-response.txt` for a complete response; relative paths are resolved from the
 project root. New files and directories use private permissions, and an existing
-file requires a second `Enter` before it is overwritten. These actions operate
-on the entry currently selected with `[` / `]`, apply the same secret redaction
-as the response pane, and report when the exported body was truncated.
+file requires a second `Enter` before it is overwritten. These actions operate on
+the entry currently selected with `[` / `]`, apply the same secret redaction as
+the response pane, and report when the exported body was truncated.
 
 ## Navigation
 
@@ -435,7 +438,7 @@ as the response pane, and report when the exported body was truncated.
 - `r`: reload the file tree in the background while Files is focused.
 - `p`: toggle Pretty/Raw response bodies while Producer is focused. Pretty formats and highlights JSON, XML, and GraphQL; Raw shows exactly what came over the wire.
 - `y` / `Y`: copy the current response body / complete response while Producer is focused.
-- `s`: save the unformatted current response body while Producer is focused.
+- `s` / `S`: save the unformatted current response body / complete response while Producer is focused.
 - `n` / `N`: next/previous matching file.
 - `[` / `]`: previous/next response history entry.
 - `d`: open parser, startup, and file-discovery diagnostics; press `d`, `q`, or `Esc` to close.
