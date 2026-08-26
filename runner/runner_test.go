@@ -469,7 +469,7 @@ func TestNewClientKeepsCookiesAcrossRequests(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		seen <- r.Header.Get("Cookie")
 		http.SetCookie(w, &http.Cookie{Name: "session", Value: "abc"})
-		w.Write([]byte("ok"))
+		_, _ = w.Write([]byte("ok"))
 	}))
 	defer server.Close()
 
@@ -564,7 +564,7 @@ func TestNewClientCanReturnTheRedirectItself(t *testing.T) {
 func TestNewClientFollowsRedirectsByDefault(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/moved" {
-			w.Write([]byte("arrived"))
+			_, _ = w.Write([]byte("arrived"))
 			return
 		}
 		http.Redirect(w, r, "/moved", http.StatusFound)
@@ -586,7 +586,7 @@ func TestNewClientFollowsRedirectsByDefault(t *testing.T) {
 
 func TestNewClientCanAcceptASelfSignedCertificate(t *testing.T) {
 	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		w.Write([]byte("secure"))
+		_, _ = w.Write([]byte("secure"))
 	}))
 	defer server.Close()
 	suite := parser.HttpSuite{Method: http.MethodGet, Uri: server.URL}

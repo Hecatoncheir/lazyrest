@@ -15,7 +15,7 @@ func TestGetSuitesFromFile_Success(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Не удалось создать временную директорию: %v", err)
 	}
-	defer os.RemoveAll(tempDir)
+	defer func() { _ = os.RemoveAll(tempDir) }()
 
 	testFilePath := filepath.Join(tempDir, "test_requests.http")
 	// Имитация тестового содержимого HTTP-файла с одним запросом и одним набором запросов.
@@ -64,7 +64,7 @@ GET http://example.com/api/status
 
 func TestGetSuitesFromFile_BodyTypes(t *testing.T) {
 	tempDir, _ := os.MkdirTemp("", "test_body_")
-	defer os.RemoveAll(tempDir)
+	defer func() { _ = os.RemoveAll(tempDir) }()
 	testFilePath := filepath.Join(tempDir, "bodies.http")
 
 	mockContent := `GET http://example.com/json
@@ -82,7 +82,9 @@ query {
 user { id }
 }
 `
-	os.WriteFile(testFilePath, []byte(mockContent), 0644)
+	if err := os.WriteFile(testFilePath, []byte(mockContent), 0644); err != nil {
+		t.Fatal(err)
+	}
 
 	parser, _ := NewParser()
 	defer parser.Close()

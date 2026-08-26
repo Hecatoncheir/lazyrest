@@ -178,22 +178,20 @@ func footerIndicatorState(state State) footer.IndicatorState {
 	}
 }
 
-func renderDiagnostics(state State) string {
-	return renderDiagnosticsWithLocale(state, locale.English())
-}
-
 func renderDiagnosticsWithLocale(state State, translator *locale.Translator) string {
 	var sections []string
-	if state.Startup.Phase == PhaseLoading {
+	switch state.Startup.Phase {
+	case PhaseLoading:
 		sections = append(sections, translator.Text("startup")+"\n"+translator.Text("loading_environment"))
-	} else if state.Startup.Phase == PhaseFailed {
+	case PhaseFailed:
 		sections = append(sections, translator.Text("startup_error")+"\n"+state.Startup.Error)
 	}
-	if state.Files.Phase == PhaseLoading {
+	switch {
+	case state.Files.Phase == PhaseLoading:
 		sections = append(sections, translator.Text("file_discovery")+"\n"+translator.Format("scanning", state.RootDirectoryPath))
-	} else if state.Files.Phase == PhaseFailed {
+	case state.Files.Phase == PhaseFailed:
 		sections = append(sections, translator.Text("file_discovery_error")+"\n"+state.Files.Error)
-	} else if len(state.Directory.Warnings) > 0 {
+	case len(state.Directory.Warnings) > 0:
 		sections = append(sections, translator.Text("file_discovery_warnings")+"\n- "+strings.Join(state.Directory.Warnings, "\n- "))
 	}
 

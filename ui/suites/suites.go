@@ -33,7 +33,6 @@ type Suites struct {
 	rows                  []listRow
 	suites                []http.HttpSuite
 	diagnosticCount       int
-	selectedSuite         http.HttpSuite
 	searchQuery           string
 	searchMode            bool
 	onEscapeCallback      OnEscapeCallbackType

@@ -1,6 +1,7 @@
 package http
 
 import (
+	"context"
 	nethttp "net/http"
 	"os"
 	"path/filepath"
@@ -136,7 +137,7 @@ X-Session: {{login.response.headers.X-Session}}
 	}
 	defer parser.Close()
 
-	result, err := parser.ParseFile(nil, filePath)
+	result, err := parser.ParseFile(context.Background(), filePath)
 	if err != nil {
 		t.Fatal(err)
 	}

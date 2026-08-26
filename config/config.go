@@ -113,9 +113,12 @@ func Generate(path string) error {
 	if err != nil {
 		return fmt.Errorf("create config %s: %w", path, err)
 	}
-	defer file.Close()
 	if _, err := file.Write(contents); err != nil {
+		_ = file.Close()
 		return fmt.Errorf("write config %s: %w", path, err)
+	}
+	if err := file.Close(); err != nil {
+		return fmt.Errorf("close config %s: %w", path, err)
 	}
 	return nil
 }

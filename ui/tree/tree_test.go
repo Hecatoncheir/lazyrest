@@ -38,7 +38,7 @@ func TestTree_Build_Success(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create temp root: %v", err)
 	}
-	defer os.RemoveAll(tempDir)
+	defer func() { _ = os.RemoveAll(tempDir) }()
 
 	// Create a sub-directory and a file within it.
 	subDir := filepath.Join(tempDir, "sub")
@@ -67,7 +67,7 @@ func TestTree_Build_NoFilesFound(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create temp root: %v", err)
 	}
-	defer os.RemoveAll(tempDir)
+	defer func() { _ = os.RemoveAll(tempDir) }()
 
 	// 2. Execution
 	params := newMockParams(tempDir)

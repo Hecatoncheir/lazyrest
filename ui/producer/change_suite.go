@@ -33,10 +33,6 @@ func formatIndeterminateProgressBar(frame int) string {
 	return uiprogress.Indeterminate(frame, progressBarWidth, progressPulseWidth)
 }
 
-func runningRequestText(progress string) string {
-	return localizedRunningRequestText(locale.English(), progress)
-}
-
 func localizedRunningRequestText(translator *locale.Translator, progress string) string {
 	return translator.Text("running_request") + "\n" + progress
 }

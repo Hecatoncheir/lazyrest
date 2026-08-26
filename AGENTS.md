@@ -13,10 +13,11 @@ The request flow is broadly: file discovery → parsing → suite selection → 
 - `go test ./...` runs the standard unit tests.
 - `go test -race ./...` matches the CI test mode and checks concurrency safety.
 - `go vet ./...` runs Go's static analysis.
+- `golangci-lint run ./...` runs the linters CI enforces; the set is pinned in `.golangci.yml`.
 - `gofmt -w .` formats Go sources.
 - `go mod tidy` normalizes module metadata; verify it does not leave unintended changes.
 
-Before submitting changes, run formatting, vet, race tests, and the full build.
+Before submitting changes, run formatting, vet, the linters, race tests, and the full build.
 
 ## Coding Style & Naming Conventions
 

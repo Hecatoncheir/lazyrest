@@ -46,15 +46,17 @@ func TestFindFilesInDirectory_Basic(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer os.RemoveAll(tempDir) // Clean up afterwards
+	defer func() { _ = os.RemoveAll(tempDir) }() // Clean up afterwards
 
 	// Create deep structure
 	subDir := filepath.Join(tempDir, "sub")
 	otherDir := filepath.Join(tempDir, "other")
-	os.Mkdir(subDir, 0755)
-	os.Mkdir(otherDir, 0755)
-
-	// Create target files
+	if err := os.Mkdir(subDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Mkdir(otherDir, 0755); err != nil {
+		t.Fatal(err)
+	}
 	targetFile1 := filepath.Join(tempDir, "file1.http")
 	targetFile2 := filepath.Join(subDir, "file2.http")
 	targetFileUpper := filepath.Join(tempDir, "file3.HTTP")
@@ -63,13 +65,21 @@ func TestFindFilesInDirectory_Basic(t *testing.T) {
 	otherFile1 := filepath.Join(tempDir, "readme.txt")
 	otherFile2 := filepath.Join(otherDir, "ignore.txt")
 
-	os.WriteFile(targetFile1, []byte("content"), 0644)
-	os.WriteFile(targetFile2, []byte("content"), 0644)
-	os.WriteFile(targetFileUpper, []byte("content"), 0644)
-	os.WriteFile(otherFile1, []byte("content"), 0644)
-	os.WriteFile(otherFile2, []byte("content"), 0644)
-
-	// 2. Execution: Call the function under test
+	if err := os.WriteFile(targetFile1, []byte("content"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(targetFile2, []byte("content"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(targetFileUpper, []byte("content"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(otherFile1, []byte("content"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(otherFile2, []byte("content"), 0644); err != nil {
+		t.Fatal(err)
+	}
 	actualDir, err := FindFilesInDirectory(tempDir, []string{".http"})
 	if err != nil {
 		t.Fatalf("FindFilesInDirectory failed unexpectedly: %v", err)
@@ -123,10 +133,12 @@ func TestFindFilesInDirectory_DotsInNames(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer os.RemoveAll(tempDir)
+	defer func() { _ = os.RemoveAll(tempDir) }()
 
 	targetFile := filepath.Join(tempDir, "my.test.file.http")
-	os.WriteFile(targetFile, []byte("content"), 0644)
+	if err := os.WriteFile(targetFile, []byte("content"), 0644); err != nil {
+		t.Fatal(err)
+	}
 
 	actualDir, err := FindFilesInDirectory(tempDir, []string{".http"})
 	if err != nil {
@@ -145,12 +157,12 @@ func TestFindFilesInDirectory_ExtensionWithoutDot(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer os.RemoveAll(tempDir)
+	defer func() { _ = os.RemoveAll(tempDir) }()
 
 	targetFile := filepath.Join(tempDir, "file.http")
-	os.WriteFile(targetFile, []byte("content"), 0644)
-
-	// Searching with "http" instead of ".http"
+	if err := os.WriteFile(targetFile, []byte("content"), 0644); err != nil {
+		t.Fatal(err)
+	}
 	actualDir, err := FindFilesInDirectory(tempDir, []string{"http"})
 	if err != nil {
 		t.Fatalf("FindFilesInDirectory failed: %v", err)

@@ -91,9 +91,10 @@ func onInputCallback(application *Application) onInputCallbackType {
 			var target tview.Primitive
 			switch {
 			case bindings.Matches(keymap.FocusLeft, event):
-				if focused == application.Suites.Element || focused == application.Suite.Element {
+				switch focused {
+				case application.Suites.Element, application.Suite.Element:
 					target = application.HttpFilesTree.Element
-				} else if focused == application.Producer.Element {
+				case application.Producer.Element:
 					target = application.Suite.Element
 				}
 			case bindings.Matches(keymap.FocusDown, event):
@@ -105,10 +106,11 @@ func onInputCallback(application *Application) onInputCallbackType {
 					target = application.Suites.Element
 				}
 			case bindings.Matches(keymap.FocusRight, event):
-				if focused == application.HttpFilesTree.Element {
+				switch focused {
+				case application.HttpFilesTree.Element:
 					application.HttpFilesTree.OpenCurrentFile()
 					target = application.Suites.Element
-				} else if focused == application.Suite.Element || focused == application.Suites.Element {
+				case application.Suite.Element, application.Suites.Element:
 					target = application.Producer.Element
 				}
 			}

@@ -190,13 +190,13 @@ func writeHistory(path string, stored storedHistory) error {
 		return fmt.Errorf("create history file: %w", err)
 	}
 	temporaryPath := temporary.Name()
-	defer os.Remove(temporaryPath)
+	defer func() { _ = os.Remove(temporaryPath) }()
 	if err := temporary.Chmod(0o600); err != nil {
-		temporary.Close()
+		_ = temporary.Close()
 		return fmt.Errorf("secure history file: %w", err)
 	}
 	if _, err := temporary.Write(contents); err != nil {
-		temporary.Close()
+		_ = temporary.Close()
 		return fmt.Errorf("write history: %w", err)
 	}
 	if err := temporary.Close(); err != nil {

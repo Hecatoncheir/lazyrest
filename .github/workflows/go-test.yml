@@ -30,16 +30,27 @@ jobs:
       - name: Run go vet
         run: go vet ./...
 
+      - name: Run golangci-lint
+        uses: golangci/golangci-lint-action@v9
+        with:
+          version: v2.13.1
+
       - name: Run Unit Tests
         run: go test -race ./...
 
       - name: Build Project
         run: go build -v ./...
 
-      - name: Verify the build needs no C toolchain
+      # Every released target is compiled here too, so that a break on another
+      # platform is caught on the pull request rather than at the tag.
+      - name: Build every target
         env:
           CGO_ENABLED: "0"
-        run: go build -v ./...
+        run: |
+          set -euo pipefail
+          for target in linux/amd64 linux/arm64 darwin/amd64 darwin/arm64 windows/amd64; do
+            GOOS="${target%/*}" GOARCH="${target#*/}" go build -o /dev/null .
+          done
 
   binaries:
     needs: build

@@ -208,7 +208,7 @@ func (runner *Runner) Execute(ctx context.Context, onProgress ProgressCallback) 
 		return Response{}, err
 	}
 
-	defer result.Body.Close()
+	defer func() { _ = result.Body.Close() }()
 
 	total := int64(result.ContentLength)
 	var bodyReader io.Reader = result.Body
@@ -293,11 +293,11 @@ func headerValue(header http.Header, name string) (string, bool) {
 
 func (runner *Runner) executeHurl(ctx context.Context) (Response, error) {
 	if runner.suite.HurlFilePath == "" {
-		return Response{}, errors.New("Hurl file path is empty")
+		return Response{}, errors.New("the Hurl file path is empty")
 	}
 	executable, err := exec.LookPath(runner.hurlExecutable)
 	if err != nil {
-		return Response{}, fmt.Errorf("Hurl executable %q was not found: %w", runner.hurlExecutable, err)
+		return Response{}, fmt.Errorf("the Hurl executable %q was not found: %w", runner.hurlExecutable, err)
 	}
 
 	variablesPath, removeVariables, err := writeHurlVariables(runner.suite.Variables)
@@ -374,12 +374,12 @@ func writeHurlVariables(variables map[string]string) (string, func(), error) {
 	}
 	remove := func() { _ = os.Remove(file.Name()) }
 	if err := file.Chmod(0o600); err != nil {
-		file.Close()
+		_ = file.Close()
 		remove()
 		return "", nothingToRemove, fmt.Errorf("secure Hurl variables file: %w", err)
 	}
 	if _, err := file.WriteString(strings.Join(lines, "\n") + "\n"); err != nil {
-		file.Close()
+		_ = file.Close()
 		remove()
 		return "", nothingToRemove, fmt.Errorf("write Hurl variables file: %w", err)
 	}

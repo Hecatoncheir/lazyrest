@@ -12,6 +12,7 @@ All notable changes to this project will be documented in this file.
 - The summary of a response is translated. It was built with English baked in, so a Russian or Chinese interface still read "Response code" and "Content length".
 
 ### Changed
+- CI runs `golangci-lint` and compiles every released target on each pull request, so a break on another platform is caught before the tag rather than during a release.
 - A scan stops at 32 directories deep and says so in the diagnostics window, rather than descending without limit.
 
 ## [v0.13.0] - 2026-08-26

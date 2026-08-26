@@ -91,7 +91,7 @@ func loadProfile(path, name string) (map[string]string, bool, error) {
 	if err != nil {
 		return nil, false, fmt.Errorf("open environment file %s: %w", path, err)
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 
 	decoder := json.NewDecoder(file)
 	decoder.UseNumber()

@@ -169,7 +169,7 @@ func renderHeaders(headers nethttp.Header, secretValues []string) string {
 		} else {
 			value = redactSecrets(value, secretValues)
 		}
-		output.WriteString(fmt.Sprintf("%s: %s\n", displayKey, value))
+		fmt.Fprintf(&output, "%s: %s\n", displayKey, value)
 	}
 	return output.String()
 }
