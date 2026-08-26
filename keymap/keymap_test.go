@@ -140,3 +140,50 @@ func TestDefaultResponseExportBindings(t *testing.T) {
 		}
 	}
 }
+
+func TestDefaultViewportNavigationBindings(t *testing.T) {
+	bindings := Default()
+	if !bindings.Matches(HalfPageDown, tcell.NewEventKey(tcell.KeyCtrlD, 0, tcell.ModCtrl)) {
+		t.Fatal("half_page_down does not match Ctrl+d")
+	}
+	if !bindings.Matches(HalfPageUp, tcell.NewEventKey(tcell.KeyCtrlU, 0, tcell.ModCtrl)) {
+		t.Fatal("half_page_up does not match Ctrl+u")
+	}
+
+	z := tcell.NewEventKey(tcell.KeyRune, 'z', tcell.ModNone)
+	if got := bindings.MatchesSequence(CenterView, []*tcell.EventKey{z}); got != SequencePrefix {
+		t.Fatalf("first z must be a sequence prefix, got %v", got)
+	}
+	if got := bindings.MatchesSequence(CenterView, []*tcell.EventKey{z, z}); got != SequenceFull {
+		t.Fatalf("zz must complete center_view, got %v", got)
+	}
+	if bindings.Matches(CenterView, z) {
+		t.Fatal("a single z must not match the zz binding")
+	}
+}
+
+func TestCenterViewSupportsConfiguredPrintableSequence(t *testing.T) {
+	bindings, err := New(map[string][]string{"center_view": {"жж"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	zh := tcell.NewEventKey(tcell.KeyRune, 'ж', tcell.ModNone)
+	if got := bindings.MatchesSequence(CenterView, []*tcell.EventKey{zh, zh}); got != SequenceFull {
+		t.Fatalf("configured sequence did not match: %v", got)
+	}
+	if got := bindings.Map()[string(CenterView)]; len(got) != 1 || got[0] != "жж" {
+		t.Fatalf("configured sequence was not preserved: %v", got)
+	}
+}
+
+func TestBindingsRejectSequencesForSingleKeyActions(t *testing.T) {
+	if _, err := New(map[string][]string{"quit": {"qq"}}); err == nil {
+		t.Fatal("expected a sequence assigned to quit to fail")
+	}
+}
+
+func TestBindingsRejectSequencePrefixConflicts(t *testing.T) {
+	if _, err := New(map[string][]string{"help": {"z"}}); err == nil {
+		t.Fatal("expected z to conflict with the zz center_view binding")
+	}
+}

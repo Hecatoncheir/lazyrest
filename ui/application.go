@@ -48,6 +48,8 @@ type Application struct {
 	pendingExport     *producer.ResponseExport
 	saveFullResponse  bool
 	saveOverwritePath string
+	pendingViewKeys   []*tcell.EventKey
+	pendingViewFocus  tview.Primitive
 	startOnce         sync.Once
 
 	footerProgressMutex  sync.Mutex

@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 ### Added
 - Producer can save the complete plain-text response with `S`, matching what `Y` copies and respecting the active Pretty/Raw body mode.
+- Vim-style viewport navigation: `Ctrl+d` and `Ctrl+u` move by half a page, while `zz` centers the current item or scroll anchor.
 
 ### Fixed
 - `q` closes the active help, diagnostics, palette, theme, or save window instead of quitting lazyrest; from the main interface it still quits, while `Ctrl+C` remains an unconditional exit.

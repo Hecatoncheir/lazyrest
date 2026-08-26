@@ -5,6 +5,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"unicode"
 	"unicode/utf8"
 
 	"github.com/gdamore/tcell/v2"
@@ -30,6 +31,9 @@ const (
 	Reload           Action = "reload"
 	MoveDown         Action = "move_down"
 	MoveUp           Action = "move_up"
+	HalfPageDown     Action = "half_page_down"
+	HalfPageUp       Action = "half_page_up"
+	CenterView       Action = "center_view"
 	ToggleBody       Action = "toggle_body"
 	CopyResponseBody Action = "copy_response_body"
 	CopyResponse     Action = "copy_response"
@@ -59,6 +63,9 @@ var defaults = map[Action][]string{
 	Reload:           {"r"},
 	MoveDown:         {"j"},
 	MoveUp:           {"k"},
+	HalfPageDown:     {"ctrl+d"},
+	HalfPageUp:       {"ctrl+u"},
+	CenterView:       {"zz"},
 	ToggleBody:       {"p"},
 	CopyResponseBody: {"y"},
 	CopyResponse:     {"Y"},
@@ -71,15 +78,27 @@ var defaults = map[Action][]string{
 }
 
 type Bindings struct {
-	keys map[Action][]key
+	keys map[Action][]binding
+}
+
+type binding struct {
+	name  string
+	steps []key
 }
 
 type key struct {
-	name      string
 	rune      rune
 	code      tcell.Key
 	modifiers tcell.ModMask
 }
+
+type SequenceMatch int
+
+const (
+	SequenceNoMatch SequenceMatch = iota
+	SequencePrefix
+	SequenceFull
+)
 
 func New(overrides map[string][]string) (*Bindings, error) {
 	configured := make(map[Action][]string, len(defaults))
@@ -97,12 +116,15 @@ func New(overrides map[string][]string) (*Bindings, error) {
 		configured[action] = append([]string(nil), keys...)
 	}
 
-	bindings := &Bindings{keys: make(map[Action][]key, len(configured))}
+	bindings := &Bindings{keys: make(map[Action][]binding, len(configured))}
 	for action, names := range configured {
 		for _, name := range names {
 			parsed, err := parse(name)
 			if err != nil {
 				return nil, fmt.Errorf("keybinding %q: %w", action, err)
+			}
+			if len(parsed.steps) > 1 && action != CenterView {
+				return nil, fmt.Errorf("keybinding %q: key sequences are only supported for %q", action, CenterView)
 			}
 			bindings.keys[action] = append(bindings.keys[action], parsed)
 		}
@@ -126,11 +148,41 @@ func (bindings *Bindings) Matches(action Action, event *tcell.EventKey) bool {
 		return false
 	}
 	for _, candidate := range bindings.keys[action] {
-		if candidate.matches(event) {
+		if len(candidate.steps) == 1 && candidate.steps[0].matches(event) {
 			return true
 		}
 	}
 	return false
+}
+
+func (bindings *Bindings) MatchesSequence(action Action, events []*tcell.EventKey) SequenceMatch {
+	if bindings == nil || len(events) == 0 {
+		return SequenceNoMatch
+	}
+	matchedPrefix := false
+	for _, candidate := range bindings.keys[action] {
+		if len(events) > len(candidate.steps) {
+			continue
+		}
+		matched := true
+		for index, event := range events {
+			if event == nil || !candidate.steps[index].matches(event) {
+				matched = false
+				break
+			}
+		}
+		if !matched {
+			continue
+		}
+		if len(events) == len(candidate.steps) {
+			return SequenceFull
+		}
+		matchedPrefix = true
+	}
+	if matchedPrefix {
+		return SequencePrefix
+	}
+	return SequenceNoMatch
 }
 
 func (bindings *Bindings) Describe(action Action) string {
@@ -138,24 +190,29 @@ func (bindings *Bindings) Describe(action Action) string {
 		return ""
 	}
 	names := make([]string, 0, len(bindings.keys[action]))
-	for _, key := range bindings.keys[action] {
-		names = append(names, key.name)
+	for _, binding := range bindings.keys[action] {
+		names = append(names, binding.name)
 	}
 	return strings.Join(names, " / ")
 }
 
 func (bindings *Bindings) Map() map[string][]string {
 	result := make(map[string][]string, len(bindings.keys))
-	for action, keys := range bindings.keys {
-		for _, key := range keys {
-			result[string(action)] = append(result[string(action)], key.name)
+	for action, bindings := range bindings.keys {
+		for _, binding := range bindings {
+			result[string(action)] = append(result[string(action)], binding.name)
 		}
 	}
 	return result
 }
 
 func (bindings *Bindings) validateConflicts() error {
-	global := []Action{Help, Diagnostics, Quit, FocusLeft, FocusDown, FocusUp, FocusRight, CommandPalette, ReloadConfig}
+	global := []Action{
+		Help, Diagnostics, Quit,
+		FocusLeft, FocusDown, FocusUp, FocusRight,
+		HalfPageDown, HalfPageUp, CenterView,
+		CommandPalette, ReloadConfig,
+	}
 	contexts := []struct {
 		name    string
 		actions []Action
@@ -165,23 +222,51 @@ func (bindings *Bindings) validateConflicts() error {
 		{"suite", append(append([]Action{}, global...), Run, Back)},
 		{"producer", append(append([]Action{}, global...), Back, Search, HistoryPrevious, HistoryNext, ToggleBody, CopyResponseBody, CopyResponse, SaveResponse, SaveFullResponse)},
 		{"search", []Action{SearchFinish}},
-		{"overlay", []Action{Quit, Back, CommandPalette, ReloadConfig, Help, Diagnostics, MoveDown, MoveUp}},
+		{"overlay", []Action{Quit, Back, CommandPalette, ReloadConfig, Help, Diagnostics, MoveDown, MoveUp, HalfPageDown, HalfPageUp, CenterView}},
 	}
 	for _, context := range contexts {
-		used := map[string]Action{}
+		used := map[string]struct {
+			action  Action
+			binding binding
+		}{}
 		for _, action := range context.actions {
 			for _, candidate := range bindings.keys[action] {
 				identity := candidate.identity()
-				if previous, ok := used[identity]; ok && previous != action {
-					actions := []string{string(previous), string(action)}
-					sort.Strings(actions)
-					return fmt.Errorf("key %q is assigned to both %q and %q in %s context", candidate.name, actions[0], actions[1], context.name)
+				for _, previous := range used {
+					if previous.action != action && (candidate.hasPrefix(previous.binding) || previous.binding.hasPrefix(candidate)) {
+						actions := []string{string(previous.action), string(action)}
+						sort.Strings(actions)
+						return fmt.Errorf("key %q conflicts with %q assigned to %q and %q in %s context", candidate.name, previous.binding.name, actions[0], actions[1], context.name)
+					}
 				}
-				used[identity] = action
+				used[identity] = struct {
+					action  Action
+					binding binding
+				}{action: action, binding: candidate}
 			}
 		}
 	}
 	return nil
+}
+
+func (candidate binding) identity() string {
+	identities := make([]string, 0, len(candidate.steps))
+	for _, step := range candidate.steps {
+		identities = append(identities, step.identity())
+	}
+	return strings.Join(identities, ";")
+}
+
+func (candidate binding) hasPrefix(prefix binding) bool {
+	if len(prefix.steps) > len(candidate.steps) {
+		return false
+	}
+	for index, step := range prefix.steps {
+		if step.identity() != candidate.steps[index].identity() {
+			return false
+		}
+	}
+	return true
 }
 
 func (candidate key) identity() string {
@@ -201,20 +286,23 @@ func (candidate key) matches(event *tcell.EventKey) bool {
 	return event.Key() == candidate.code
 }
 
-func parse(value string) (key, error) {
+func parse(value string) (binding, error) {
 	value = strings.TrimSpace(value)
 	if utf8.RuneCountInString(value) == 1 {
 		r, _ := utf8.DecodeRuneInString(value)
-		return key{name: value, rune: r}, nil
+		return binding{name: value, steps: []key{{rune: r}}}, nil
 	}
 
 	normalized := strings.ToLower(value)
 	if strings.HasPrefix(normalized, "ctrl+") && len([]rune(normalized)) == 6 {
 		letter := []rune(normalized)[5]
 		if letter >= 'a' && letter <= 'z' {
-			return key{name: normalized, code: tcell.Key(int(tcell.KeyCtrlA) + int(letter-'a'))}, nil
+			return binding{name: normalized, steps: []key{{code: tcell.Key(int(tcell.KeyCtrlA) + int(letter-'a'))}}}, nil
 		}
-		return key{name: normalized, rune: letter, modifiers: tcell.ModCtrl}, nil
+		return binding{name: normalized, steps: []key{{rune: letter, modifiers: tcell.ModCtrl}}}, nil
+	}
+	if strings.HasPrefix(normalized, "ctrl+") {
+		return binding{}, fmt.Errorf("unsupported key %q", value)
 	}
 	special := map[string]tcell.Key{
 		"enter": tcell.KeyEnter, "esc": tcell.KeyEsc, "escape": tcell.KeyEsc,
@@ -225,11 +313,22 @@ func parse(value string) (key, error) {
 	if strings.HasPrefix(normalized, "f") {
 		number, err := strconv.Atoi(strings.TrimPrefix(normalized, "f"))
 		if err == nil && number >= 1 && number <= 12 {
-			return key{name: normalized, code: tcell.Key(int(tcell.KeyF1) + number - 1)}, nil
+			return binding{name: normalized, steps: []key{{code: tcell.Key(int(tcell.KeyF1) + number - 1)}}}, nil
 		}
 	}
 	if code, ok := special[normalized]; ok {
-		return key{name: normalized, code: code}, nil
+		return binding{name: normalized, steps: []key{{code: code}}}, nil
 	}
-	return key{}, fmt.Errorf("unsupported key %q", value)
+	sequence := []rune(value)
+	if len(sequence) > 1 {
+		steps := make([]key, 0, len(sequence))
+		for _, r := range sequence {
+			if !unicode.IsPrint(r) || unicode.IsSpace(r) {
+				return binding{}, fmt.Errorf("unsupported key %q", value)
+			}
+			steps = append(steps, key{rune: r})
+		}
+		return binding{name: value, steps: steps}, nil
+	}
+	return binding{}, fmt.Errorf("unsupported key %q", value)
 }

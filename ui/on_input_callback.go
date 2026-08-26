@@ -18,6 +18,9 @@ func onInputCallback(application *Application) onInputCallbackType {
 		if application.Model != nil {
 			overlay := application.Model.CurrentOverlay()
 			if overlay != OverlayNone {
+				if application.handleViewportInput(event) {
+					return nil
+				}
 				switch {
 				case bindings.Matches(keymap.Quit, event):
 					if event.Key() == tcell.KeyCtrlC {
@@ -63,7 +66,11 @@ func onInputCallback(application *Application) onInputCallbackType {
 			}
 		}
 		if application.HttpFilesTree.IsSearching() || application.Suites.IsSearching() || application.Producer.IsSearching() {
+			application.resetViewportSequence()
 			return event
+		}
+		if application.handleViewportInput(event) {
+			return nil
 		}
 		switch {
 		case bindings.Matches(keymap.CommandPalette, event):

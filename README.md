@@ -355,6 +355,9 @@ keybindings:
   reload: ["r"]
   move_down: ["j"]
   move_up: ["k"]
+  half_page_down: ["ctrl+d"]
+  half_page_up: ["ctrl+u"]
+  center_view: ["zz"]
   toggle_body: ["p"]
   copy_response_body: ["y"]
   copy_response: ["Y"]
@@ -382,7 +385,7 @@ the request in Suite, and the request and response in Producer. Bodies over
 
 The built-in theme presets are `gruvbox` (default), `catppuccin-mocha`, `tokyo-night`, `dracula`, `nord`, and `monokai`. Every theme color remains an optional hexadecimal RGB override applied on top of the selected preset. Choose **Choose theme** from the command palette to switch the current session immediately. Press `Ctrl+r` or choose **Reload configuration** to apply language, translations, keybindings, and theme changes from configuration without restarting lazyrest. Invalid configuration leaves the current settings active and displays an error in the footer.
 
-Supported named keys are `enter`, `esc`, `backspace`, `tab`, arrow keys, `home`, `end`, `pgup`, `pgdn`, `f1` through `f12`, and `ctrl+a` through `ctrl+z`. Single non-whitespace printable characters are case-sensitive.
+Supported named keys are `enter`, `esc`, `backspace`, `tab`, arrow keys, `home`, `end`, `pgup`, `pgdn`, `f1` through `f12`, and `ctrl+a` through `ctrl+z`. Single non-whitespace printable characters are case-sensitive. The `center_view` action also accepts a printable key sequence such as `zz`.
 
 Configuration CLI commands:
 
@@ -419,6 +422,8 @@ the response pane, and report when the exported body was truncated.
 ## Navigation
 
 - `j` / `k` or arrows: move and scroll.
+- `Ctrl+d` / `Ctrl+u`: move or scroll down/up by half a page.
+- `zz`: center the current item or scroll anchor in the focused area.
 - `Enter` / `l`: select a file/request; `Enter` executes it from the Suite pane.
 - `Esc`: go back; in the response pane it also cancels the active run.
 - `Ctrl+h/j/k/l`: move between areas according to the following map:
