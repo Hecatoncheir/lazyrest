@@ -424,6 +424,28 @@ The latest 50 request results are stored in `~/.config/lazyrest/history.json` an
 - `Ctrl+r`: reload `~/.config/lazyrest/config.yml` without restarting.
 - `q` or `Ctrl+C`: quit.
 
+## TODO
+
+Known gaps, roughly in the order they matter:
+
+- **Response references are matched by name alone.** Two files that each name a
+  request `login` share one entry, so a reference can pick up the answer of a
+  request from another file. References should be scoped to the file they are
+  written in.
+- **Search in the response pane stops at the first match.** `n` / `N` step
+  through matches in Files only, so a long response cannot be walked through.
+- **History is one file for all projects.** Requests from unrelated directories
+  interleave under `[` / `]`; entries should be kept per project root.
+- **A response cannot be saved or copied.** Reading it in the pane is the only
+  way to get at it.
+- **What the session captured is invisible.** There is no way to see which named
+  requests have answered, or to clear them without restarting.
+- **`.env` files are not read.** Variables come from `http-client.env.json` and
+  its private counterpart only.
+- **`.gitignore` is not honoured.** Skipped directories come from the built-in
+  list and the `ignore` key instead; a faithful implementation means globs,
+  negation, and nested files.
+
 ## Development
 
 ```sh
