@@ -41,6 +41,7 @@ const (
 	OverlayNone Overlay = iota
 	OverlayDiagnostics
 	OverlayHelp
+	OverlayCaptured
 	OverlayCommandPalette
 	OverlayThemePicker
 	OverlaySaveResponse

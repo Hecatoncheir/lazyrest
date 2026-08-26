@@ -369,6 +369,7 @@ keybindings:
   copy_response: ["Y"]
   save_response: ["s"]
   save_full_response: ["S"]
+  clear_captured_responses: ["c"]
   history_previous: ["["]
   history_next: ["]"]
   command_palette: [":", "ctrl+p"]
@@ -407,7 +408,25 @@ lazyrest --config ./custom.yml --generate-config
 
 ## Persistent history
 
-The latest 50 request results are stored in `~/.config/lazyrest/history.json` and restored on the next launch. Bodies are limited to 64 KiB per entry in the file, while the response pane keeps the full body of the current session. Writing happens in the background, so a large response does not stall the interface. Known secret values and sensitive headers such as `Authorization`, cookies, and API keys are redacted before writing. The directory uses permissions `0700`, the history file uses `0600`, and updates are atomic. Delete the file to clear persistent history.
+The latest 50 request results are stored separately for every project under
+`~/.config/lazyrest/history/<project-id>.json` and restored only when that same
+canonical project root is opened again. The previous shared `history.json` is
+left untouched rather than importing its mixed entries into one project.
+Bodies are limited to 64 KiB per entry in the file, while the response pane
+keeps the full body of the current session. Writing happens in the background,
+so a large response does not stall the interface. Known secret values and
+sensitive headers such as `Authorization`, cookies, and API keys are redacted
+before writing. The directory uses permissions `0700`, history files use `0600`,
+and updates are atomic. Delete a project's file to clear its persistent history.
+
+## Captured responses
+
+Named request responses kept for `{{name.response.*}}` references can be inspected
+through **Captured responses** in the command palette. The window lists the source
+file, request name, status, header count, and body size without exposing captured
+body or header values. Press `c` in the window to clear the current session's
+captured responses; subsequent references remain unresolved until those named
+requests are run again.
 
 ## Exporting responses
 
@@ -469,10 +488,10 @@ Current roadmap, roughly in the order the remaining gaps matter:
   through matches and the Producer title shows the current position.
 - [x] **Use consistent Vim viewport commands.** `gg`, `G`, `Ctrl+f`, `Ctrl+b`,
   `zt`, `zz`, and `zb` now work across selectable and scrollable areas.
-- [ ] **History is one file for all projects.** Requests from unrelated directories
-  interleave under `[` / `]`; entries should be kept per project root.
-- [ ] **What the session captured is invisible.** There is no way to see which named
-  requests have answered, or to clear them without restarting.
+- [x] **Keep history per project.** Entries are stored under a stable project ID
+  and only restored for the same canonical root.
+- [x] **Show what the session captured.** The command palette opens a safe summary
+  of named responses, which can be cleared without restarting.
 - [ ] **`.env` files are not read.** Variables come from `http-client.env.json` and
   its private counterpart only.
 - [ ] **`.gitignore` is not honoured.** Skipped directories come from the built-in

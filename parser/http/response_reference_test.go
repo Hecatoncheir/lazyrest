@@ -9,8 +9,8 @@ import (
 	"testing"
 )
 
-func loginStore() ResponseStore {
-	store := ResponseStore{}
+func loginStore() *ResponseStore {
+	store := &ResponseStore{}
 	store.Record(HttpSuite{Name: "login"}, ResponseValue{
 		Body: `{"token": "abc123", "user": {"id": 42, "roles": ["admin", "dev"]}, "ok": true}`,
 		Header: nethttp.Header{
@@ -112,7 +112,7 @@ func TestResolveResponseReferences_ReportsABodyThatIsNotJSON(t *testing.T) {
 	store.Record(HttpSuite{Name: "login"}, ResponseValue{Body: "plain text", Header: nethttp.Header{}})
 	suite := HttpSuite{Uri: "{{login.response.body.$.token}}", Header: nethttp.Header{}}
 
-	unresolved := ResolveResponseReferences(&suite, store)
+	unresolved := ResolveResponseReferences(&suite, &store)
 	if len(unresolved) != 1 || !strings.Contains(unresolved[0], "not JSON") {
 		t.Fatalf("unexpected failures: %v", unresolved)
 	}
@@ -134,7 +134,7 @@ func TestResolveResponseReferences_ScopesRequestNamesToTheirSourceFile(t *testin
 		Uri:            "https://example.test/{{login.response.body.$.token}}",
 		Header:         nethttp.Header{},
 	}
-	if unresolved := ResolveResponseReferences(&first, store); len(unresolved) != 0 {
+	if unresolved := ResolveResponseReferences(&first, &store); len(unresolved) != 0 {
 		t.Fatalf("first file did not find its response: %v", unresolved)
 	}
 	if first.Uri != "https://example.test/first-token" {
@@ -146,7 +146,7 @@ func TestResolveResponseReferences_ScopesRequestNamesToTheirSourceFile(t *testin
 		Uri:            "https://example.test/{{login.response.body.$.token}}",
 		Header:         nethttp.Header{},
 	}
-	if unresolved := ResolveResponseReferences(&second, store); len(unresolved) != 0 {
+	if unresolved := ResolveResponseReferences(&second, &store); len(unresolved) != 0 {
 		t.Fatalf("second file did not find its response: %v", unresolved)
 	}
 	if second.Uri != "https://example.test/second-token" {
@@ -158,7 +158,7 @@ func TestResolveResponseReferences_ScopesRequestNamesToTheirSourceFile(t *testin
 		Uri:            "https://example.test/{{login.response.body.$.token}}",
 		Header:         nethttp.Header{},
 	}
-	unresolved := ResolveResponseReferences(&third, store)
+	unresolved := ResolveResponseReferences(&third, &store)
 	if len(unresolved) != 1 || !strings.Contains(unresolved[0], `"login" has not been run yet`) {
 		t.Fatalf("third file reused another file's response: %v", unresolved)
 	}

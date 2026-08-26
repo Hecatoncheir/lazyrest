@@ -99,7 +99,7 @@ func run(arguments []string, output io.Writer) error {
 		_, err = output.Write(contents)
 		return err
 	}
-	historyPath, err := appconfig.HistoryPath()
+	historyPath, err := appconfig.ProjectHistoryPath(rootDirectoryPath)
 	if err != nil {
 		return err
 	}

@@ -5,8 +5,10 @@ import (
 	"fmt"
 	nethttp "net/http"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
+	"sync"
 )
 
 // responseReferencePattern matches a reference to what an earlier request
@@ -23,6 +25,7 @@ var pathSegmentPattern = regexp.MustCompile(`\[(\d+)\]`)
 type ResponseValue struct {
 	Body   string
 	Header nethttp.Header
+	Status string
 }
 
 type responseKey struct {
@@ -31,15 +34,77 @@ type responseKey struct {
 }
 
 // ResponseStore holds the last answer of every named request, scoped to the
-// file that declared it.
-type ResponseStore map[responseKey]ResponseValue
+// file that declared it. Its zero value is ready to use.
+type ResponseStore struct {
+	mutex     sync.RWMutex
+	responses map[responseKey]ResponseValue
+}
+
+// CapturedResponse is a safe summary of a named response kept for references.
+// It deliberately exposes sizes and header counts rather than captured values.
+type CapturedResponse struct {
+	SourceFilePath string
+	Name           string
+	Status         string
+	BodyBytes      int
+	HeaderCount    int
+}
 
 // Record keeps a response under the source file and name of its request.
-func (store ResponseStore) Record(suite HttpSuite, response ResponseValue) {
-	store[responseKey{
+func (store *ResponseStore) Record(suite HttpSuite, response ResponseValue) {
+	if store == nil {
+		return
+	}
+	store.mutex.Lock()
+	defer store.mutex.Unlock()
+	if store.responses == nil {
+		store.responses = make(map[responseKey]ResponseValue)
+	}
+	response.Header = response.Header.Clone()
+	store.responses[responseKey{
 		sourceFilePath: suite.SourceFilePath,
 		name:           strings.TrimSpace(suite.Name),
 	}] = response
+}
+
+// Captures returns deterministic summaries without exposing response bodies or
+// header values, which may contain authentication material.
+func (store *ResponseStore) Captures() []CapturedResponse {
+	if store == nil {
+		return nil
+	}
+	store.mutex.RLock()
+	defer store.mutex.RUnlock()
+	captures := make([]CapturedResponse, 0, len(store.responses))
+	for key, response := range store.responses {
+		captures = append(captures, CapturedResponse{
+			SourceFilePath: key.sourceFilePath,
+			Name:           key.name,
+			Status:         response.Status,
+			BodyBytes:      len(response.Body),
+			HeaderCount:    len(response.Header),
+		})
+	}
+	sort.Slice(captures, func(left, right int) bool {
+		if captures[left].SourceFilePath == captures[right].SourceFilePath {
+			return captures[left].Name < captures[right].Name
+		}
+		return captures[left].SourceFilePath < captures[right].SourceFilePath
+	})
+	return captures
+}
+
+// Clear removes the response-reference state for the current session and
+// returns the number of named responses that were removed.
+func (store *ResponseStore) Clear() int {
+	if store == nil {
+		return 0
+	}
+	store.mutex.Lock()
+	defer store.mutex.Unlock()
+	count := len(store.responses)
+	clear(store.responses)
+	return count
 }
 
 // HasResponseReference reports whether text refers to an earlier response.
@@ -50,7 +115,7 @@ func HasResponseReference(text string) bool {
 // ResolveResponseReferences replaces every reference to an earlier response in
 // a suite. It returns the references it could not resolve, which stay in the
 // text so that the request shows what it was waiting for.
-func ResolveResponseReferences(suite *HttpSuite, store ResponseStore) []string {
+func ResolveResponseReferences(suite *HttpSuite, store *ResponseStore) []string {
 	unresolved := map[string]struct{}{}
 	resolve := func(text string) string {
 		return responseReferencePattern.ReplaceAllStringFunc(text, func(match string) string {
@@ -82,9 +147,14 @@ func ResolveResponseReferences(suite *HttpSuite, store ResponseStore) []string {
 	return result
 }
 
-func lookupResponseValue(store ResponseStore, sourceFilePath, name, kind, path string) (string, error) {
+func lookupResponseValue(store *ResponseStore, sourceFilePath, name, kind, path string) (string, error) {
+	if store == nil {
+		return "", fmt.Errorf("response store is unavailable")
+	}
 	trimmedName := strings.TrimSpace(name)
-	response, recorded := store[responseKey{sourceFilePath: sourceFilePath, name: trimmedName}]
+	store.mutex.RLock()
+	response, recorded := store.responses[responseKey{sourceFilePath: sourceFilePath, name: trimmedName}]
+	store.mutex.RUnlock()
 	if !recorded {
 		return "", fmt.Errorf("%q has not been run yet", trimmedName)
 	}

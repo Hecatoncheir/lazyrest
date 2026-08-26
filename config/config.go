@@ -2,6 +2,7 @@ package config
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"errors"
 	"fmt"
 	"io"
@@ -40,12 +41,34 @@ func DefaultPath() (string, error) {
 	return filepath.Join(homeDirectory, ".config", "lazyrest", "config.yml"), nil
 }
 
+// HistoryPath returns the legacy shared history file. New sessions use
+// ProjectHistoryPath; this remains available for callers that need to locate or
+// remove data written before histories were isolated.
 func HistoryPath() (string, error) {
 	configPath, err := DefaultPath()
 	if err != nil {
 		return "", err
 	}
 	return filepath.Join(filepath.Dir(configPath), "history.json"), nil
+}
+
+// ProjectHistoryPath returns the private history file for a canonical project
+// root. The path itself contains only a stable hash of that root.
+func ProjectHistoryPath(rootDirectory string) (string, error) {
+	configPath, err := DefaultPath()
+	if err != nil {
+		return "", err
+	}
+	absoluteRoot, err := filepath.Abs(rootDirectory)
+	if err != nil {
+		return "", fmt.Errorf("resolve project root for history: %w", err)
+	}
+	canonicalRoot := filepath.Clean(absoluteRoot)
+	if evaluated, evaluateErr := filepath.EvalSymlinks(canonicalRoot); evaluateErr == nil {
+		canonicalRoot = evaluated
+	}
+	projectID := sha256.Sum256([]byte(canonicalRoot))
+	return filepath.Join(filepath.Dir(configPath), "history", fmt.Sprintf("%x.json", projectID)), nil
 }
 
 func ProjectPath(rootDirectory string) string {

@@ -141,6 +141,19 @@ func TestDefaultResponseExportBindings(t *testing.T) {
 	}
 }
 
+func TestDefaultCapturedResponsesBinding(t *testing.T) {
+	bindings := Default()
+	if !bindings.Matches(ClearCaptured, tcell.NewEventKey(tcell.KeyRune, 'c', tcell.ModNone)) {
+		t.Fatal("clear captured responses does not match c")
+	}
+}
+
+func TestBindingsRejectCapturedResponsesConflicts(t *testing.T) {
+	if _, err := New(map[string][]string{"clear_captured_responses": {"q"}}); err == nil {
+		t.Fatal("expected clear captured responses to conflict with close overlay")
+	}
+}
+
 func TestDefaultViewportNavigationBindings(t *testing.T) {
 	bindings := Default()
 	for _, test := range []struct {

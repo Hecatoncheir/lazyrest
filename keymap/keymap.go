@@ -45,6 +45,7 @@ const (
 	CopyResponse     Action = "copy_response"
 	SaveResponse     Action = "save_response"
 	SaveFullResponse Action = "save_full_response"
+	ClearCaptured    Action = "clear_captured_responses"
 	HistoryPrevious  Action = "history_previous"
 	HistoryNext      Action = "history_next"
 	CommandPalette   Action = "command_palette"
@@ -83,6 +84,7 @@ var defaults = map[Action][]string{
 	CopyResponse:     {"Y"},
 	SaveResponse:     {"s"},
 	SaveFullResponse: {"S"},
+	ClearCaptured:    {"c"},
 	HistoryPrevious:  {"["},
 	HistoryNext:      {"]"},
 	CommandPalette:   {":", "ctrl+p"},
@@ -226,6 +228,11 @@ func (bindings *Bindings) validateConflicts() error {
 		GoToTop, GoToBottom, AlignTop, CenterView, AlignBottom,
 		CommandPalette, ReloadConfig,
 	}
+	overlay := []Action{
+		Quit, Back, CommandPalette, ReloadConfig, Help, Diagnostics, MoveDown, MoveUp,
+		HalfPageDown, HalfPageUp, PageDown, PageUp,
+		GoToTop, GoToBottom, AlignTop, CenterView, AlignBottom,
+	}
 	contexts := []struct {
 		name    string
 		actions []Action
@@ -235,11 +242,8 @@ func (bindings *Bindings) validateConflicts() error {
 		{"suite", append(append([]Action{}, global...), Run, Back)},
 		{"producer", append(append([]Action{}, global...), Back, Search, SearchNext, SearchPrevious, HistoryPrevious, HistoryNext, ToggleBody, CopyResponseBody, CopyResponse, SaveResponse, SaveFullResponse)},
 		{"search", []Action{SearchFinish}},
-		{"overlay", []Action{
-			Quit, Back, CommandPalette, ReloadConfig, Help, Diagnostics, MoveDown, MoveUp,
-			HalfPageDown, HalfPageUp, PageDown, PageUp,
-			GoToTop, GoToBottom, AlignTop, CenterView, AlignBottom,
-		}},
+		{"overlay", overlay},
+		{"captured responses", append(append([]Action{}, overlay...), ClearCaptured)},
 	}
 	for _, context := range contexts {
 		used := map[string]struct {

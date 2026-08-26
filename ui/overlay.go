@@ -14,6 +14,7 @@ import (
 const (
 	diagnosticsPage    = "diagnostics"
 	helpPage           = "help"
+	capturedPage       = "captured-responses"
 	commandPalettePage = "command-palette"
 	themePickerPage    = "theme-picker"
 	saveResponsePage   = "save-response"
@@ -24,12 +25,14 @@ func (application *Application) buildOverlays() {
 	application.Diagnostics = application.newOverlayView(translator.Text("diagnostics") + " — d/Esc " + translator.Text("close"))
 	application.Help = application.newOverlayView(translator.Text("help") + " — ?/Esc " + translator.Text("close"))
 	application.Help.SetText(helpText(application.config.Keybindings, translator))
+	application.buildCapturedResponsesOverlay()
 	application.buildCommandPalette()
 	application.buildSaveResponseInput()
 
 	application.Pages.
 		AddPage(diagnosticsPage, centered(application.Diagnostics, 84, 24), true, false).
-		AddPage(helpPage, centered(application.Help, 72, 25), true, false)
+		AddPage(helpPage, centered(application.Help, 72, 25), true, false).
+		AddPage(capturedPage, centered(application.Captured, 84, 24), true, false)
 	application.Pages.AddPage(commandPalettePage, centered(application.CommandPalette, 58, 14), true, false)
 	application.Pages.AddPage(themePickerPage, centered(application.ThemePicker, 58, 14), true, false)
 	application.Pages.AddPage(saveResponsePage, centered(application.SaveResponse, 92, 3), true, false)
@@ -68,6 +71,7 @@ func (application *Application) openOverlay(overlay Overlay) {
 	}
 	application.Pages.HidePage(diagnosticsPage)
 	application.Pages.HidePage(helpPage)
+	application.Pages.HidePage(capturedPage)
 	application.Pages.HidePage(commandPalettePage)
 	application.Pages.HidePage(themePickerPage)
 	application.Pages.HidePage(saveResponsePage)
@@ -82,6 +86,10 @@ func (application *Application) openOverlay(overlay Overlay) {
 	case OverlayHelp:
 		page = helpPage
 		focus = application.Help
+	case OverlayCaptured:
+		application.refreshCapturedResponses()
+		page = capturedPage
+		focus = application.Captured
 	case OverlayCommandPalette:
 		page = commandPalettePage
 		focus = application.CommandPalette
@@ -107,6 +115,7 @@ func (application *Application) closeOverlay() {
 	wasSaveResponse := application.Model.CurrentOverlay() == OverlaySaveResponse
 	application.Pages.HidePage(diagnosticsPage)
 	application.Pages.HidePage(helpPage)
+	application.Pages.HidePage(capturedPage)
 	application.Pages.HidePage(commandPalettePage)
 	application.Pages.HidePage(themePickerPage)
 	application.Pages.HidePage(saveResponsePage)

@@ -35,6 +35,7 @@ type Application struct {
 	Footer         *footer.Footer
 	Diagnostics    *tview.TextView
 	Help           *tview.TextView
+	Captured       *tview.TextView
 	CommandPalette *tview.List
 	ThemePicker    *tview.List
 	SaveResponse   *tview.InputField

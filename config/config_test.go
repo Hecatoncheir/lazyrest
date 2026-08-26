@@ -3,6 +3,7 @@ package config
 import (
 	"os"
 	"path/filepath"
+	"regexp"
 	"slices"
 	"strings"
 	"testing"
@@ -11,6 +12,62 @@ import (
 	"github.com/Hecatoncheir/lazyrest/ui/theme"
 	"github.com/gdamore/tcell/v2"
 )
+
+func TestProjectHistoryPathIsStableAndScopedByProject(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	firstRoot := t.TempDir()
+	secondRoot := t.TempDir()
+
+	first, err := ProjectHistoryPath(firstRoot)
+	if err != nil {
+		t.Fatal(err)
+	}
+	firstAgain, err := ProjectHistoryPath(filepath.Join(firstRoot, "."))
+	if err != nil {
+		t.Fatal(err)
+	}
+	second, err := ProjectHistoryPath(secondRoot)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if first != firstAgain {
+		t.Fatalf("equivalent project roots produced different history paths: %q and %q", first, firstAgain)
+	}
+	link := filepath.Join(t.TempDir(), "project-link")
+	if err := os.Symlink(firstRoot, link); err == nil {
+		throughLink, linkErr := ProjectHistoryPath(link)
+		if linkErr != nil {
+			t.Fatal(linkErr)
+		}
+		if throughLink != first {
+			t.Fatalf("symlinked project root produced different history path: %q and %q", first, throughLink)
+		}
+	}
+	if first == second {
+		t.Fatalf("different projects share history path %q", first)
+	}
+	wantDirectory := filepath.Join(home, ".config", "lazyrest", "history")
+	if filepath.Dir(first) != wantDirectory {
+		t.Fatalf("history directory %q, want %q", filepath.Dir(first), wantDirectory)
+	}
+	if !regexp.MustCompile(`^[0-9a-f]{64}\.json$`).MatchString(filepath.Base(first)) {
+		t.Fatalf("history file does not use a stable project id: %q", first)
+	}
+}
+
+func TestHistoryPathStillLocatesLegacySharedHistory(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	path, err := HistoryPath()
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := filepath.Join(home, ".config", "lazyrest", "history.json")
+	if path != want {
+		t.Fatalf("legacy history path %q, want %q", path, want)
+	}
+}
 
 func TestLoadCombinedConfiguration(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "config.yml")

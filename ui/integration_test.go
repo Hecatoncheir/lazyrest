@@ -320,6 +320,64 @@ func TestTUIProducerCopiesAndSavesTheCurrentResponse(t *testing.T) {
 	})
 }
 
+func TestTUICapturedResponsesWindowShowsSafeSummariesAndClearsSession(t *testing.T) {
+	root := t.TempDir()
+	secret := "session-secret-value"
+	client := &http.Client{Transport: uiRoundTripFunc(func(*http.Request) (*http.Response, error) {
+		return &http.Response{
+			StatusCode: http.StatusOK,
+			Status:     "200 OK",
+			Header: http.Header{
+				"Content-Type":  []string{"application/json"},
+				"Authorization": []string{"Bearer " + secret},
+			},
+			Body:          io.NopCloser(strings.NewReader(`{"token":"` + secret + `"}`)),
+			ContentLength: -1,
+			Proto:         "HTTP/1.1",
+		}, nil
+	})}
+	application := BuildApplication(root, Config{Runner: runner.Config{Client: client, Timeout: 10 * time.Second}})
+	screen, _ := runTestApplication(t, application)
+	application.Element.QueueUpdateDraw(func() {
+		onSuiteRun(application)(parserhttp.HttpSuite{
+			Name:           "login",
+			Method:         http.MethodPost,
+			Uri:            "https://example.test/login",
+			Header:         http.Header{},
+			SourceFilePath: filepath.Join(root, "auth.http"),
+			SecretValues:   []string{secret},
+		})
+	})
+	waitFor(t, "named response capture", func() bool {
+		return len(application.Producer.CapturedResponses()) == 1
+	})
+
+	application.Element.QueueUpdateDraw(func() { application.openOverlay(OverlayCaptured) })
+	waitFor(t, "captured responses overlay", func() bool {
+		return application.Model.CurrentOverlay() == OverlayCaptured
+	})
+	var capturedText string
+	application.Element.QueueUpdate(func() { capturedText = application.Captured.GetText(false) })
+	for _, expected := range []string{"auth.http", "login", "200 OK", "2 headers"} {
+		if !strings.Contains(capturedText, expected) {
+			t.Errorf("captured responses %q do not contain %q", capturedText, expected)
+		}
+	}
+	if strings.Contains(capturedText, secret) {
+		t.Fatalf("captured responses exposed a secret: %q", capturedText)
+	}
+
+	screen.InjectKey(tcell.KeyRune, 'c', tcell.ModNone)
+	waitFor(t, "captured responses clear", func() bool {
+		return len(application.Producer.CapturedResponses()) == 0
+	})
+	waitFor(t, "empty captured responses window", func() bool {
+		var text string
+		application.Element.QueueUpdate(func() { text = application.Captured.GetText(false) })
+		return strings.Contains(text, application.config.Locale.Text("no_captured_responses"))
+	})
+}
+
 func setInputText(t *testing.T, application *Application, input *tview.InputField, text string) {
 	t.Helper()
 	done := make(chan struct{})

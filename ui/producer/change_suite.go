@@ -78,7 +78,7 @@ func (widget *Producer) ChangeSuite(suite http.HttpSuite) {
 
 	// What an earlier request answered is filled in now rather than while the
 	// file is read, because it depends on what has been run.
-	if unresolved := http.ResolveResponseReferences(&suite, widget.responses); len(unresolved) > 0 {
+	if unresolved := http.ResolveResponseReferences(&suite, &widget.responses); len(unresolved) > 0 {
 		widget.suite = suite
 		widget.CancelActive()
 		// The run has to be reported as finished even though nothing was sent,
@@ -161,10 +161,11 @@ func (widget *Producer) recordResponse(suite http.HttpSuite, response runner.Res
 	if err != nil || suite.Name == "" {
 		return
 	}
-	if widget.responses == nil {
-		widget.responses = http.ResponseStore{}
-	}
-	widget.responses.Record(suite, http.ResponseValue{Body: response.Body, Header: response.Header})
+	widget.responses.Record(suite, http.ResponseValue{
+		Body:   response.Body,
+		Header: response.Header,
+		Status: redactSecrets(response.Code, suite.SecretValues),
+	})
 }
 
 func (widget *Producer) renderUnresolved(unresolved []string) string {

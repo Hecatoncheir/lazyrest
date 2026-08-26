@@ -7,6 +7,8 @@ All notable changes to this project will be documented in this file.
 - Producer can save the complete plain-text response with `S`, matching what `Y` copies and respecting the active Pretty/Raw body mode.
 - Producer response search supports cyclic `n` / `N` navigation and shows the current/total match count.
 - Vim-style viewport navigation across all selectable and scrollable areas: `Ctrl+d` / `Ctrl+u` move by half a page, `Ctrl+f` / `Ctrl+b` by a full page, `gg` / `G` jump to the boundaries, and `zt` / `zz` / `zb` align the current item or scroll anchor.
+- Persistent response history is isolated by canonical project root instead of mixing every project in one file.
+- The command palette can open a captured-responses window that shows safe named-response summaries and clears session captures with `c`.
 
 ### Fixed
 - `q` closes the active help, diagnostics, palette, theme, or save window instead of quitting lazyrest; from the main interface it still quits, while `Ctrl+C` remains an unconditional exit.

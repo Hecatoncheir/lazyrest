@@ -38,6 +38,9 @@ func (application *Application) buildCommandPalette() {
 	palette.AddItem(translator.Text("save_full_response"), "", 0, func() {
 		application.openSaveResponse(true)
 	})
+	palette.AddItem(translator.Text("captured_responses"), "", 0, func() {
+		application.openOverlay(OverlayCaptured)
+	})
 	palette.AddItem(translator.Text("diagnostics"), "", 0, func() {
 		application.openOverlay(OverlayDiagnostics)
 	})
@@ -96,7 +99,7 @@ func (application *Application) selectThemePreset(name string) {
 }
 
 func (application *Application) applyOverlayTheme() {
-	for _, view := range []*tview.TextView{application.Diagnostics, application.Help} {
+	for _, view := range []*tview.TextView{application.Diagnostics, application.Help, application.Captured} {
 		if view == nil {
 			continue
 		}
