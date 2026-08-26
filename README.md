@@ -149,6 +149,10 @@ When the directory is omitted, the current working directory is used.
 -env-file string          public environment file (default "http-client.env.json")
 -private-env-file string  private environment file (default "http-client.private.env.json")
 -version                  print the version and exit
+-max-redirects int        maximum redirects a request follows (default 10)
+-follow-redirects         follow redirects instead of returning them (default true)
+-insecure                 accept any server certificate
+-cookies                  carry cookies from one request to the next (default true)
 ```
 
 Example `.http` file:
@@ -173,6 +177,13 @@ Content-Type: application/json
 ```
 
 Sensitive headers such as `Authorization`, cookies, API keys, tokens, and secrets are redacted from the response pane.
+
+Cookies a server sets are carried into the requests that follow, so a login
+request holds a session for the rest of the run. The jar lives in memory only
+and is dropped when lazyrest exits; `-cookies=false` turns it off. Redirects are
+followed up to `-max-redirects`, and `-follow-redirects=false` returns the
+redirect itself so that its `Location` can be read. `-insecure` accepts any
+certificate, for a host serving a self-signed one.
 
 ### GraphQL
 

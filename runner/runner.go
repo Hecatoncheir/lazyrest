@@ -3,6 +3,7 @@ package runner
 import (
 	"bytes"
 	"context"
+	"crypto/tls"
 	"errors"
 	"fmt"
 	parser "github.com/Hecatoncheir/lazyrest/parser/http"
@@ -20,6 +21,7 @@ type ProgressCallback func(current, total int64)
 const (
 	DefaultTimeout          = 30 * time.Second
 	DefaultMaxResponseBytes = int64(10 << 20)
+	DefaultMaxRedirects     = 10
 	maxStderrBytes          = int64(1 << 20)
 )
 
@@ -28,6 +30,52 @@ type Config struct {
 	Timeout          time.Duration
 	MaxResponseBytes int64
 	HurlExecutable   string
+
+	// Jar carries cookies from one request to the next. Without it a response
+	// that sets a cookie has no effect on what follows, so a session cannot be
+	// held across requests.
+	Jar http.CookieJar
+	// MaxRedirects bounds how many redirects a request follows. Zero selects
+	// DefaultMaxRedirects.
+	MaxRedirects int
+	// DisableRedirects hands back the redirect itself instead of following it,
+	// which is how you inspect a Location header.
+	DisableRedirects bool
+	// InsecureSkipVerify accepts any certificate a server presents, for a host
+	// that serves a self-signed one.
+	InsecureSkipVerify bool
+}
+
+// NewClient builds the client the configuration describes. Building it once and
+// passing it back as Config.Client keeps connections and cookies alive across
+// requests.
+func NewClient(config Config) *http.Client {
+	client := &http.Client{Jar: config.Jar}
+
+	if config.InsecureSkipVerify {
+		transport := http.DefaultTransport.(*http.Transport).Clone()
+		transport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+		client.Transport = transport
+	}
+
+	if config.DisableRedirects {
+		client.CheckRedirect = func(*http.Request, []*http.Request) error {
+			return http.ErrUseLastResponse
+		}
+		return client
+	}
+
+	maxRedirects := config.MaxRedirects
+	if maxRedirects <= 0 {
+		maxRedirects = DefaultMaxRedirects
+	}
+	client.CheckRedirect = func(_ *http.Request, via []*http.Request) error {
+		if len(via) >= maxRedirects {
+			return fmt.Errorf("stopped after %d redirects", maxRedirects)
+		}
+		return nil
+	}
+	return client
 }
 
 type progressReader struct {
@@ -90,7 +138,7 @@ func NewFromSuite(suite parser.HttpSuite) Runner {
 func NewFromSuiteWithConfig(suite parser.HttpSuite, config Config) Runner {
 	client := config.Client
 	if client == nil {
-		client = &http.Client{}
+		client = NewClient(config)
 	}
 	timeout := config.Timeout
 	if timeout <= 0 {

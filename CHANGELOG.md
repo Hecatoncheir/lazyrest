@@ -5,6 +5,9 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 ### Added
 - A `-version` flag that reports the build. Release archives carry the tag, and `go install` builds report the module version.
+- Cookies set by a response are carried into the requests that follow, so a session survives a whole run. The jar is held in memory only; `-cookies=false` turns it off.
+- `-max-redirects` bounds how many redirects a request follows, and `-follow-redirects=false` returns the redirect itself so that its `Location` can be read.
+- `-insecure` accepts any server certificate, for a host serving a self-signed one.
 
 ### Fixed
 - `lazyrest -h` now prints the usage and exits with `0` instead of reporting `flag: help requested` as a fatal error.

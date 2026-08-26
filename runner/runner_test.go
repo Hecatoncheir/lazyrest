@@ -5,6 +5,8 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"net/http/cookiejar"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -417,5 +419,151 @@ func TestExecuteHurl_PassesVariablesToHurl(t *testing.T) {
 	}
 	if strings.TrimSpace(string(captured)) != "baseUrl=https://api.example.com" {
 		t.Fatalf("variables did not reach Hurl: %q", string(captured))
+	}
+}
+
+func TestNewClientKeepsCookiesAcrossRequests(t *testing.T) {
+	seen := make(chan string, 2)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		seen <- r.Header.Get("Cookie")
+		http.SetCookie(w, &http.Cookie{Name: "session", Value: "abc"})
+		w.Write([]byte("ok"))
+	}))
+	defer server.Close()
+
+	jar, err := cookiejar.New(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	config := Config{Jar: jar}
+	config.Client = NewClient(config)
+
+	suite := parser.HttpSuite{Method: http.MethodGet, Uri: server.URL}
+	for range 2 {
+		runner := NewFromSuiteWithConfig(suite, config)
+		if _, err := runner.Execute(context.Background(), nil); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	if first := <-seen; first != "" {
+		t.Fatalf("the first request already carried a cookie: %q", first)
+	}
+	if second := <-seen; second != "session=abc" {
+		t.Fatalf("the cookie was not carried over: %q", second)
+	}
+}
+
+func TestNewClientWithoutAJarForgetsCookies(t *testing.T) {
+	seen := make(chan string, 2)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		seen <- r.Header.Get("Cookie")
+		http.SetCookie(w, &http.Cookie{Name: "session", Value: "abc"})
+	}))
+	defer server.Close()
+
+	config := Config{}
+	config.Client = NewClient(config)
+	suite := parser.HttpSuite{Method: http.MethodGet, Uri: server.URL}
+	for range 2 {
+		runner := NewFromSuiteWithConfig(suite, config)
+		if _, err := runner.Execute(context.Background(), nil); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	<-seen
+	if second := <-seen; second != "" {
+		t.Fatalf("a cookie was kept without a jar: %q", second)
+	}
+}
+
+func TestNewClientStopsAfterMaxRedirects(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "/next", http.StatusFound)
+	}))
+	defer server.Close()
+
+	config := Config{MaxRedirects: 3}
+	config.Client = NewClient(config)
+	runner := NewFromSuiteWithConfig(parser.HttpSuite{Method: http.MethodGet, Uri: server.URL}, config)
+
+	_, err := runner.Execute(context.Background(), nil)
+	if err == nil {
+		t.Fatal("expected the redirect chain to be stopped")
+	}
+	if !strings.Contains(err.Error(), "stopped after 3 redirects") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestNewClientCanReturnTheRedirectItself(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "https://example.test/moved", http.StatusFound)
+	}))
+	defer server.Close()
+
+	config := Config{DisableRedirects: true}
+	config.Client = NewClient(config)
+	runner := NewFromSuiteWithConfig(parser.HttpSuite{Method: http.MethodGet, Uri: server.URL}, config)
+
+	response, err := runner.Execute(context.Background(), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if response.StatusCode != http.StatusFound {
+		t.Fatalf("the redirect was followed: %+v", response.Code)
+	}
+	if location := response.Header.Get("Location"); location != "https://example.test/moved" {
+		t.Fatalf("the Location header is missing: %q", location)
+	}
+}
+
+func TestNewClientFollowsRedirectsByDefault(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/moved" {
+			w.Write([]byte("arrived"))
+			return
+		}
+		http.Redirect(w, r, "/moved", http.StatusFound)
+	}))
+	defer server.Close()
+
+	config := Config{}
+	config.Client = NewClient(config)
+	runner := NewFromSuiteWithConfig(parser.HttpSuite{Method: http.MethodGet, Uri: server.URL}, config)
+
+	response, err := runner.Execute(context.Background(), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if response.Body != "arrived" {
+		t.Fatalf("the redirect was not followed: %+v", response)
+	}
+}
+
+func TestNewClientCanAcceptASelfSignedCertificate(t *testing.T) {
+	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Write([]byte("secure"))
+	}))
+	defer server.Close()
+	suite := parser.HttpSuite{Method: http.MethodGet, Uri: server.URL}
+
+	verifying := Config{}
+	verifying.Client = NewClient(verifying)
+	strict := NewFromSuiteWithConfig(suite, verifying)
+	if _, err := strict.Execute(context.Background(), nil); err == nil {
+		t.Fatal("a self-signed certificate was accepted by default")
+	}
+
+	accepting := Config{InsecureSkipVerify: true}
+	accepting.Client = NewClient(accepting)
+	relaxed := NewFromSuiteWithConfig(suite, accepting)
+	response, err := relaxed.Execute(context.Background(), nil)
+	if err != nil {
+		t.Fatalf("the certificate was not accepted: %v", err)
+	}
+	if response.Body != "secure" {
+		t.Fatalf("unexpected response: %+v", response)
 	}
 }

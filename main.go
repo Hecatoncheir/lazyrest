@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"net/http/cookiejar"
 	"os"
 	"runtime/debug"
 
@@ -31,6 +32,10 @@ func run(arguments []string, output io.Writer) error {
 	timeout := flags.Duration("timeout", runner.DefaultTimeout, "request and Hurl execution timeout")
 	maxResponseBytes := flags.Int64("max-response-bytes", runner.DefaultMaxResponseBytes, "maximum response bytes kept in memory")
 	hurlExecutable := flags.String("hurl", "hurl", "path or name of the Hurl executable")
+	maxRedirects := flags.Int("max-redirects", runner.DefaultMaxRedirects, "maximum redirects a request follows")
+	followRedirects := flags.Bool("follow-redirects", true, "follow redirects instead of returning them")
+	insecure := flags.Bool("insecure", false, "accept any server certificate")
+	keepCookies := flags.Bool("cookies", true, "carry cookies from one request to the next")
 	environmentName := flags.String("env", "", "environment profile from the HTTP client environment files")
 	environmentFile := flags.String("env-file", environment.DefaultPublicFile, "public HTTP client environment file")
 	privateEnvironmentFile := flags.String("private-env-file", environment.DefaultPrivateFile, "private HTTP client environment file")
@@ -99,6 +104,25 @@ func run(arguments []string, output io.Writer) error {
 		return err
 	}
 
+	runnerConfig := runner.Config{
+		Timeout:            *timeout,
+		MaxResponseBytes:   *maxResponseBytes,
+		HurlExecutable:     *hurlExecutable,
+		MaxRedirects:       *maxRedirects,
+		DisableRedirects:   !*followRedirects,
+		InsecureSkipVerify: *insecure,
+	}
+	if *keepCookies {
+		jar, err := cookiejar.New(nil)
+		if err != nil {
+			return fmt.Errorf("create the cookie jar: %w", err)
+		}
+		runnerConfig.Jar = jar
+	}
+	// One client for the whole session, so that connections and cookies are
+	// held across requests.
+	runnerConfig.Client = runner.NewClient(runnerConfig)
+
 	return ui.Run(rootDirectoryPath, ui.Config{
 		Keybindings: settings.Keybindings,
 		Locale:      settings.Locale,
@@ -106,11 +130,7 @@ func run(arguments []string, output io.Writer) error {
 		ConfigPath:  userConfigPath,
 		ConfigPaths: configPaths,
 		HistoryPath: historyPath,
-		Runner: runner.Config{
-			Timeout:          *timeout,
-			MaxResponseBytes: *maxResponseBytes,
-			HurlExecutable:   *hurlExecutable,
-		},
+		Runner:      runnerConfig,
 		Environment: environment.Config{
 			Name:        *environmentName,
 			PublicFile:  *environmentFile,
