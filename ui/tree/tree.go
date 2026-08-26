@@ -21,6 +21,7 @@ type Tree struct {
 	searchIndex          int
 	rootDirectoryPath    string
 	filesExtension       []string
+	ignore               []string
 	theme                theme.TreeTheme
 	onReloadCallback     func()
 	loading              bool
@@ -69,6 +70,7 @@ func (widget *Tree) Build(parameters Parameters) tview.Primitive {
 	widget.onReloadCallback = parameters.OnReloadCallback
 	widget.rootDirectoryPath = parameters.RootDirectoryPath
 	widget.filesExtension = append([]string(nil), parameters.FilesExtension...)
+	widget.ignore = append([]string(nil), parameters.Ignore...)
 	widget.keybindings = parameters.Keybindings
 	widget.locale = parameters.Locale
 
@@ -153,7 +155,10 @@ func (widget *Tree) CancelReload() {
 }
 
 func (widget *Tree) Scan(ctx context.Context) ScanResult {
-	directory, err := finder.FindFilesInDirectoryContext(ctx, widget.rootDirectoryPath, widget.filesExtension)
+	directory, err := finder.Find(ctx, widget.rootDirectoryPath, finder.Options{
+		Extensions: widget.filesExtension,
+		Ignore:     widget.ignore,
+	})
 	return ScanResult{Directory: directory, Err: err}
 }
 

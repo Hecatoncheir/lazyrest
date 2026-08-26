@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+### Added
+- `ignore` in the configuration names directories the file tree skips, on top of a built-in list that now also covers `.venv`, `.tox`, `target`, `dist`, and `build`. The lists of the configuration layers add up.
+- Symbolic links to directories are followed, each one once, so a tree that links back into itself still terminates. They were skipped entirely before.
+
+### Fixed
+- An unknown key in the configuration is refused instead of being dropped without a word, so a typo such as `keybinding` for `keybindings` no longer looks accepted.
+- The summary of a response is translated. It was built with English baked in, so a Russian or Chinese interface still read "Response code" and "Content length".
+
+### Changed
+- A scan stops at 32 directories deep and says so in the diagnostics window, rather than descending without limit.
+
 ## [v0.13.0] - 2026-08-26
 ### Added
 - A request can use what an earlier one answered: `{{login.response.body.$.token}}` reads a value out of a JSON body, `{{login.response.body}}` takes it whole, and `{{login.response.headers.X-Token}}` takes a response header. The path supports member names and array indices under a `$` root. References are resolved when the request runs, from the last answer of each named request in the session, and nothing is written to disk. A request whose references cannot be resolved is not sent, and the pane says which one was waiting and why.

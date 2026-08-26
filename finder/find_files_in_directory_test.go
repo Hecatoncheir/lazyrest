@@ -5,7 +5,9 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
+	"time"
 )
 
 func TestFindFilesInDirectoryContext_Cancelled(t *testing.T) {
@@ -181,5 +183,107 @@ func TestFindFilesInDirectory_IgnoresHeavyDirectories(t *testing.T) {
 	}
 	if len(directory.Directories) != 0 {
 		t.Fatalf("ignored directory was included: %+v", directory.Directories)
+	}
+}
+
+func TestFindFollowsASymlinkedDirectoryOnce(t *testing.T) {
+	root := t.TempDir()
+	target := filepath.Join(root, "shared")
+	if err := os.MkdirAll(target, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(target, "linked.http"), []byte("GET https://example.test\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	project := filepath.Join(root, "project")
+	if err := os.MkdirAll(project, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(target, filepath.Join(project, "requests")); err != nil {
+		t.Skipf("symlinks are unavailable: %v", err)
+	}
+
+	directory, err := Find(context.Background(), project, Options{Extensions: []string{".http"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(directory.Directories) != 1 || len(directory.Directories[0].Files) != 1 {
+		t.Fatalf("the symlinked directory was not read: %+v", directory)
+	}
+	if directory.Directories[0].Files[0].Name != "linked.http" {
+		t.Fatalf("unexpected file: %+v", directory.Directories[0].Files)
+	}
+}
+
+func TestFindTerminatesOnASymlinkLoop(t *testing.T) {
+	root := t.TempDir()
+	inner := filepath.Join(root, "inner")
+	if err := os.MkdirAll(inner, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(inner, "one.http"), []byte("GET https://example.test\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	// A link pointing back at the root would recurse without end.
+	if err := os.Symlink(root, filepath.Join(inner, "loop")); err != nil {
+		t.Skipf("symlinks are unavailable: %v", err)
+	}
+
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		if _, err := Find(context.Background(), root, Options{Extensions: []string{".http"}}); err != nil {
+			t.Error(err)
+		}
+	}()
+	select {
+	case <-done:
+	case <-time.After(10 * time.Second):
+		t.Fatal("the scan did not terminate on a symlink loop")
+	}
+}
+
+func TestFindHonoursExtraIgnoredDirectories(t *testing.T) {
+	root := t.TempDir()
+	for _, name := range []string{"keep", "skip"} {
+		if err := os.MkdirAll(filepath.Join(root, name), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(root, name, "request.http"), []byte("GET https://example.test\n"), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	directory, err := Find(context.Background(), root, Options{Extensions: []string{".http"}, Ignore: []string{"skip"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(directory.Directories) != 1 || directory.Directories[0].Name != "keep" {
+		t.Fatalf("the ignored directory was read: %+v", directory.Directories)
+	}
+}
+
+func TestFindStopsAtTheDepthLimitAndSaysSo(t *testing.T) {
+	root := t.TempDir()
+	deep := root
+	for range 6 {
+		deep = filepath.Join(deep, "level")
+	}
+	if err := os.MkdirAll(deep, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(deep, "deep.http"), []byte("GET https://example.test\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	directory, err := Find(context.Background(), root, Options{Extensions: []string{".http"}, MaxDepth: 3})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(directory.Warnings) == 0 {
+		t.Fatal("the depth limit was reached without a warning")
+	}
+	if !strings.Contains(directory.Warnings[0], "depth of 3") {
+		t.Fatalf("unexpected warning: %q", directory.Warnings[0])
 	}
 }

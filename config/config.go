@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"slices"
 
 	"github.com/Hecatoncheir/lazyrest/keymap"
 	"github.com/Hecatoncheir/lazyrest/locale"
@@ -16,6 +17,7 @@ import (
 )
 
 type Settings struct {
+	Ignore      []string
 	Keybindings *keymap.Bindings
 	Locale      *locale.Translator
 	Theme       theme.Theme
@@ -24,6 +26,7 @@ type Settings struct {
 
 type Document struct {
 	Language    string                       `yaml:"language"`
+	Ignore      []string                     `yaml:"ignore,omitempty"`
 	Languages   map[string]map[string]string `yaml:"languages,omitempty"`
 	Keybindings map[string][]string          `yaml:"keybindings"`
 	Theme       theme.Config                 `yaml:"theme"`
@@ -87,7 +90,7 @@ func LoadFiles(paths []string) (Settings, error) {
 	if err != nil {
 		return Settings{}, fmt.Errorf("validate configuration: %w", err)
 	}
-	return Settings{Keybindings: bindings, Locale: translator, Theme: uiTheme, Document: document}, nil
+	return Settings{Ignore: document.Ignore, Keybindings: bindings, Locale: translator, Theme: uiTheme, Document: document}, nil
 }
 
 func Marshal(document Document) ([]byte, error) {
@@ -142,6 +145,13 @@ func read(path string) (Document, error) {
 func merge(target *Document, source Document) {
 	if source.Language != "" {
 		target.Language = source.Language
+	}
+	// The lists add up: a project says what else to skip without losing what
+	// the user chose.
+	for _, name := range source.Ignore {
+		if !slices.Contains(target.Ignore, name) {
+			target.Ignore = append(target.Ignore, name)
+		}
 	}
 	if target.Languages == nil {
 		target.Languages = map[string]map[string]string{}

@@ -124,6 +124,7 @@ func run(arguments []string, output io.Writer) error {
 	runnerConfig.Client = runner.NewClient(runnerConfig)
 
 	return ui.Run(rootDirectoryPath, ui.Config{
+		Ignore:      settings.Ignore,
 		Keybindings: settings.Keybindings,
 		Locale:      settings.Locale,
 		Theme:       settings.Theme,

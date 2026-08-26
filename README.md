@@ -298,6 +298,10 @@ Each action accepts one or more keys. Configured keys replace the defaults for t
 ```yaml
 language: zh
 
+ignore:
+  - fixtures
+  - generated
+
 theme:
   preset: catppuccin-mocha
   accent: "#89b4fa"
@@ -352,6 +356,13 @@ keybindings:
   command_palette: [":", "ctrl+p"]
   reload_config: ["ctrl+r"]
 ```
+
+`ignore` names directories the file tree does not descend into, on top of the
+built-in list: `.git`, `.hg`, `.svn`, `.cache`, `.venv`, `.tox`, `node_modules`,
+`vendor`, `target`, `dist`, and `build`. The lists of the configuration layers
+add up, so a project can skip more without losing what you chose. Symbolic links
+to directories are followed once each, and a scan stops at 32 directories deep
+with a warning in the diagnostics window.
 
 The built-in languages are English (`en`), Russian (`ru`), Spanish (`es`), and Simplified Chinese (`zh`). The `languages` section is optional and overrides individual built-in strings. Missing strings fall back to the selected built-in language and then to English. A new language can be added by defining it under `languages` and selecting its code with `language`.
 

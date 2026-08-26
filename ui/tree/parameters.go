@@ -9,6 +9,7 @@ import (
 type Parameters struct {
 	RootDirectoryPath    string
 	FilesExtension       []string
+	Ignore               []string
 	Theme                theme.Theme
 	OnSelectFileCallback OnSelectFileCallbackType
 	OnReloadCallback     func()

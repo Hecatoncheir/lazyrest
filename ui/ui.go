@@ -56,6 +56,7 @@ func BuildApplication(rootDirectoryPath string, config Config) *Application {
 		RootDirectoryPath:    rootDirectoryPath,
 		Theme:                uiTheme,
 		FilesExtension:       httpFilesExtensions,
+		Ignore:               config.Ignore,
 		OnSelectFileCallback: onSelectFileCallback(applicationWidget),
 		OnReloadCallback:     onReloadFiles(applicationWidget),
 		Keybindings:          config.Keybindings,

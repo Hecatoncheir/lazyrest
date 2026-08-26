@@ -3,6 +3,7 @@ package config
 import (
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
@@ -110,5 +111,26 @@ func TestLoadAcceptsAnEmptyFile(t *testing.T) {
 	}
 	if settings.Keybindings == nil {
 		t.Fatal("the defaults were not applied")
+	}
+}
+
+func TestLoadFilesAddsUpIgnoreLists(t *testing.T) {
+	directory := t.TempDir()
+	user := filepath.Join(directory, "user.yml")
+	project := filepath.Join(directory, "project.yml")
+	if err := os.WriteFile(user, []byte("ignore:\n  - fixtures\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	// A project says what else to skip without losing what the user chose.
+	if err := os.WriteFile(project, []byte("ignore:\n  - generated\n  - fixtures\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	settings, err := LoadFiles([]string{user, project})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !slices.Equal(settings.Ignore, []string{"fixtures", "generated"}) {
+		t.Fatalf("unexpected ignore list: %#v", settings.Ignore)
 	}
 }

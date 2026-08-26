@@ -19,5 +19,6 @@ type Config struct {
 	Theme           theme.Theme
 	ConfigPath      string
 	ConfigPaths     []string
+	Ignore          []string
 	HistoryPath     string
 }
