@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [Unreleased]
+## [v0.17.0] - 2026-08-27
 ### Added
 - A project-root `.env` file is loaded automatically as a private base environment, including for Hurl; `-dotenv-file` selects another filename, and JSON profiles plus request-local declarations retain their precedence.
 - The command palette can open a separate project History window that lists safe run metadata newest first, opens an entry in Producer with `Enter` / `l`, and clears memory and persisted entries with `c`.
