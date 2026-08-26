@@ -351,4 +351,11 @@ func TestTUIReportsAReferenceToARequestThatHasNotRun(t *testing.T) {
 	// The message wraps in the pane, so only the part before the wrap is
 	// matched.
 	waitForScreenText(t, application, screen, `"login" has not`)
+
+	// Nothing was sent, but the run still has to settle: a request left in the
+	// running state keeps the footer animating for ever.
+	waitFor(t, "the run to be reported as finished", func() bool {
+		state := application.Model.Snapshot()
+		return state.Request.Phase != PhaseLoading && state.Request.Outcome == OutcomeFailure
+	})
 }

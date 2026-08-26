@@ -2,6 +2,7 @@ package producer
 
 import (
 	"context"
+	"errors"
 	"slices"
 	"strings"
 	"sync"
@@ -77,6 +78,11 @@ func (widget *Producer) ChangeSuite(suite http.HttpSuite) {
 	if unresolved := http.ResolveResponseReferences(&suite, widget.responses); len(unresolved) > 0 {
 		widget.suite = suite
 		widget.CancelActive()
+		// The run has to be reported as finished even though nothing was sent,
+		// or the footer keeps animating a request that will never arrive.
+		if widget.onRunFinished != nil {
+			widget.onRunFinished(runner.Response{}, errors.New(strings.Join(unresolved, "; ")))
+		}
 		widget.showCompletedResult(element, widget.renderUnresolved(unresolved))
 		widget.updateTitle()
 		return

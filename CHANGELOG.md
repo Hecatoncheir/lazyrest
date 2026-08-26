@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+### Fixed
+- A request held back because a response reference could not be resolved now settles as a failed run. It was left in the running state, so the footer animated a request that was never sent.
+
 ## [v0.14.0] - 2026-08-26
 ### Added
 - `ignore` in the configuration names directories the file tree skips, on top of a built-in list that now also covers `.venv`, `.tox`, `target`, `dist`, and `build`. The lists of the configuration layers add up.
