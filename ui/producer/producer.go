@@ -43,6 +43,8 @@ type Producer struct {
 	currentText        string
 	searchMode         bool
 	searchQuery        string
+	searchMatches      []int
+	searchIndex        int
 	runnerConfig       runner.Config
 	bodyViewMode       BodyViewMode
 	keybindings        *keymap.Bindings

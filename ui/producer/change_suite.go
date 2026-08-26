@@ -70,6 +70,8 @@ func (widget *Producer) animateProgress(ctx context.Context, runID uint64, done 
 func (widget *Producer) ChangeSuite(suite http.HttpSuite) {
 	widget.searchMode = false
 	widget.searchQuery = ""
+	widget.searchMatches = nil
+	widget.searchIndex = -1
 	widget.historyVisible = false
 	widget.resultAvailable = false
 	element := widget.Element.(*tview.TextView)

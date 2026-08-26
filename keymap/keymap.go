@@ -33,7 +33,13 @@ const (
 	MoveUp           Action = "move_up"
 	HalfPageDown     Action = "half_page_down"
 	HalfPageUp       Action = "half_page_up"
+	PageDown         Action = "page_down"
+	PageUp           Action = "page_up"
+	GoToTop          Action = "go_to_top"
+	GoToBottom       Action = "go_to_bottom"
+	AlignTop         Action = "align_top"
 	CenterView       Action = "center_view"
+	AlignBottom      Action = "align_bottom"
 	ToggleBody       Action = "toggle_body"
 	CopyResponseBody Action = "copy_response_body"
 	CopyResponse     Action = "copy_response"
@@ -65,7 +71,13 @@ var defaults = map[Action][]string{
 	MoveUp:           {"k"},
 	HalfPageDown:     {"ctrl+d"},
 	HalfPageUp:       {"ctrl+u"},
+	PageDown:         {"ctrl+f"},
+	PageUp:           {"ctrl+b"},
+	GoToTop:          {"gg"},
+	GoToBottom:       {"G"},
+	AlignTop:         {"zt"},
 	CenterView:       {"zz"},
+	AlignBottom:      {"zb"},
 	ToggleBody:       {"p"},
 	CopyResponseBody: {"y"},
 	CopyResponse:     {"Y"},
@@ -123,8 +135,8 @@ func New(overrides map[string][]string) (*Bindings, error) {
 			if err != nil {
 				return nil, fmt.Errorf("keybinding %q: %w", action, err)
 			}
-			if len(parsed.steps) > 1 && action != CenterView {
-				return nil, fmt.Errorf("keybinding %q: key sequences are only supported for %q", action, CenterView)
+			if len(parsed.steps) > 1 && !isViewportAction(action) {
+				return nil, fmt.Errorf("keybinding %q: key sequences are only supported for viewport actions", action)
 			}
 			bindings.keys[action] = append(bindings.keys[action], parsed)
 		}
@@ -210,7 +222,8 @@ func (bindings *Bindings) validateConflicts() error {
 	global := []Action{
 		Help, Diagnostics, Quit,
 		FocusLeft, FocusDown, FocusUp, FocusRight,
-		HalfPageDown, HalfPageUp, CenterView,
+		HalfPageDown, HalfPageUp, PageDown, PageUp,
+		GoToTop, GoToBottom, AlignTop, CenterView, AlignBottom,
 		CommandPalette, ReloadConfig,
 	}
 	contexts := []struct {
@@ -220,9 +233,13 @@ func (bindings *Bindings) validateConflicts() error {
 		{"files", append(append([]Action{}, global...), Open, Search, SearchNext, SearchPrevious, Reload)},
 		{"suites", append(append([]Action{}, global...), Open, Back, Search, MoveDown, MoveUp)},
 		{"suite", append(append([]Action{}, global...), Run, Back)},
-		{"producer", append(append([]Action{}, global...), Back, Search, HistoryPrevious, HistoryNext, ToggleBody, CopyResponseBody, CopyResponse, SaveResponse, SaveFullResponse)},
+		{"producer", append(append([]Action{}, global...), Back, Search, SearchNext, SearchPrevious, HistoryPrevious, HistoryNext, ToggleBody, CopyResponseBody, CopyResponse, SaveResponse, SaveFullResponse)},
 		{"search", []Action{SearchFinish}},
-		{"overlay", []Action{Quit, Back, CommandPalette, ReloadConfig, Help, Diagnostics, MoveDown, MoveUp, HalfPageDown, HalfPageUp, CenterView}},
+		{"overlay", []Action{
+			Quit, Back, CommandPalette, ReloadConfig, Help, Diagnostics, MoveDown, MoveUp,
+			HalfPageDown, HalfPageUp, PageDown, PageUp,
+			GoToTop, GoToBottom, AlignTop, CenterView, AlignBottom,
+		}},
 	}
 	for _, context := range contexts {
 		used := map[string]struct {
@@ -247,6 +264,16 @@ func (bindings *Bindings) validateConflicts() error {
 		}
 	}
 	return nil
+}
+
+func isViewportAction(action Action) bool {
+	switch action {
+	case HalfPageDown, HalfPageUp, PageDown, PageUp,
+		GoToTop, GoToBottom, AlignTop, CenterView, AlignBottom:
+		return true
+	default:
+		return false
+	}
 }
 
 func (candidate binding) identity() string {

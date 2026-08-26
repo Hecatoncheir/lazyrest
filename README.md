@@ -357,7 +357,13 @@ keybindings:
   move_up: ["k"]
   half_page_down: ["ctrl+d"]
   half_page_up: ["ctrl+u"]
+  page_down: ["ctrl+f"]
+  page_up: ["ctrl+b"]
+  go_to_top: ["gg"]
+  go_to_bottom: ["G"]
+  align_top: ["zt"]
   center_view: ["zz"]
+  align_bottom: ["zb"]
   toggle_body: ["p"]
   copy_response_body: ["y"]
   copy_response: ["Y"]
@@ -385,7 +391,7 @@ the request in Suite, and the request and response in Producer. Bodies over
 
 The built-in theme presets are `gruvbox` (default), `catppuccin-mocha`, `tokyo-night`, `dracula`, `nord`, and `monokai`. Every theme color remains an optional hexadecimal RGB override applied on top of the selected preset. Choose **Choose theme** from the command palette to switch the current session immediately. Press `Ctrl+r` or choose **Reload configuration** to apply language, translations, keybindings, and theme changes from configuration without restarting lazyrest. Invalid configuration leaves the current settings active and displays an error in the footer.
 
-Supported named keys are `enter`, `esc`, `backspace`, `tab`, arrow keys, `home`, `end`, `pgup`, `pgdn`, `f1` through `f12`, and `ctrl+a` through `ctrl+z`. Single non-whitespace printable characters are case-sensitive. The `center_view` action also accepts a printable key sequence such as `zz`.
+Supported named keys are `enter`, `esc`, `backspace`, `tab`, arrow keys, `home`, `end`, `pgup`, `pgdn`, `f1` through `f12`, and `ctrl+a` through `ctrl+z`. Single non-whitespace printable characters are case-sensitive. Viewport actions also accept printable key sequences such as `gg`, `zt`, `zz`, and `zb`.
 
 Configuration CLI commands:
 
@@ -423,7 +429,9 @@ the response pane, and report when the exported body was truncated.
 
 - `j` / `k` or arrows: move and scroll.
 - `Ctrl+d` / `Ctrl+u`: move or scroll down/up by half a page.
-- `zz`: center the current item or scroll anchor in the focused area.
+- `Ctrl+f` / `Ctrl+b`: move or scroll down/up by a full page.
+- `gg` / `G`: go to the first/last item or line.
+- `zt` / `zz` / `zb`: place the current item or scroll anchor at the top, centre, or bottom of the focused area.
 - `Enter` / `l`: select a file/request; `Enter` executes it from the Suite pane.
 - `Esc`: go back; in the response pane it also cancels the active run.
 - `Ctrl+h/j/k/l`: move between areas according to the following map:
@@ -439,12 +447,12 @@ the response pane, and report when the exported body was truncated.
 | Suite | `Ctrl+l` | Producer |
 | Producer | `Ctrl+h` | Suite |
 
-- `/`: search in the focused Files, Suites, or Producer area; `Enter` finishes entering the query.
+- `/`: search in the focused Files, Suites, or Producer area; `Enter` finishes entering the query. In Files and Producer, `n` / `N` move cyclically through matches; Producer shows the current and total match count in its title.
 - `r`: reload the file tree in the background while Files is focused.
 - `p`: toggle Pretty/Raw response bodies while Producer is focused. Pretty formats and highlights JSON, XML, and GraphQL; Raw shows exactly what came over the wire.
 - `y` / `Y`: copy the current response body / complete response while Producer is focused.
 - `s` / `S`: save the unformatted current response body / complete response while Producer is focused.
-- `n` / `N`: next/previous matching file.
+- `n` / `N`: next/previous match in the focused Files or Producer area.
 - `[` / `]`: previous/next response history entry.
 - `d`: open parser, startup, and file-discovery diagnostics; press `d`, `q`, or `Esc` to close.
 - `?`: open the built-in keyboard reference; press `?`, `q`, or `Esc` to close.
@@ -455,17 +463,19 @@ the response pane, and report when the exported body was truncated.
 
 ## TODO
 
-Known gaps, roughly in the order they matter:
+Current roadmap, roughly in the order the remaining gaps matter:
 
-- **Search in the response pane stops at the first match.** `n` / `N` step
-  through matches in Files only, so a long response cannot be walked through.
-- **History is one file for all projects.** Requests from unrelated directories
+- [x] **Walk through response search matches.** `n` / `N` move cyclically
+  through matches and the Producer title shows the current position.
+- [x] **Use consistent Vim viewport commands.** `gg`, `G`, `Ctrl+f`, `Ctrl+b`,
+  `zt`, `zz`, and `zb` now work across selectable and scrollable areas.
+- [ ] **History is one file for all projects.** Requests from unrelated directories
   interleave under `[` / `]`; entries should be kept per project root.
-- **What the session captured is invisible.** There is no way to see which named
+- [ ] **What the session captured is invisible.** There is no way to see which named
   requests have answered, or to clear them without restarting.
-- **`.env` files are not read.** Variables come from `http-client.env.json` and
+- [ ] **`.env` files are not read.** Variables come from `http-client.env.json` and
   its private counterpart only.
-- **`.gitignore` is not honoured.** Skipped directories come from the built-in
+- [ ] **`.gitignore` is not honoured.** Skipped directories come from the built-in
   list and the `ignore` key instead; a faithful implementation means globs,
   negation, and nested files.
 

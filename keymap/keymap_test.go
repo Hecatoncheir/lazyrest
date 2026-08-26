@@ -143,35 +143,55 @@ func TestDefaultResponseExportBindings(t *testing.T) {
 
 func TestDefaultViewportNavigationBindings(t *testing.T) {
 	bindings := Default()
-	if !bindings.Matches(HalfPageDown, tcell.NewEventKey(tcell.KeyCtrlD, 0, tcell.ModCtrl)) {
-		t.Fatal("half_page_down does not match Ctrl+d")
-	}
-	if !bindings.Matches(HalfPageUp, tcell.NewEventKey(tcell.KeyCtrlU, 0, tcell.ModCtrl)) {
-		t.Fatal("half_page_up does not match Ctrl+u")
+	for _, test := range []struct {
+		action Action
+		key    tcell.Key
+	}{
+		{HalfPageDown, tcell.KeyCtrlD},
+		{HalfPageUp, tcell.KeyCtrlU},
+		{PageDown, tcell.KeyCtrlF},
+		{PageUp, tcell.KeyCtrlB},
+	} {
+		if !bindings.Matches(test.action, tcell.NewEventKey(test.key, 0, tcell.ModCtrl)) {
+			t.Errorf("%s does not match %v", test.action, test.key)
+		}
 	}
 
-	z := tcell.NewEventKey(tcell.KeyRune, 'z', tcell.ModNone)
-	if got := bindings.MatchesSequence(CenterView, []*tcell.EventKey{z}); got != SequencePrefix {
-		t.Fatalf("first z must be a sequence prefix, got %v", got)
-	}
-	if got := bindings.MatchesSequence(CenterView, []*tcell.EventKey{z, z}); got != SequenceFull {
-		t.Fatalf("zz must complete center_view, got %v", got)
-	}
-	if bindings.Matches(CenterView, z) {
-		t.Fatal("a single z must not match the zz binding")
+	for _, test := range []struct {
+		action   Action
+		sequence string
+	}{
+		{GoToTop, "gg"},
+		{GoToBottom, "G"},
+		{AlignTop, "zt"},
+		{CenterView, "zz"},
+		{AlignBottom, "zb"},
+	} {
+		events := make([]*tcell.EventKey, 0, len(test.sequence))
+		for _, r := range test.sequence {
+			events = append(events, tcell.NewEventKey(tcell.KeyRune, r, tcell.ModNone))
+		}
+		if len(events) > 1 {
+			if got := bindings.MatchesSequence(test.action, events[:1]); got != SequencePrefix {
+				t.Errorf("first key of %s must be a sequence prefix, got %v", test.sequence, got)
+			}
+		}
+		if got := bindings.MatchesSequence(test.action, events); got != SequenceFull {
+			t.Errorf("%s must complete %s, got %v", test.sequence, test.action, got)
+		}
 	}
 }
 
-func TestCenterViewSupportsConfiguredPrintableSequence(t *testing.T) {
-	bindings, err := New(map[string][]string{"center_view": {"жж"}})
+func TestViewportActionSupportsConfiguredPrintableSequence(t *testing.T) {
+	bindings, err := New(map[string][]string{"go_to_top": {"жж"}})
 	if err != nil {
 		t.Fatal(err)
 	}
 	zh := tcell.NewEventKey(tcell.KeyRune, 'ж', tcell.ModNone)
-	if got := bindings.MatchesSequence(CenterView, []*tcell.EventKey{zh, zh}); got != SequenceFull {
+	if got := bindings.MatchesSequence(GoToTop, []*tcell.EventKey{zh, zh}); got != SequenceFull {
 		t.Fatalf("configured sequence did not match: %v", got)
 	}
-	if got := bindings.Map()[string(CenterView)]; len(got) != 1 || got[0] != "жж" {
+	if got := bindings.Map()[string(GoToTop)]; len(got) != 1 || got[0] != "жж" {
 		t.Fatalf("configured sequence was not preserved: %v", got)
 	}
 }

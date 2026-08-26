@@ -67,6 +67,9 @@ func (widget *Producer) renderResult(suite http.HttpSuite, response runner.Respo
 func (widget *Producer) setText(text string) {
 	widget.currentText = text
 	widget.Element.(*tview.TextView).SetText(text)
+	if widget.searchQuery != "" {
+		widget.updateSearch()
+	}
 }
 
 func renderExecutionResult(suite http.HttpSuite, response runner.Response, err error) string {

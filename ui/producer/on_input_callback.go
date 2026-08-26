@@ -45,6 +45,12 @@ func onInputCallback(widget *Producer) func(event *tcell.EventKey) *tcell.EventK
 			widget.searchQuery = ""
 			widget.updateSearch()
 			return nil
+		case widget.keybindings.Matches(keymap.SearchNext, event):
+			widget.moveToSearchMatch(1)
+			return nil
+		case widget.keybindings.Matches(keymap.SearchPrevious, event):
+			widget.moveToSearchMatch(-1)
+			return nil
 		case widget.keybindings.Matches(keymap.HistoryPrevious, event):
 			widget.showHistory(-1)
 			return nil
@@ -80,17 +86,51 @@ func onInputCallback(widget *Producer) func(event *tcell.EventKey) *tcell.EventK
 }
 
 func (widget *Producer) updateSearch() {
-	element := widget.Element.(*tview.TextView)
+	widget.rebuildSearchMatches()
+	widget.scrollToSearchMatch()
 	widget.updateTitle()
-	if widget.searchQuery == "" {
+}
+
+func (widget *Producer) rebuildSearchMatches() {
+	widget.searchMatches = nil
+	widget.searchIndex = -1
+	query := strings.ToLower(widget.searchQuery)
+	if query == "" {
 		return
 	}
-	index := strings.Index(strings.ToLower(widget.currentText), strings.ToLower(widget.searchQuery))
-	if index < 0 {
+	text := strings.ToLower(widget.currentText)
+	row := 0
+	for offset := 0; offset <= len(text)-len(query); {
+		index := strings.Index(text[offset:], query)
+		if index < 0 {
+			break
+		}
+		index += offset
+		row += strings.Count(text[offset:index], "\n")
+		widget.searchMatches = append(widget.searchMatches, row)
+		nextOffset := index + len(query)
+		row += strings.Count(text[index:nextOffset], "\n")
+		offset = nextOffset
+	}
+	if len(widget.searchMatches) > 0 {
+		widget.searchIndex = 0
+	}
+}
+
+func (widget *Producer) moveToSearchMatch(delta int) {
+	if len(widget.searchMatches) == 0 {
 		return
 	}
-	row := strings.Count(widget.currentText[:index], "\n")
-	element.ScrollTo(row, 0)
+	widget.searchIndex = (widget.searchIndex + delta + len(widget.searchMatches)) % len(widget.searchMatches)
+	widget.scrollToSearchMatch()
+	widget.updateTitle()
+}
+
+func (widget *Producer) scrollToSearchMatch() {
+	if widget.searchIndex < 0 || widget.searchIndex >= len(widget.searchMatches) {
+		return
+	}
+	widget.Element.(*tview.TextView).ScrollTo(widget.searchMatches[widget.searchIndex], 0)
 }
 
 func (widget *Producer) updateTitle() {
@@ -105,6 +145,9 @@ func (widget *Producer) updateTitle() {
 	}
 	if widget.searchMode || widget.searchQuery != "" {
 		title += " /" + widget.searchQuery
+		if widget.searchQuery != "" {
+			title += fmt.Sprintf(" %d/%d", widget.searchIndex+1, len(widget.searchMatches))
+		}
 	}
 	element.SetTitle(title)
 }

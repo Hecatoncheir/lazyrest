@@ -6,6 +6,18 @@ import (
 	"github.com/rivo/tview"
 )
 
+var viewportActions = []keymap.Action{
+	keymap.HalfPageDown,
+	keymap.HalfPageUp,
+	keymap.PageDown,
+	keymap.PageUp,
+	keymap.GoToTop,
+	keymap.GoToBottom,
+	keymap.AlignTop,
+	keymap.CenterView,
+	keymap.AlignBottom,
+}
+
 func (application *Application) handleViewportInput(event *tcell.EventKey) bool {
 	if application == nil || application.Element == nil || event == nil {
 		return false
@@ -20,25 +32,15 @@ func (application *Application) handleViewportInput(event *tcell.EventKey) bool 
 	if bindings == nil {
 		bindings = keymap.Default()
 	}
-	if bindings.Matches(keymap.HalfPageDown, event) {
-		application.resetViewportSequence()
-		moveHalfPage(application, focused, 1)
-		return true
-	}
-	if bindings.Matches(keymap.HalfPageUp, event) {
-		application.resetViewportSequence()
-		moveHalfPage(application, focused, -1)
-		return true
-	}
-
 	if application.pendingViewFocus != focused {
 		application.resetViewportSequence()
 	}
 	sequence := append(append([]*tcell.EventKey(nil), application.pendingViewKeys...), event)
-	switch bindings.MatchesSequence(keymap.CenterView, sequence) {
+	action, match := matchViewportAction(bindings, sequence)
+	switch match {
 	case keymap.SequenceFull:
 		application.resetViewportSequence()
-		centerViewport(application, focused)
+		applyViewportAction(application, focused, action)
 		return true
 	case keymap.SequencePrefix:
 		application.pendingViewKeys = sequence
@@ -48,9 +50,10 @@ func (application *Application) handleViewportInput(event *tcell.EventKey) bool 
 
 	if len(application.pendingViewKeys) > 0 {
 		application.resetViewportSequence()
-		switch bindings.MatchesSequence(keymap.CenterView, []*tcell.EventKey{event}) {
+		action, match = matchViewportAction(bindings, []*tcell.EventKey{event})
+		switch match {
 		case keymap.SequenceFull:
-			centerViewport(application, focused)
+			applyViewportAction(application, focused, action)
 			return true
 		case keymap.SequencePrefix:
 			application.pendingViewKeys = []*tcell.EventKey{event}
@@ -59,6 +62,45 @@ func (application *Application) handleViewportInput(event *tcell.EventKey) bool 
 		}
 	}
 	return false
+}
+
+func matchViewportAction(bindings *keymap.Bindings, events []*tcell.EventKey) (keymap.Action, keymap.SequenceMatch) {
+	matchedPrefix := false
+	for _, action := range viewportActions {
+		switch bindings.MatchesSequence(action, events) {
+		case keymap.SequenceFull:
+			return action, keymap.SequenceFull
+		case keymap.SequencePrefix:
+			matchedPrefix = true
+		}
+	}
+	if matchedPrefix {
+		return "", keymap.SequencePrefix
+	}
+	return "", keymap.SequenceNoMatch
+}
+
+func applyViewportAction(application *Application, primitive tview.Primitive, action keymap.Action) {
+	switch action {
+	case keymap.HalfPageDown:
+		moveViewport(application, primitive, 1, halfPageSize(application, primitive))
+	case keymap.HalfPageUp:
+		moveViewport(application, primitive, -1, halfPageSize(application, primitive))
+	case keymap.PageDown:
+		moveViewport(application, primitive, 1, pageSize(application, primitive))
+	case keymap.PageUp:
+		moveViewport(application, primitive, -1, pageSize(application, primitive))
+	case keymap.GoToTop:
+		moveToBoundary(application, primitive, false)
+	case keymap.GoToBottom:
+		moveToBoundary(application, primitive, true)
+	case keymap.AlignTop:
+		alignViewport(application, primitive, alignTop)
+	case keymap.CenterView:
+		alignViewport(application, primitive, alignCenter)
+	case keymap.AlignBottom:
+		alignViewport(application, primitive, alignBottom)
+	}
 }
 
 func (application *Application) resetViewportSequence() {
@@ -75,8 +117,7 @@ func isScrollablePrimitive(primitive tview.Primitive) bool {
 	}
 }
 
-func moveHalfPage(application *Application, primitive tview.Primitive, direction int) {
-	step := halfPageSize(application, primitive)
+func moveViewport(application *Application, primitive tview.Primitive, direction, step int) {
 	switch element := primitive.(type) {
 	case *tview.TreeView:
 		element.Move(direction * step)
@@ -105,21 +146,58 @@ func moveHalfPage(application *Application, primitive tview.Primitive, direction
 	}
 }
 
-func centerViewport(application *Application, primitive tview.Primitive) {
-	step := halfPageSize(application, primitive)
+func moveToBoundary(application *Application, primitive tview.Primitive, bottom bool) {
 	switch element := primitive.(type) {
 	case *tview.TreeView:
-		centerTreeView(element, step)
+		step := -element.GetRowCount()
+		if bottom {
+			step = element.GetRowCount()
+		}
+		element.Move(step)
 	case *tview.List:
 		_, horizontal := element.GetOffset()
-		offset := element.GetCurrentItem() - step
+		if !bottom {
+			element.SetCurrentItem(0).SetOffset(0, horizontal)
+			return
+		}
+		last := element.GetItemCount() - 1
+		offset := element.GetItemCount() - pageSize(application, primitive)
+		if offset < 0 {
+			offset = 0
+		}
+		element.SetCurrentItem(last).SetOffset(offset, horizontal)
+	case *tview.TextView:
+		if bottom {
+			element.ScrollToEnd()
+		} else {
+			element.ScrollToBeginning()
+		}
+	}
+}
+
+type viewportAlignment uint8
+
+const (
+	alignTop viewportAlignment = iota
+	alignCenter
+	alignBottom
+)
+
+func alignViewport(application *Application, primitive tview.Primitive, alignment viewportAlignment) {
+	shift := alignmentShift(application, primitive, alignment)
+	switch element := primitive.(type) {
+	case *tview.TreeView:
+		alignTreeView(element, alignment)
+	case *tview.List:
+		_, horizontal := element.GetOffset()
+		offset := element.GetCurrentItem() - shift
 		if offset < 0 {
 			offset = 0
 		}
 		element.SetOffset(offset, horizontal)
 	case *tview.TextView:
 		row, column := element.GetScrollOffset()
-		row -= step
+		row -= shift
 		if row < 0 {
 			row = 0
 		}
@@ -127,11 +205,29 @@ func centerViewport(application *Application, primitive tview.Primitive) {
 	}
 }
 
-func centerTreeView(element *tview.TreeView, halfPage int) {
+func alignTreeView(element *tview.TreeView, alignment viewportAlignment) {
 	current := element.GetCurrentNode()
-	if current == nil || halfPage < 1 {
+	if current == nil {
 		return
 	}
+	_, _, _, height := element.GetInnerRect()
+	if height < 2 {
+		return
+	}
+	switch alignment {
+	case alignTop:
+		element.Move(height - 1)
+	case alignCenter:
+		centerTreeView(element, current, height/2)
+	case alignBottom:
+		element.Move(-(height - 1))
+	}
+	// SetCurrentNode defers restoring the selection until the next draw. The
+	// temporary move changes only the viewport; it never opens a node.
+	element.SetCurrentNode(current)
+}
+
+func centerTreeView(element *tview.TreeView, current *tview.TreeNode, halfPage int) {
 	offset := element.GetScrollOffset()
 	element.Move(-halfPage)
 	if element.GetScrollOffset() == offset {
@@ -142,9 +238,17 @@ func centerTreeView(element *tview.TreeView, halfPage int) {
 			element.Move(down)
 		}
 	}
-	// SetCurrentNode defers restoring the selection until the next draw. The
-	// temporary move changes only the viewport; it never selects or opens a node.
-	element.SetCurrentNode(current)
+}
+
+func alignmentShift(application *Application, primitive tview.Primitive, alignment viewportAlignment) int {
+	switch alignment {
+	case alignCenter:
+		return halfPageSize(application, primitive)
+	case alignBottom:
+		return pageSize(application, primitive) - 1
+	default:
+		return 0
+	}
 }
 
 func halfPageSize(application *Application, primitive tview.Primitive) int {
