@@ -1,4 +1,4 @@
- # lazyrest
+# lazyrest
 
 [![CI](https://github.com/Hecatoncheir/lazyrest/actions/workflows/go-test.yml/badge.svg)](https://github.com/Hecatoncheir/lazyrest/actions/workflows/go-test.yml)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
@@ -17,14 +17,15 @@
 
 - Immediate TUI startup with background environment loading and recursive `.http` / `.hurl` discovery.
 - Pure Go, with no CGO and no external parser: `go install` and cross-compilation need nothing but the Go toolchain.
-- A dedicated diagnostics window and named requests.
-- Public/private environment profiles plus recursive `{{variable}}` substitution.
-- Cancellable HTTP and Hurl execution with animated Producer/footer progress bars, timeout, and bounded response bodies.
+- Requests chained through what an earlier one answered, so a token is captured rather than copied by hand.
+- Public/private environment profiles plus recursive `{{variable}}` substitution, shared with Hurl.
+- Cookies carried from one request to the next, with control over redirects and certificate checks.
 - GraphQL requests encoded the way servers expect, with a variables block and errors surfaced from `200` responses.
-- Response headers, protocol metadata, and Pretty/Raw JSON or XML bodies with syntax highlighting.
-- Syntax highlighting in the Suites, Suite, and Producer panes, coloured by the active theme.
-- HTTP methods coloured by what they do, so the request list can be read at a glance.
-- File/request/response search and an in-memory history of the last 50 runs.
+- `.hurl` files listed one entry at a time, each run with the entries it depends on.
+- Syntax highlighting for JSON, XML, and GraphQL across the panes, and HTTP methods coloured by what they do.
+- Response headers, protocol metadata, and Pretty/Raw bodies.
+- Cancellable execution with animated progress bars, a timeout, and bounded response bodies.
+- File/request/response search, a dedicated diagnostics window, and a persistent history of the last 50 runs.
 - Mouse and Vim-style keyboard navigation.
 
 ## Requirements
@@ -145,16 +146,19 @@ When the directory is omitted, the current working directory is used.
 ```text
 -timeout duration         request and Hurl timeout (default 30s)
 -max-response-bytes int   maximum response bytes kept in memory (default 10485760)
+-max-redirects int        maximum redirects a request follows (default 10)
+-follow-redirects         follow redirects instead of returning them (default true)
+-cookies                  carry cookies from one request to the next (default true)
+-insecure                 accept any server certificate
 -hurl string              Hurl executable name or path (default "hurl")
 -env string               environment profile name
 -env-file string          public environment file (default "http-client.env.json")
 -private-env-file string  private environment file (default "http-client.private.env.json")
 -version                  print the version and exit
--max-redirects int        maximum redirects a request follows (default 10)
--follow-redirects         follow redirects instead of returning them (default true)
--insecure                 accept any server certificate
--cookies                  carry cookies from one request to the next (default true)
 ```
+
+The flags that read and write configuration files are described under
+[Configuration](#configuration).
 
 Example `.http` file:
 
@@ -385,7 +389,7 @@ lazyrest --config ./team.yml /path/to/project
 lazyrest --config ./custom.yml --generate-config
 ```
 
-`--generate-config` creates a complete configuration with permissions `0600` and refuses to overwrite an existing file. `--print-config` prints the resolved layered configuration. `--validate-config` checks YAML, colors, languages, key names, and contextual key conflicts without starting the TUI.
+`--generate-config` creates a complete configuration with permissions `0600` and refuses to overwrite an existing file. `--print-config` prints the resolved layered configuration. `--validate-config` checks YAML, unknown keys, colors, languages, key names, and contextual key conflicts without starting the TUI. A key the configuration does not define is an error rather than something quietly dropped, so a typo such as `keybinding` for `keybindings` is reported with its line.
 
 ## Persistent history
 
@@ -424,7 +428,12 @@ The latest 50 request results are stored in `~/.config/lazyrest/history.json` an
 
 ```sh
 go test ./...
-go test ./ui -run TUI
+go test -race ./...        # what CI runs
+go test ./ui -run TUI      # the terminal integration tests
 go vet ./...
+golangci-lint run ./...    # the set is pinned in .golangci.yml
 go build ./...
 ```
+
+The build must stay free of CGO, which CI checks by compiling every released
+target with `CGO_ENABLED=0`.
