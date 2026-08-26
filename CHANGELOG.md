@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [Unreleased]
+## [v0.18.0] - 2026-08-27
 ### Added
 - File discovery honours `.gitignore` files from the project root and nested directories, including Git globs, directory-only rules, and negation; invalid patterns appear in diagnostics.
 
