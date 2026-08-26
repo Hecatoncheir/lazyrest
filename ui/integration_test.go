@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -316,6 +317,7 @@ func findFileReference(node *tview.TreeNode, path string) *tview.TreeNode {
 
 func TestTUIChainsRequestsThroughAnEarlierResponse(t *testing.T) {
 	var sentAuthorization string
+	sourceFilePath := filepath.Join(t.TempDir(), "requests.http")
 	client := &http.Client{Transport: uiRoundTripFunc(func(request *http.Request) (*http.Response, error) {
 		if strings.HasSuffix(request.URL.Path, "/auth") {
 			return &http.Response{
@@ -342,25 +344,78 @@ func TestTUIChainsRequestsThroughAnEarlierResponse(t *testing.T) {
 	screen, _ := runTestApplication(t, application)
 
 	login := parserhttp.HttpSuite{
-		Name:   "login",
-		Method: http.MethodPost,
-		Uri:    "https://example.test/auth",
-		Header: http.Header{},
+		Name:           "login",
+		Method:         http.MethodPost,
+		Uri:            "https://example.test/auth",
+		Header:         http.Header{},
+		SourceFilePath: sourceFilePath,
 	}
 	application.Element.QueueUpdateDraw(func() { onSuiteRun(application)(login) })
 	waitForScreenText(t, application, screen, "abc123")
 
 	profile := parserhttp.HttpSuite{
-		Name:   "profile",
-		Method: http.MethodGet,
-		Uri:    "https://example.test/me",
-		Header: http.Header{"Authorization": []string{"Bearer {{login.response.body.$.token}}"}},
+		Name:           "profile",
+		Method:         http.MethodGet,
+		Uri:            "https://example.test/me",
+		Header:         http.Header{"Authorization": []string{"Bearer {{login.response.body.$.token}}"}},
+		SourceFilePath: sourceFilePath,
 	}
 	application.Element.QueueUpdateDraw(func() { onSuiteRun(application)(profile) })
 	waitForScreenText(t, application, screen, `"me"`)
 
 	if sentAuthorization != "Bearer abc123" {
 		t.Fatalf("the captured token did not reach the request: %q", sentAuthorization)
+	}
+}
+
+func TestTUIDoesNotResolveAResponseReferenceFromAnotherFile(t *testing.T) {
+	var requests atomic.Int32
+	client := &http.Client{Transport: uiRoundTripFunc(func(request *http.Request) (*http.Response, error) {
+		requests.Add(1)
+		if request.URL.Path != "/auth" {
+			t.Errorf("request from another file was sent: %s", request.URL.Path)
+			return nil, errors.New("must not be reached")
+		}
+		return &http.Response{
+			StatusCode:    http.StatusOK,
+			Header:        http.Header{"Content-Type": []string{"application/json"}},
+			Body:          io.NopCloser(strings.NewReader(`{"token":"first-token"}`)),
+			ContentLength: 23,
+			Proto:         "HTTP/1.1",
+		}, nil
+	})}
+
+	application := BuildApplication(t.TempDir(), Config{
+		Runner: runner.Config{Client: client, Timeout: 10 * time.Second},
+	})
+	screen, _ := runTestApplication(t, application)
+
+	login := parserhttp.HttpSuite{
+		Name:           "login",
+		Method:         http.MethodPost,
+		Uri:            "https://example.test/auth",
+		Header:         http.Header{},
+		SourceFilePath: "first.http",
+	}
+	application.Element.QueueUpdateDraw(func() { onSuiteRun(application)(login) })
+	waitForScreenText(t, application, screen, "first-token")
+
+	profile := parserhttp.HttpSuite{
+		Name:           "profile",
+		Method:         http.MethodGet,
+		Uri:            "https://example.test/me",
+		Header:         http.Header{"Authorization": []string{"Bearer {{login.response.body.$.token}}"}},
+		SourceFilePath: "second.http",
+	}
+	application.Element.QueueUpdateDraw(func() { onSuiteRun(application)(profile) })
+	waitForScreenText(t, application, screen, `"login" has not`)
+	waitFor(t, "cross-file reference failure", func() bool {
+		state := application.Model.Snapshot()
+		return state.Request.Phase == PhaseFailed && state.Request.Outcome == OutcomeFailure
+	})
+
+	if got := requests.Load(); got != 1 {
+		t.Fatalf("unexpected number of sent requests: got %d, want 1", got)
 	}
 }
 

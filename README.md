@@ -243,9 +243,10 @@ anything else as its JSON form. `{{name.response.body}}` takes the whole body,
 and `{{name.response.headers.X-Token}}` takes a response header.
 
 References are resolved when the request runs, against the last answer of each
-named request in the current session. Nothing is stored on disk. A request whose
-references cannot be resolved is not sent; the pane says which reference was
-waiting and why.
+named request from the same file in the current session. Identical names in
+different files do not share captured responses. Nothing is stored on disk. A
+request whose references cannot be resolved is not sent; the pane says which
+reference was waiting and why.
 
 ## Environments
 
@@ -428,10 +429,6 @@ The latest 50 request results are stored in `~/.config/lazyrest/history.json` an
 
 Known gaps, roughly in the order they matter:
 
-- **Response references are matched by name alone.** Two files that each name a
-  request `login` share one entry, so a reference can pick up the answer of a
-  request from another file. References should be scoped to the file they are
-  written in.
 - **Search in the response pane stops at the first match.** `n` / `N` step
   through matches in Files only, so a long response cannot be walked through.
 - **History is one file for all projects.** Requests from unrelated directories

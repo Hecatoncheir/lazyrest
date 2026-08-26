@@ -161,7 +161,7 @@ func (widget *Producer) recordResponse(suite http.HttpSuite, response runner.Res
 	if widget.responses == nil {
 		widget.responses = http.ResponseStore{}
 	}
-	widget.responses[suite.Name] = http.ResponseValue{Body: response.Body, Header: response.Header}
+	widget.responses.Record(suite, http.ResponseValue{Body: response.Body, Header: response.Header})
 }
 
 func (widget *Producer) renderUnresolved(unresolved []string) string {

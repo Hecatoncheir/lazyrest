@@ -56,6 +56,9 @@ GET http://example.com/api/status
 		if s.Method == "" || s.Uri == "" {
 			t.Errorf("Набор запросов %d имеет пустые method или uri", i)
 		}
+		if s.SourceFilePath != testFilePath {
+			t.Errorf("request %d has source path %q, want %q", i, s.SourceFilePath, testFilePath)
+		}
 	}
 	if suites[0].Name != "Test Suite" || suites[1].Name != "Single Test" || suites[2].Name != "Another Suite" {
 		t.Errorf("request names were not parsed: %+v", suites)

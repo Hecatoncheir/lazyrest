@@ -40,14 +40,15 @@ func (p *Parser) GetSuitesFromFileWithOptions(filePath string, options http.Pars
 	if len(entries) == 0 {
 		// Nothing was recognized, so the file is offered as a whole.
 		return []http.HttpSuite{{
-			Name:         filepath.Base(filePath),
-			Method:       "HURL",
-			Uri:          filePath,
-			Header:       nethttp.Header{},
-			IsHurl:       true,
-			HurlFilePath: filePath,
-			Variables:    variables,
-			SecretValues: secrets,
+			Name:           filepath.Base(filePath),
+			Method:         "HURL",
+			Uri:            filePath,
+			Header:         nethttp.Header{},
+			IsHurl:         true,
+			SourceFilePath: filepath.Clean(filePath),
+			HurlFilePath:   filePath,
+			Variables:      variables,
+			SecretValues:   secrets,
 		}}, nil
 	}
 
@@ -58,16 +59,17 @@ func (p *Parser) GetSuitesFromFileWithOptions(filePath string, options http.Pars
 			name = strings.TrimSpace(current.Method + " " + current.Uri)
 		}
 		suites = append(suites, http.HttpSuite{
-			Name:         name,
-			Method:       current.Method,
-			Uri:          current.Uri,
-			Header:       nethttp.Header{},
-			Body:         current.Text,
-			IsHurl:       true,
-			HurlFilePath: filePath,
-			HurlEntry:    current.Number,
-			Variables:    variables,
-			SecretValues: secrets,
+			Name:           name,
+			Method:         current.Method,
+			Uri:            current.Uri,
+			Header:         nethttp.Header{},
+			Body:           current.Text,
+			IsHurl:         true,
+			SourceFilePath: filepath.Clean(filePath),
+			HurlFilePath:   filePath,
+			HurlEntry:      current.Number,
+			Variables:      variables,
+			SecretValues:   secrets,
 		})
 	}
 	return suites, nil

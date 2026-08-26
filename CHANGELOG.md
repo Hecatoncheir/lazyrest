@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+### Fixed
+- Captured responses are scoped to their request file, so two files that use the same request name can no longer resolve a reference with each other's answer.
+
 ## [v0.14.1] - 2026-08-26
 ### Fixed
 - A request held back because a response reference could not be resolved now settles as a failed run. It was left in the running state, so the footer animated a request that was never sent.

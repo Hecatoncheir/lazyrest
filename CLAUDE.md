@@ -63,7 +63,9 @@ file discovery → parsing → suite selection → execution → response render
   Do not reduce it to a map of strings.
 - A `{{name.response…}}` reference is resolved when the request runs, not while
   the file is parsed, because it depends on what has already been run. The
-  parser deliberately leaves those references alone.
+  parser deliberately leaves those references alone. Captured responses are
+  keyed by both `HttpSuite.SourceFilePath` and the request name; do not let a
+  name resolve across files.
 - Highlighting colours come from `theme.Theme.Syntax` and `theme.Theme.Methods`,
   which every pane reads; they are not per-widget.
 - `ui/syntax` escapes its own output. Text that goes into a `tview` widget with

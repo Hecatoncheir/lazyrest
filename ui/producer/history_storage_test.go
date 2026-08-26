@@ -50,6 +50,38 @@ func TestHistoryPersistsAndRedactsSecrets(t *testing.T) {
 	}
 }
 
+func TestHistoryDoesNotPersistResponseReferenceScope(t *testing.T) {
+	historyPath := filepath.Join(t.TempDir(), "history.json")
+	sourceFilePath := "/private/project/requests.http"
+	entry := sanitizedHistoryEntry(parserhttp.HttpSuite{
+		Name:           "List users",
+		Method:         "GET",
+		Uri:            "https://example.test/users",
+		Header:         http.Header{},
+		SourceFilePath: sourceFilePath,
+	}, runner.Response{Code: "200 OK"}, nil, time.Now())
+
+	widget := &Producer{historyPath: historyPath, history: []HistoryEntry{entry}}
+	if err := widget.saveHistory(); err != nil {
+		t.Fatal(err)
+	}
+	contents, err := os.ReadFile(historyPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(contents), sourceFilePath) {
+		t.Fatalf("persisted history contains the response reference scope: %s", contents)
+	}
+
+	restored := &Producer{historyPath: historyPath}
+	if err := restored.loadHistory(); err != nil {
+		t.Fatal(err)
+	}
+	if len(restored.history) != 1 || restored.history[0].Suite.SourceFilePath != "" {
+		t.Fatalf("response reference scope was restored from history: %+v", restored.history)
+	}
+}
+
 func TestHistoryRejectsCorruptedFileWithoutReplacingCurrentState(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "history.json")
 	if err := os.WriteFile(path, []byte("not-json"), 0o600); err != nil {

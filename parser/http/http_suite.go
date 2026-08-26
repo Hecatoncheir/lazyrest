@@ -3,14 +3,17 @@ package http
 import nethttp "net/http"
 
 type HttpSuite struct {
-	Name         string
-	Method       string
-	Uri          string
-	Header       nethttp.Header
-	Body         string
-	BodyType     string
-	IsHurl       bool
-	HurlFilePath string
+	Name     string
+	Method   string
+	Uri      string
+	Header   nethttp.Header
+	Body     string
+	BodyType string
+	IsHurl   bool
+	// SourceFilePath scopes captured responses to the request file they came
+	// from. It belongs to the current session and is not persisted in history.
+	SourceFilePath string `json:"-"`
+	HurlFilePath   string
 	// HurlEntry is the position of an entry in its Hurl file, counted from
 	// one. Hurl runs a file in order, so an entry is reached by running
 	// everything up to it.

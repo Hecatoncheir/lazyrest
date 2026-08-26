@@ -25,8 +25,22 @@ type ResponseValue struct {
 	Header nethttp.Header
 }
 
-// ResponseStore holds the last answer of every named request.
-type ResponseStore map[string]ResponseValue
+type responseKey struct {
+	sourceFilePath string
+	name           string
+}
+
+// ResponseStore holds the last answer of every named request, scoped to the
+// file that declared it.
+type ResponseStore map[responseKey]ResponseValue
+
+// Record keeps a response under the source file and name of its request.
+func (store ResponseStore) Record(suite HttpSuite, response ResponseValue) {
+	store[responseKey{
+		sourceFilePath: suite.SourceFilePath,
+		name:           strings.TrimSpace(suite.Name),
+	}] = response
+}
 
 // HasResponseReference reports whether text refers to an earlier response.
 func HasResponseReference(text string) bool {
@@ -41,7 +55,7 @@ func ResolveResponseReferences(suite *HttpSuite, store ResponseStore) []string {
 	resolve := func(text string) string {
 		return responseReferencePattern.ReplaceAllStringFunc(text, func(match string) string {
 			parts := responseReferencePattern.FindStringSubmatch(match)
-			value, err := lookupResponseValue(store, parts[1], parts[2], parts[3])
+			value, err := lookupResponseValue(store, suite.SourceFilePath, parts[1], parts[2], parts[3])
 			if err != nil {
 				unresolved[strings.TrimSpace(match)+": "+err.Error()] = struct{}{}
 				return match
@@ -68,10 +82,11 @@ func ResolveResponseReferences(suite *HttpSuite, store ResponseStore) []string {
 	return result
 }
 
-func lookupResponseValue(store ResponseStore, name, kind, path string) (string, error) {
-	response, recorded := store[strings.TrimSpace(name)]
+func lookupResponseValue(store ResponseStore, sourceFilePath, name, kind, path string) (string, error) {
+	trimmedName := strings.TrimSpace(name)
+	response, recorded := store[responseKey{sourceFilePath: sourceFilePath, name: trimmedName}]
 	if !recorded {
-		return "", fmt.Errorf("%q has not been run yet", strings.TrimSpace(name))
+		return "", fmt.Errorf("%q has not been run yet", trimmedName)
 	}
 
 	if kind == "headers" {

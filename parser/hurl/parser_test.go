@@ -57,6 +57,9 @@ Extra-Header: Value
 		if suite.HurlFilePath != tmpFile.Name() {
 			t.Errorf("entry %d has path %q, want %q", index, suite.HurlFilePath, tmpFile.Name())
 		}
+		if suite.SourceFilePath != tmpFile.Name() {
+			t.Errorf("entry %d has source path %q, want %q", index, suite.SourceFilePath, tmpFile.Name())
+		}
 		if suite.HurlEntry != index+1 {
 			t.Errorf("entry %d is numbered %d", index, suite.HurlEntry)
 		}
