@@ -3,6 +3,7 @@ package producer
 import (
 	"context"
 	"errors"
+	"github.com/Hecatoncheir/lazyrest/locale"
 	parserhttp "github.com/Hecatoncheir/lazyrest/parser/http"
 	"github.com/Hecatoncheir/lazyrest/runner"
 	nethttp "net/http"
@@ -12,6 +13,7 @@ import (
 	"github.com/rivo/tview"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestStartRunCancelsPreviousRun(t *testing.T) {
@@ -178,5 +180,31 @@ func TestRenderResult_UsesTheThemePalette(t *testing.T) {
 	widget.bodyViewMode = BodyViewRaw
 	if raw := widget.renderResult(suite, response, nil); strings.Contains(raw, "[#83a598]\"name\"") {
 		t.Errorf("the raw view was highlighted: %q", raw)
+	}
+}
+
+func TestResponseSummaryIsLocalized(t *testing.T) {
+	response := runner.Response{Code: "200 OK", Time: 1500 * time.Millisecond, ContentLength: 42, Truncated: true}
+
+	english := responseSummary(response, locale.English())
+	for _, want := range []string{"Response code: 200 OK", "Content length: 42", "Response body was truncated"} {
+		if !strings.Contains(english, want) {
+			t.Errorf("missing %q in %q", want, english)
+		}
+	}
+
+	russian, err := locale.New("ru", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	translated := responseSummary(response, russian)
+	if !strings.Contains(translated, "Код ответа: 200 OK") {
+		t.Errorf("the summary was not translated: %q", translated)
+	}
+	if strings.Contains(translated, "Response code") {
+		t.Errorf("the summary kept its English: %q", translated)
+	}
+	if !strings.Contains(translated, "1500ms") {
+		t.Errorf("the timing is missing: %q", translated)
 	}
 }

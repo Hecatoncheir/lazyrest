@@ -12,6 +12,7 @@ import (
 	"github.com/Hecatoncheir/lazyrest/runner"
 	"github.com/Hecatoncheir/lazyrest/ui/syntax"
 
+	"github.com/hako/durafmt"
 	"github.com/rivo/tview"
 )
 
@@ -112,7 +113,7 @@ func renderExecutionResultWithLocale(suite http.HttpSuite, response runner.Respo
 
 	separator := "\n" + strings.Repeat("─", 40) + "\n"
 	var responseDetails strings.Builder
-	responseDetails.WriteString(response.ToMiniString())
+	responseDetails.WriteString(responseSummary(response, translator))
 	if response.Protocol != "" {
 		responseDetails.WriteString(translator.Text("protocol") + ": " + response.Protocol + "\n")
 	}
@@ -135,6 +136,22 @@ func renderExecutionResultWithLocale(suite http.HttpSuite, response runner.Respo
 		syntax.Highlight(body, language, palette),
 	)
 	return request.String() + separator + responseText
+}
+
+// responseSummary states what came back, in the language of the interface.
+func responseSummary(response runner.Response, translator *locale.Translator) string {
+	var summary strings.Builder
+	fmt.Fprintf(&summary, "%s: %s\n", translator.Text("response_code"), response.Code)
+	fmt.Fprintf(&summary, "%s: %dms (%s)\n",
+		translator.Text("response_time"),
+		response.Time.Milliseconds(),
+		durafmt.Parse(response.Time).String(),
+	)
+	fmt.Fprintf(&summary, "%s: %d\n", translator.Text("content_length"), response.ContentLength)
+	if response.Truncated {
+		summary.WriteString(translator.Text("body_truncated") + "\n")
+	}
+	return summary.String()
 }
 
 func renderHeaders(headers nethttp.Header, secretValues []string) string {
