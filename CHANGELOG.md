@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [Unreleased]
+## [v0.14.2] - 2026-08-26
 ### Fixed
 - Captured responses are scoped to their request file, so two files that use the same request name can no longer resolve a reference with each other's answer.
 
