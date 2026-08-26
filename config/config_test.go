@@ -3,6 +3,7 @@ package config
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/Hecatoncheir/lazyrest/keymap"
@@ -76,5 +77,38 @@ func TestGenerateDoesNotOverwriteExistingConfig(t *testing.T) {
 	}
 	if _, err := Load(path); err != nil {
 		t.Fatalf("generated config is invalid: %v", err)
+	}
+}
+
+func TestLoadRefusesAnUnknownKey(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "config.yml")
+	// "keybinding" is a typo for "keybindings" and used to be dropped without
+	// a word, leaving the defaults in place.
+	contents := "language: en\nkeybinding:\n  quit: [\"x\"]\n"
+	if err := os.WriteFile(path, []byte(contents), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	_, err := Load(path)
+	if err == nil {
+		t.Fatal("an unknown key was accepted")
+	}
+	if !strings.Contains(err.Error(), "keybinding") {
+		t.Fatalf("the error does not name the key: %v", err)
+	}
+}
+
+func TestLoadAcceptsAnEmptyFile(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "config.yml")
+	if err := os.WriteFile(path, nil, 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	settings, err := Load(path)
+	if err != nil {
+		t.Fatalf("an empty file was refused: %v", err)
+	}
+	if settings.Keybindings == nil {
+		t.Fatal("the defaults were not applied")
 	}
 }

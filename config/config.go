@@ -1,8 +1,10 @@
 package config
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -123,8 +125,15 @@ func read(path string) (Document, error) {
 	if err != nil {
 		return Document{}, fmt.Errorf("read config %s: %w", path, err)
 	}
+	// Unknown keys are refused rather than dropped: a typo such as
+	// "keybinding" for "keybindings" would otherwise look like it worked.
+	decoder := yaml.NewDecoder(bytes.NewReader(contents))
+	decoder.KnownFields(true)
 	var document Document
-	if err := yaml.Unmarshal(contents, &document); err != nil {
+	if err := decoder.Decode(&document); err != nil {
+		if errors.Is(err, io.EOF) {
+			return Document{}, nil
+		}
 		return Document{}, fmt.Errorf("parse config %s: %w", path, err)
 	}
 	return document, nil
