@@ -2,25 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
-## [Unreleased]
-### Changed
-- `.http` files are read by a hand written scanner instead of Tree-sitter. The build is now pure Go: `go install` and cross-compilation need no C compiler, and release archives for every platform are built on one runner.
-
-### Fixed
-- A body type declared through `Content-Type` is now honoured, so a single-line JSON body is recognized and `application/graphql` is no longer read as JSON.
-- A malformed variable declaration is reported as one instead of discarding the request that follows it.
-
+## [v0.12.0] - 2026-08-26
 ### Added
 - Syntax highlighting for JSON, XML, and GraphQL across the Suites, Suite, and Producer panes, covering the body preview of the list, the selected request, the GraphQL variables, and the response. The colours are derived from the active theme, so every preset and override matches. Raw view stays unhighlighted, and bodies over 256 KiB are shown plain so that drawing stays responsive.
 - GraphQL requests are sent as `application/json` with a `{"query": …, "variables": …}` body, the form the GraphQL over HTTP specification requires. A request is recognized from its body or from `X-REQUEST-TYPE: GraphQL`, variables are written as a JSON object after the query, and the operation name is sent when the document names exactly one.
 - The response pane lists the `errors` of a GraphQL response and marks the run as failed, which a `200` status alone would hide.
 
-### Fixed
-- A request name or body containing brackets, such as `["a"]`, is no longer swallowed by the Suites list, which read list item text as style tags.
-
 ### Changed
-- The Suite pane starts the body on its own line, so that a formatted body is readable.
+- `.http` files are read by a hand written scanner instead of Tree-sitter. The build is now pure Go: `go install` and cross-compilation need no C compiler, and the release archives for every platform are built on one runner.
 - A GraphQL request previously went out as `application/graphql` with the raw query as its body, which most servers reject. Declare `Content-Type: application/graphql` to keep that form.
+- The Suite pane starts the body on its own line, so that a formatted body is readable.
+
+### Fixed
+- A body type declared through `Content-Type` is now honoured, so a single-line JSON body is recognized and `application/graphql` is no longer read as JSON.
+- A malformed variable declaration is reported as one instead of discarding the request that follows it.
+- A request name or body containing brackets, such as `["a"]`, is no longer swallowed by the Suites list, which read list item text as style tags.
 
 ## [v0.11.0] - 2026-08-25
 ### Fixed
