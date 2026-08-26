@@ -108,5 +108,12 @@ func NewDefault() Theme {
 		Punctuation: color.Color("#bdae93").ToTerminal(),
 		Comment:     color.Color("#bdae93").ToTerminal(),
 	}
+	theme.Methods = syntax.MethodPalette{
+		Read:   color.Color("#b8bb26").ToTerminal(),
+		Create: color.Color("#fabd2f").ToTerminal(),
+		Update: color.Color("#83a598").ToTerminal(),
+		Delete: color.Color("#d65d0e").ToTerminal(),
+		Other:  color.Color("#bdae93").ToTerminal(),
+	}
 	return theme
 }

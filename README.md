@@ -23,6 +23,7 @@
 - GraphQL requests encoded the way servers expect, with a variables block and errors surfaced from `200` responses.
 - Response headers, protocol metadata, and Pretty/Raw JSON or XML bodies with syntax highlighting.
 - Syntax highlighting in the Suites, Suite, and Producer panes, coloured by the active theme.
+- HTTP methods coloured by what they do, so the request list can be read at a glance.
 - File/request/response search and an in-memory history of the last 50 runs.
 - Mouse and Vim-style keyboard navigation.
 

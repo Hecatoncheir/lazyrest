@@ -29,6 +29,8 @@ type Suites struct {
 	Element               tview.Primitive
 	theme                 theme.SuitesTheme
 	syntax                syntax.Palette
+	methods               syntax.MethodPalette
+	rows                  []listRow
 	suites                []http.HttpSuite
 	diagnosticCount       int
 	selectedSuite         http.HttpSuite
@@ -60,11 +62,15 @@ func (widget *Suites) Build(parameters Parameters) tview.Primitive {
 	theme := parameters.Theme.Suites
 	widget.theme = theme
 	widget.syntax = parameters.Theme.Syntax
+	widget.methods = parameters.Theme.Methods
 
 	element := tview.NewList()
-	// The body preview carries markup, so the list must not escape it. The
-	// main text keeps tview's own escaping.
-	element.SetUseStyleTags(false, true)
+	// Both the row and its preview carry markup, so the list must not escape
+	// them; every part of the text is escaped or highlighted here instead.
+	element.SetUseStyleTags(true, true)
+	element.SetChangedFunc(func(index int, _ string, _ string, _ rune) {
+		widget.applySelectionMarkup(index)
+	})
 
 	box := tview.NewBox().
 		SetBorder(true).

@@ -57,8 +57,9 @@ func TestRenderKeepsBracketsOutOfStyleTags(t *testing.T) {
 		BodyType: "json",
 	})
 
-	if !strings.Contains(main, "[beta]") {
-		t.Errorf("the name lost its brackets: %q", main)
+	// The row reads "GET Tags [beta]": the method, then the name it was given.
+	if width := tview.TaggedStringWidth(main); width != len("GET Tags [beta]") {
+		t.Errorf("the row shows %d characters of %d: %q", width, len("GET Tags [beta]"), main)
 	}
 	// The width tview measures ignores style tags, so it equals the number of
 	// characters the row actually shows.
@@ -82,5 +83,92 @@ func TestRenderLeavesAPlainBodyUncoloured(t *testing.T) {
 	}
 	if secondary != "just some text" {
 		t.Errorf("unexpected preview: %q", secondary)
+	}
+}
+
+// unselectedRow renders a suite in a position that does not carry the
+// selection, where the row keeps its markup.
+func unselectedRow(t *testing.T, suite http.HttpSuite) string {
+	t.Helper()
+	widget := New()
+	widget.Build(Parameters{Theme: theme.NewDefault(), OnEscapeCallback: func() {}, OnSuiteSelectCallbackType: func(http.HttpSuite) {}})
+	widget.suites = []http.HttpSuite{{Name: "First", Method: "GET", Uri: "/first"}, suite}
+	widget.render()
+
+	main, _ := widget.Element.(*tview.List).GetItemText(1)
+	return main
+}
+
+func TestRenderColoursTheMethod(t *testing.T) {
+	// The default theme is gruvbox: a read takes its success colour, a create
+	// its progress colour, and a delete its failure colour.
+	cases := []struct {
+		method string
+		want   string
+	}{
+		{method: "GET", want: "[#b8bb26]GET[-]"},
+		{method: "POST", want: "[#fabd2f]POST[-]"},
+		{method: "PATCH", want: "[#83a598]PATCH[-]"},
+		{method: "DELETE", want: "[#d65d0e]DELETE[-]"},
+		{method: "HURL", want: "[#bdae93]HURL[-]"},
+	}
+
+	for _, testCase := range cases {
+		t.Run(testCase.method, func(t *testing.T) {
+			main := unselectedRow(t, http.HttpSuite{Name: "Do it", Method: testCase.method, Uri: "/x"})
+			if !strings.HasPrefix(main, testCase.want) {
+				t.Errorf("got %q, want it to start with %q", main, testCase.want)
+			}
+			if !strings.HasSuffix(main, " Do it") {
+				t.Errorf("the name is missing: %q", main)
+			}
+		})
+	}
+}
+
+func TestRenderDoesNotRepeatTheMethodOfAnUnnamedRequest(t *testing.T) {
+	// The parser names an unnamed request "METHOD uri", which already leads
+	// with the method.
+	main := unselectedRow(t, http.HttpSuite{Name: "GET https://example.com/a", Method: "GET", Uri: "https://example.com/a"})
+
+	if tview.TaggedStringWidth(main) != len("GET https://example.com/a") {
+		t.Errorf("the method was repeated: %q", main)
+	}
+	if !strings.HasPrefix(main, "[#b8bb26]GET[-]") {
+		t.Errorf("the method was not coloured: %q", main)
+	}
+}
+
+func TestRenderDropsMarkupFromTheSelectedRow(t *testing.T) {
+	widget := New()
+	widget.Build(Parameters{Theme: theme.NewDefault(), OnEscapeCallback: func() {}, OnSuiteSelectCallbackType: func(http.HttpSuite) {}})
+	widget.suites = []http.HttpSuite{
+		{Name: "First", Method: "GET", Uri: "/a"},
+		{Name: "Second", Method: "POST", Uri: "/b"},
+	}
+	widget.render()
+
+	element := widget.Element.(*tview.List)
+	selected, _ := element.GetItemText(0)
+	if strings.Contains(selected, "[#") {
+		t.Errorf("the selected row kept its colour: %q", selected)
+	}
+	if selected != "GET First" {
+		t.Errorf("unexpected selected row: %q", selected)
+	}
+
+	other, _ := element.GetItemText(1)
+	if !strings.HasPrefix(other, "[#fabd2f]POST[-]") {
+		t.Errorf("an unselected row lost its colour: %q", other)
+	}
+
+	element.SetCurrentItem(1)
+	first, _ := element.GetItemText(0)
+	second, _ := element.GetItemText(1)
+	if !strings.HasPrefix(first, "[#b8bb26]GET[-]") {
+		t.Errorf("the row that lost the selection did not get its colour back: %q", first)
+	}
+	if strings.Contains(second, "[#") {
+		t.Errorf("the row that gained the selection kept its colour: %q", second)
 	}
 }

@@ -16,4 +16,6 @@ type Theme struct {
 	// Syntax colours highlighted bodies. It is shared by every panel that
 	// shows one, and is derived from the semantic colours of the theme.
 	Syntax syntax.Palette
+	// Methods colours an HTTP method by what it does.
+	Methods syntax.MethodPalette
 }
