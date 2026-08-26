@@ -14,6 +14,7 @@ import (
 	"github.com/Hecatoncheir/lazyrest/ui/theme"
 	"github.com/Hecatoncheir/lazyrest/ui/tree"
 	"github.com/Hecatoncheir/lazyrest/ui/workspace"
+	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 )
 
@@ -44,6 +45,10 @@ func BuildApplication(rootDirectoryPath string, config Config) *Application {
 	// Application
 	applicationWidget := NewApplication()
 	applicationElement := applicationWidget.Build()
+	applicationElement.SetBeforeDrawFunc(func(screen tcell.Screen) bool {
+		applicationWidget.screen = screen
+		return false
+	})
 	applicationWidget.Model = NewModel(rootDirectoryPath, environmentName)
 	applicationWidget.config = config
 	applicationWidget.theme = uiTheme
@@ -96,15 +101,18 @@ func BuildApplication(rootDirectoryPath string, config Config) *Application {
 	// Producer
 	producerWidget := producer.New()
 	producerParameters := producer.Parameters{
-		Theme:                 uiTheme,
-		OnEscapeCallback:      onProducerEscape(applicationWidget),
-		OnProgressCallback:    onRunProgress(applicationWidget),
-		OnRunFinishedCallback: onRunFinished(applicationWidget),
-		App:                   applicationElement,
-		RunnerConfig:          config.Runner,
-		Keybindings:           config.Keybindings,
-		Locale:                config.Locale,
-		HistoryPath:           config.HistoryPath,
+		Theme:                  uiTheme,
+		OnEscapeCallback:       onProducerEscape(applicationWidget),
+		OnProgressCallback:     onRunProgress(applicationWidget),
+		OnRunFinishedCallback:  onRunFinished(applicationWidget),
+		OnCopyBodyCallback:     func() { applicationWidget.copyResponse(false) },
+		OnCopyResponseCallback: func() { applicationWidget.copyResponse(true) },
+		OnSaveResponseCallback: applicationWidget.openSaveResponse,
+		App:                    applicationElement,
+		RunnerConfig:           config.Runner,
+		Keybindings:            config.Keybindings,
+		Locale:                 config.Locale,
+		HistoryPath:            config.HistoryPath,
 	}
 	producerWidget.Build(producerParameters)
 	applicationWidget.Producer = producerWidget

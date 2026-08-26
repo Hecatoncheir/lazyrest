@@ -213,6 +213,107 @@ func TestTUIProducerAnimatesProgressWhileWaiting(t *testing.T) {
 	waitForScreenText(t, application, screen, " Success")
 }
 
+func TestTUIProducerCopiesAndSavesTheCurrentResponse(t *testing.T) {
+	root := t.TempDir()
+	rawBody := `{"ok":true,"items":[1,2]}`
+	client := &http.Client{Transport: uiRoundTripFunc(func(*http.Request) (*http.Response, error) {
+		return &http.Response{
+			StatusCode:    http.StatusOK,
+			Header:        http.Header{"Content-Type": []string{"application/json"}},
+			Body:          io.NopCloser(strings.NewReader(rawBody)),
+			ContentLength: int64(len(rawBody)),
+			Proto:         "HTTP/1.1",
+		}, nil
+	})}
+	application := BuildApplication(root, Config{Runner: runner.Config{Client: client, Timeout: 10 * time.Second}})
+	screen, _ := runTestApplication(t, application)
+	application.Element.QueueUpdateDraw(func() {
+		onSuiteRun(application)(parserhttp.HttpSuite{
+			Name:   "List items",
+			Method: http.MethodGet,
+			Uri:    "https://example.test/items",
+			Header: http.Header{},
+		})
+	})
+	waitForScreenText(t, application, screen, `"items"`)
+
+	screen.InjectKey(tcell.KeyRune, 'y', tcell.ModNone)
+	waitFor(t, "pretty response body in clipboard", func() bool {
+		return strings.Contains(applicationClipboard(application, screen), "\n  \"items\": [")
+	})
+	if copied := applicationClipboard(application, screen); strings.Contains(copied, "Response:") || strings.Contains(copied, "[green]") {
+		t.Fatalf("clipboard contains response-pane markup: %q", copied)
+	}
+
+	screen.InjectKey(tcell.KeyRune, 'p', tcell.ModNone)
+	screen.InjectKey(tcell.KeyRune, 'y', tcell.ModNone)
+	waitFor(t, "raw response body in clipboard", func() bool {
+		return applicationClipboard(application, screen) == rawBody
+	})
+
+	screen.InjectKey(tcell.KeyRune, 'Y', tcell.ModNone)
+	waitFor(t, "full response in clipboard", func() bool {
+		copied := applicationClipboard(application, screen)
+		return strings.HasPrefix(copied, "HTTP/1.1 200 OK\n") &&
+			strings.Contains(copied, "Content-Type: application/json\n\n"+rawBody)
+	})
+
+	savedPath := filepath.Join(root, "exports", "items.json")
+	screen.InjectKey(tcell.KeyRune, 's', tcell.ModNone)
+	waitFor(t, "save response dialog", func() bool {
+		return application.Model.CurrentOverlay() == OverlaySaveResponse
+	})
+	setInputText(t, application, application.SaveResponse, savedPath)
+	screen.InjectKey(tcell.KeyEnter, 0, tcell.ModNone)
+	waitFor(t, "saved response body", func() bool {
+		contents, err := os.ReadFile(savedPath)
+		return err == nil && string(contents) == rawBody
+	})
+	info, err := os.Stat(savedPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if info.Mode().Perm() != 0o600 {
+		t.Fatalf("saved response permissions: %o", info.Mode().Perm())
+	}
+
+	if err := os.WriteFile(savedPath, []byte("old"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	screen.InjectKey(tcell.KeyRune, 's', tcell.ModNone)
+	waitFor(t, "second save response dialog", func() bool {
+		return application.Model.CurrentOverlay() == OverlaySaveResponse
+	})
+	setInputText(t, application, application.SaveResponse, savedPath)
+	screen.InjectKey(tcell.KeyEnter, 0, tcell.ModNone)
+	waitFor(t, "overwrite confirmation", func() bool {
+		return strings.Contains(applicationText(application, screen), "press Enter again")
+	})
+	contents, err := os.ReadFile(savedPath)
+	if err != nil || string(contents) != "old" {
+		t.Fatalf("first Enter overwrote the response: %q, %v", contents, err)
+	}
+	screen.InjectKey(tcell.KeyEnter, 0, tcell.ModNone)
+	waitFor(t, "confirmed response overwrite", func() bool {
+		contents, err := os.ReadFile(savedPath)
+		return err == nil && string(contents) == rawBody
+	})
+}
+
+func setInputText(t *testing.T, application *Application, input *tview.InputField, text string) {
+	t.Helper()
+	done := make(chan struct{})
+	application.Element.QueueUpdateDraw(func() {
+		input.SetText(text)
+		close(done)
+	})
+	select {
+	case <-done:
+	case <-time.After(2 * time.Second):
+		t.Fatal("timed out setting input text")
+	}
+}
+
 type uiRoundTripFunc func(*http.Request) (*http.Response, error)
 
 func (roundTrip uiRoundTripFunc) RoundTrip(request *http.Request) (*http.Response, error) {
@@ -296,6 +397,14 @@ func applicationText(application *Application, screen tcell.SimulationScreen) st
 	var content string
 	application.Element.QueueUpdate(func() {
 		content = simulationText(screen)
+	})
+	return content
+}
+
+func applicationClipboard(application *Application, screen tcell.SimulationScreen) string {
+	var content string
+	application.Element.QueueUpdate(func() {
+		content = string(screen.GetClipboardData())
 	})
 	return content
 }

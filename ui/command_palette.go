@@ -24,6 +24,17 @@ func (application *Application) buildCommandPalette() {
 		application.closeOverlay()
 		onReloadFiles(application)()
 	})
+	palette.AddItem(translator.Text("copy_response_body"), "", 0, func() {
+		application.closeOverlay()
+		application.copyResponse(false)
+	})
+	palette.AddItem(translator.Text("copy_response"), "", 0, func() {
+		application.closeOverlay()
+		application.copyResponse(true)
+	})
+	palette.AddItem(translator.Text("save_response"), "", 0, func() {
+		application.openSaveResponse()
+	})
 	palette.AddItem(translator.Text("diagnostics"), "", 0, func() {
 		application.openOverlay(OverlayDiagnostics)
 	})
@@ -97,6 +108,7 @@ func (application *Application) applyOverlayTheme() {
 			application.applyCommandPaletteTheme(list)
 		}
 	}
+	application.applySaveResponseTheme()
 }
 
 func (application *Application) applyCommandPaletteTheme(palette *tview.List) {

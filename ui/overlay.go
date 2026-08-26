@@ -16,6 +16,7 @@ const (
 	helpPage           = "help"
 	commandPalettePage = "command-palette"
 	themePickerPage    = "theme-picker"
+	saveResponsePage   = "save-response"
 )
 
 func (application *Application) buildOverlays() {
@@ -24,12 +25,14 @@ func (application *Application) buildOverlays() {
 	application.Help = application.newOverlayView(translator.Text("help") + " — ?/Esc " + translator.Text("close"))
 	application.Help.SetText(helpText(application.config.Keybindings, translator))
 	application.buildCommandPalette()
+	application.buildSaveResponseInput()
 
 	application.Pages.
 		AddPage(diagnosticsPage, centered(application.Diagnostics, 84, 24), true, false).
 		AddPage(helpPage, centered(application.Help, 72, 25), true, false)
 	application.Pages.AddPage(commandPalettePage, centered(application.CommandPalette, 58, 14), true, false)
 	application.Pages.AddPage(themePickerPage, centered(application.ThemePicker, 58, 14), true, false)
+	application.Pages.AddPage(saveResponsePage, centered(application.SaveResponse, 92, 3), true, false)
 	application.refreshDiagnostics()
 }
 
@@ -67,6 +70,7 @@ func (application *Application) openOverlay(overlay Overlay) {
 	application.Pages.HidePage(helpPage)
 	application.Pages.HidePage(commandPalettePage)
 	application.Pages.HidePage(themePickerPage)
+	application.Pages.HidePage(saveResponsePage)
 
 	var page string
 	var focus tview.Primitive
@@ -84,6 +88,9 @@ func (application *Application) openOverlay(overlay Overlay) {
 	case OverlayThemePicker:
 		page = themePickerPage
 		focus = application.ThemePicker
+	case OverlaySaveResponse:
+		page = saveResponsePage
+		focus = application.SaveResponse
 	default:
 		application.closeOverlay()
 		return
@@ -97,13 +104,19 @@ func (application *Application) openOverlay(overlay Overlay) {
 }
 
 func (application *Application) closeOverlay() {
+	wasSaveResponse := application.Model.CurrentOverlay() == OverlaySaveResponse
 	application.Pages.HidePage(diagnosticsPage)
 	application.Pages.HidePage(helpPage)
 	application.Pages.HidePage(commandPalettePage)
 	application.Pages.HidePage(themePickerPage)
+	application.Pages.HidePage(saveResponsePage)
 	application.Model.update(func(state *State) {
 		state.Overlay = OverlayNone
 	})
+	if wasSaveResponse {
+		application.pendingExport = nil
+		application.saveOverwritePath = ""
+	}
 	if application.previousFocus != nil {
 		application.Element.SetFocus(application.previousFocus)
 	}
@@ -260,6 +273,9 @@ func helpText(bindings *keymap.Bindings, translator *locale.Translator) string {
 		translator.Text("producer_help"),
 		line(keymap.Search, translator.Text("search_response")),
 		line(keymap.ToggleBody, translator.Text("toggle_body")),
+		line(keymap.CopyResponseBody, translator.Text("copy_response_body")),
+		line(keymap.CopyResponse, translator.Text("copy_response")),
+		line(keymap.SaveResponse, translator.Text("save_response")),
 		line(keymap.HistoryPrevious, translator.Text("previous_history")),
 		line(keymap.HistoryNext, translator.Text("next_history")),
 		line(keymap.Back, translator.Text("cancel_back")),

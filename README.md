@@ -23,7 +23,7 @@
 - GraphQL requests encoded the way servers expect, with a variables block and errors surfaced from `200` responses.
 - `.hurl` files listed one entry at a time, each run with the entries it depends on.
 - Syntax highlighting for JSON, XML, and GraphQL across the panes, and HTTP methods coloured by what they do.
-- Response headers, protocol metadata, and Pretty/Raw bodies.
+- Response headers, protocol metadata, Pretty/Raw bodies, and clipboard/file export.
 - Cancellable execution with animated progress bars, a timeout, and bounded response bodies.
 - File/request/response search, a dedicated diagnostics window, and a persistent history of the last 50 runs.
 - Mouse and Vim-style keyboard navigation.
@@ -356,6 +356,9 @@ keybindings:
   move_down: ["j"]
   move_up: ["k"]
   toggle_body: ["p"]
+  copy_response_body: ["y"]
+  copy_response: ["Y"]
+  save_response: ["s"]
   history_previous: ["["]
   history_next: ["]"]
   command_palette: [":", "ctrl+p"]
@@ -396,6 +399,20 @@ lazyrest --config ./custom.yml --generate-config
 
 The latest 50 request results are stored in `~/.config/lazyrest/history.json` and restored on the next launch. Bodies are limited to 64 KiB per entry in the file, while the response pane keeps the full body of the current session. Writing happens in the background, so a large response does not stall the interface. Known secret values and sensitive headers such as `Authorization`, cookies, and API keys are redacted before writing. The directory uses permissions `0700`, the history file uses `0600`, and updates are atomic. Delete the file to clear persistent history.
 
+## Exporting responses
+
+While Producer is focused, `y` copies the current response body in the active
+Pretty/Raw mode. `Y` copies the complete response — status, headers, and body —
+without the pane's labels or colour markup. Clipboard export uses the terminal's
+clipboard support, which may need OSC 52 to be enabled in the terminal.
+
+Press `s` to save the unformatted body. The path prompt suggests a name from the
+request, timestamp, and content type; relative paths are resolved from the
+project root. New files and directories use private permissions, and an existing
+file requires a second `Enter` before it is overwritten. These actions operate
+on the entry currently selected with `[` / `]`, apply the same secret redaction
+as the response pane, and report when the exported body was truncated.
+
 ## Navigation
 
 - `j` / `k` or arrows: move and scroll.
@@ -417,6 +434,8 @@ The latest 50 request results are stored in `~/.config/lazyrest/history.json` an
 - `/`: search in the focused Files, Suites, or Producer area; `Enter` finishes entering the query.
 - `r`: reload the file tree in the background while Files is focused.
 - `p`: toggle Pretty/Raw response bodies while Producer is focused. Pretty formats and highlights JSON, XML, and GraphQL; Raw shows exactly what came over the wire.
+- `y` / `Y`: copy the current response body / complete response while Producer is focused.
+- `s`: save the unformatted current response body while Producer is focused.
 - `n` / `N`: next/previous matching file.
 - `[` / `]`: previous/next response history entry.
 - `d`: open parser, startup, and file-discovery diagnostics; press `d`, `q`, or `Esc` to close.
@@ -433,8 +452,6 @@ Known gaps, roughly in the order they matter:
   through matches in Files only, so a long response cannot be walked through.
 - **History is one file for all projects.** Requests from unrelated directories
   interleave under `[` / `]`; entries should be kept per project root.
-- **A response cannot be saved or copied.** Reading it in the pane is the only
-  way to get at it.
 - **What the session captured is invisible.** There is no way to see which named
   requests have answered, or to clear them without restarting.
 - **`.env` files are not read.** Variables come from `http-client.env.json` and

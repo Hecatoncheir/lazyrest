@@ -13,53 +13,59 @@ import (
 type Action string
 
 const (
-	Help            Action = "help"
-	Diagnostics     Action = "diagnostics"
-	Quit            Action = "quit"
-	FocusLeft       Action = "focus_left"
-	FocusDown       Action = "focus_down"
-	FocusUp         Action = "focus_up"
-	FocusRight      Action = "focus_right"
-	Open            Action = "open"
-	Run             Action = "run"
-	Back            Action = "back"
-	Search          Action = "search"
-	SearchFinish    Action = "search_finish"
-	SearchNext      Action = "search_next"
-	SearchPrevious  Action = "search_previous"
-	Reload          Action = "reload"
-	MoveDown        Action = "move_down"
-	MoveUp          Action = "move_up"
-	ToggleBody      Action = "toggle_body"
-	HistoryPrevious Action = "history_previous"
-	HistoryNext     Action = "history_next"
-	CommandPalette  Action = "command_palette"
-	ReloadConfig    Action = "reload_config"
+	Help             Action = "help"
+	Diagnostics      Action = "diagnostics"
+	Quit             Action = "quit"
+	FocusLeft        Action = "focus_left"
+	FocusDown        Action = "focus_down"
+	FocusUp          Action = "focus_up"
+	FocusRight       Action = "focus_right"
+	Open             Action = "open"
+	Run              Action = "run"
+	Back             Action = "back"
+	Search           Action = "search"
+	SearchFinish     Action = "search_finish"
+	SearchNext       Action = "search_next"
+	SearchPrevious   Action = "search_previous"
+	Reload           Action = "reload"
+	MoveDown         Action = "move_down"
+	MoveUp           Action = "move_up"
+	ToggleBody       Action = "toggle_body"
+	CopyResponseBody Action = "copy_response_body"
+	CopyResponse     Action = "copy_response"
+	SaveResponse     Action = "save_response"
+	HistoryPrevious  Action = "history_previous"
+	HistoryNext      Action = "history_next"
+	CommandPalette   Action = "command_palette"
+	ReloadConfig     Action = "reload_config"
 )
 
 var defaults = map[Action][]string{
-	Help:            {"?"},
-	Diagnostics:     {"d"},
-	Quit:            {"q", "ctrl+c"},
-	FocusLeft:       {"ctrl+h"},
-	FocusDown:       {"ctrl+j"},
-	FocusUp:         {"ctrl+k"},
-	FocusRight:      {"ctrl+l"},
-	Open:            {"enter", "l"},
-	Run:             {"enter"},
-	Back:            {"esc"},
-	Search:          {"/"},
-	SearchFinish:    {"enter", "esc"},
-	SearchNext:      {"n"},
-	SearchPrevious:  {"N"},
-	Reload:          {"r"},
-	MoveDown:        {"j"},
-	MoveUp:          {"k"},
-	ToggleBody:      {"p"},
-	HistoryPrevious: {"["},
-	HistoryNext:     {"]"},
-	CommandPalette:  {":", "ctrl+p"},
-	ReloadConfig:    {"ctrl+r"},
+	Help:             {"?"},
+	Diagnostics:      {"d"},
+	Quit:             {"q", "ctrl+c"},
+	FocusLeft:        {"ctrl+h"},
+	FocusDown:        {"ctrl+j"},
+	FocusUp:          {"ctrl+k"},
+	FocusRight:       {"ctrl+l"},
+	Open:             {"enter", "l"},
+	Run:              {"enter"},
+	Back:             {"esc"},
+	Search:           {"/"},
+	SearchFinish:     {"enter", "esc"},
+	SearchNext:       {"n"},
+	SearchPrevious:   {"N"},
+	Reload:           {"r"},
+	MoveDown:         {"j"},
+	MoveUp:           {"k"},
+	ToggleBody:       {"p"},
+	CopyResponseBody: {"y"},
+	CopyResponse:     {"Y"},
+	SaveResponse:     {"s"},
+	HistoryPrevious:  {"["},
+	HistoryNext:      {"]"},
+	CommandPalette:   {":", "ctrl+p"},
+	ReloadConfig:     {"ctrl+r"},
 }
 
 type Bindings struct {
@@ -155,7 +161,7 @@ func (bindings *Bindings) validateConflicts() error {
 		{"files", append(append([]Action{}, global...), Open, Search, SearchNext, SearchPrevious, Reload)},
 		{"suites", append(append([]Action{}, global...), Open, Back, Search, MoveDown, MoveUp)},
 		{"suite", append(append([]Action{}, global...), Run, Back)},
-		{"producer", append(append([]Action{}, global...), Back, Search, HistoryPrevious, HistoryNext, ToggleBody)},
+		{"producer", append(append([]Action{}, global...), Back, Search, HistoryPrevious, HistoryNext, ToggleBody, CopyResponseBody, CopyResponse, SaveResponse)},
 		{"search", []Action{SearchFinish}},
 		{"overlay", []Action{Quit, Back, CommandPalette, ReloadConfig, Help, Diagnostics, MoveDown, MoveUp}},
 	}

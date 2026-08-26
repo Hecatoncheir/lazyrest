@@ -71,6 +71,7 @@ func (widget *Producer) ChangeSuite(suite http.HttpSuite) {
 	widget.searchMode = false
 	widget.searchQuery = ""
 	widget.historyVisible = false
+	widget.resultAvailable = false
 	element := widget.Element.(*tview.TextView)
 
 	// What an earlier request answered is filled in now rather than while the

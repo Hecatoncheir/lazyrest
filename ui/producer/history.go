@@ -32,6 +32,7 @@ func (widget *Producer) addHistory(suite http.HttpSuite, response runner.Respons
 	}
 	widget.historyIndex = len(widget.history) - 1
 	widget.historyVisible = false
+	widget.resultAvailable = err == nil && (response.Code != "" || response.StatusCode != 0)
 	widget.updateTitle()
 	widget.persistHistory()
 }
@@ -49,6 +50,7 @@ func (widget *Producer) showHistory(delta int) {
 	}
 	entry := widget.history[widget.historyIndex]
 	widget.historyVisible = true
+	widget.resultAvailable = entry.Err == nil && (entry.Response.Code != "" || entry.Response.StatusCode != 0)
 	widget.setText(widget.renderEntry(entry))
 	widget.updateTitle()
 }

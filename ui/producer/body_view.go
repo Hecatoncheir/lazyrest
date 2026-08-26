@@ -32,7 +32,7 @@ func (widget *Producer) toggleBodyView() {
 	} else {
 		widget.bodyViewMode = BodyViewPretty
 	}
-	if !widget.IsRunning() && len(widget.history) > 0 {
+	if !widget.IsRunning() && widget.resultAvailable && len(widget.history) > 0 {
 		widget.setText(widget.renderEntry(widget.history[widget.historyIndex]))
 	}
 	widget.updateTitle()

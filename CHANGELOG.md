@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+### Added
+- Producer can copy the visible Pretty/Raw response body with `y`, copy the complete plain-text response with `Y`, or save the unformatted body with `s`. Export follows the selected history entry, keeps secret redaction, reports truncated data, and requires confirmation before overwriting a private response file.
+
 ## [v0.14.2] - 2026-08-26
 ### Fixed
 - Captured responses are scoped to their request file, so two files that use the same request name can no longer resolve a reference with each other's answer.

@@ -54,6 +54,21 @@ func onInputCallback(widget *Producer) func(event *tcell.EventKey) *tcell.EventK
 		case widget.keybindings.Matches(keymap.ToggleBody, event):
 			widget.toggleBodyView()
 			return nil
+		case widget.keybindings.Matches(keymap.CopyResponseBody, event):
+			if widget.onCopyBody != nil {
+				widget.onCopyBody()
+			}
+			return nil
+		case widget.keybindings.Matches(keymap.CopyResponse, event):
+			if widget.onCopyResponse != nil {
+				widget.onCopyResponse()
+			}
+			return nil
+		case widget.keybindings.Matches(keymap.SaveResponse, event):
+			if widget.onSaveResponse != nil {
+				widget.onSaveResponse()
+			}
+			return nil
 		}
 		return event
 	}

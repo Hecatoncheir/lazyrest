@@ -123,3 +123,19 @@ func TestBindingsRejectContextualConflicts(t *testing.T) {
 		t.Fatalf("bindings in different contexts must be allowed: %v", err)
 	}
 }
+
+func TestDefaultResponseExportBindings(t *testing.T) {
+	bindings := Default()
+	for _, test := range []struct {
+		action Action
+		key    rune
+	}{
+		{CopyResponseBody, 'y'},
+		{CopyResponse, 'Y'},
+		{SaveResponse, 's'},
+	} {
+		if !bindings.Matches(test.action, tcell.NewEventKey(tcell.KeyRune, test.key, tcell.ModNone)) {
+			t.Errorf("%s does not match %q", test.action, test.key)
+		}
+	}
+}

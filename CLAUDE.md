@@ -24,7 +24,8 @@ easiest to get wrong.
 - **Nothing secret reaches disk.** Private environment values, sensitive
   headers, and captured responses are redacted or kept in memory only. The
   cookie jar and the response store live for the session; persisted history is
-  redacted and bounded before writing.
+  redacted and bounded before writing. Explicit response export writes the same
+  redacted body shown by Producer to a user-selected `0600` file.
 - Every package has tests. `golangci-lint` reports zero issues; keep it that
   way rather than adding exclusions.
 

@@ -28,6 +28,9 @@ type Producer struct {
 	onEscapeCallback OnEscapeCallbackType
 	onProgress       func(current, total int64)
 	onRunFinished    func(runner.Response, error)
+	onCopyBody       func()
+	onCopyResponse   func()
+	onSaveResponse   func()
 	app              *tview.Application
 	runMutex         sync.Mutex
 	runID            uint64
@@ -35,6 +38,7 @@ type Producer struct {
 	history          []HistoryEntry
 	historyIndex     int
 	historyVisible   bool
+	resultAvailable  bool
 	currentText      string
 	searchMode       bool
 	searchQuery      string
@@ -117,6 +121,9 @@ func (widget *Producer) Build(parameters Parameters) tview.Primitive {
 	widget.onEscapeCallback = parameters.OnEscapeCallback
 	widget.onProgress = parameters.OnProgressCallback
 	widget.onRunFinished = parameters.OnRunFinishedCallback
+	widget.onCopyBody = parameters.OnCopyBodyCallback
+	widget.onCopyResponse = parameters.OnCopyResponseCallback
+	widget.onSaveResponse = parameters.OnSaveResponseCallback
 	widget.app = parameters.App
 	widget.runnerConfig = parameters.RunnerConfig
 	widget.keybindings = parameters.Keybindings

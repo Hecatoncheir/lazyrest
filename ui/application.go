@@ -14,6 +14,7 @@ import (
 	"github.com/Hecatoncheir/lazyrest/ui/tree"
 	"github.com/Hecatoncheir/lazyrest/ui/workspace"
 
+	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 )
 
@@ -36,13 +37,17 @@ type Application struct {
 	Help           *tview.TextView
 	CommandPalette *tview.List
 	ThemePicker    *tview.List
+	SaveResponse   *tview.InputField
 
-	config          Config
-	theme           theme.Theme
-	loadEnvironment func(string, environment.Config) (environment.Environment, error)
-	scanFiles       func(context.Context) tree.ScanResult
-	previousFocus   tview.Primitive
-	startOnce       sync.Once
+	config            Config
+	theme             theme.Theme
+	loadEnvironment   func(string, environment.Config) (environment.Environment, error)
+	scanFiles         func(context.Context) tree.ScanResult
+	previousFocus     tview.Primitive
+	screen            tcell.Screen
+	pendingExport     *producer.ResponseExport
+	saveOverwritePath string
+	startOnce         sync.Once
 
 	footerProgressMutex  sync.Mutex
 	footerProgressCancel context.CancelFunc
