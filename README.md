@@ -148,6 +148,7 @@ When the directory is omitted, the current working directory is used.
 -env string               environment profile name
 -env-file string          public environment file (default "http-client.env.json")
 -private-env-file string  private environment file (default "http-client.private.env.json")
+-version                  print the version and exit
 ```
 
 Example `.http` file:

@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+### Added
+- A `-version` flag that reports the build. Release archives carry the tag, and `go install` builds report the module version.
+
+### Fixed
+- `lazyrest -h` now prints the usage and exits with `0` instead of reporting `flag: help requested` as a fatal error.
+
 ## [v0.12.0] - 2026-08-26
 ### Added
 - Syntax highlighting for JSON, XML, and GraphQL across the Suites, Suite, and Producer panes, covering the body preview of the list, the selected request, the GraphQL variables, and the response. The colours are derived from the active theme, so every preset and override matches. Raw view stays unhighlighted, and bodies over 256 KiB are shown plain so that drawing stays responsive.

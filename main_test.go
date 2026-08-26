@@ -51,3 +51,32 @@ func TestRunValidatesProjectConfigAndConflicts(t *testing.T) {
 		t.Fatal("expected conflicting project bindings to fail validation")
 	}
 }
+
+func TestRunPrintsVersion(t *testing.T) {
+	var output strings.Builder
+	if err := run([]string{"--version"}, &output); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.HasPrefix(output.String(), "lazyrest ") {
+		t.Fatalf("unexpected version output: %q", output.String())
+	}
+	if strings.TrimSpace(output.String()) == "lazyrest" {
+		t.Fatalf("the version is empty: %q", output.String())
+	}
+}
+
+func TestRunTreatsHelpAsSuccess(t *testing.T) {
+	var output strings.Builder
+	if err := run([]string{"-h"}, &output); err != nil {
+		t.Fatalf("asking for help failed: %v", err)
+	}
+	if !strings.Contains(output.String(), "-timeout") {
+		t.Fatalf("usage was not printed: %q", output.String())
+	}
+}
+
+func TestVersionTextIsNeverEmpty(t *testing.T) {
+	if versionText() == "" {
+		t.Fatal("the version is empty")
+	}
+}
