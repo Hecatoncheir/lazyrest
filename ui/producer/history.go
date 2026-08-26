@@ -23,10 +23,13 @@ type HistoryEntry struct {
 	Response  runner.Response
 	Err       error
 	CreatedAt time.Time
+	request   *http.HttpSuite
 }
 
 func (widget *Producer) addHistory(suite http.HttpSuite, response runner.Response, err error) {
 	entry := sanitizedHistoryEntry(suite, response, err, time.Now())
+	runnable := cloneRequestSuite(suite)
+	entry.request = &runnable
 	widget.historyDataMutex.Lock()
 	widget.history = append(widget.history, entry)
 	if len(widget.history) > maxHistoryEntries {
@@ -35,9 +38,46 @@ func (widget *Producer) addHistory(suite http.HttpSuite, response runner.Respons
 	widget.historyIndex = len(widget.history) - 1
 	widget.historyVisible = false
 	widget.resultAvailable = err == nil && (response.Code != "" || response.StatusCode != 0)
+	widget.requestAvailable = true
+	widget.suite = cloneRequestSuite(runnable)
 	widget.historyDataMutex.Unlock()
 	widget.updateTitle()
 	widget.persistHistory()
+}
+
+// CurrentRequest returns the actual request used for the visible result. Raw
+// request data is kept in memory only; restored, redacted history entries are
+// deliberately not exposed as runnable requests.
+func (widget *Producer) CurrentRequest() (http.HttpSuite, bool) {
+	if widget == nil {
+		return http.HttpSuite{}, false
+	}
+	widget.historyDataMutex.RLock()
+	defer widget.historyDataMutex.RUnlock()
+	if widget.historyVisible {
+		if widget.historyIndex < 0 || widget.historyIndex >= len(widget.history) || widget.history[widget.historyIndex].request == nil {
+			return http.HttpSuite{}, false
+		}
+		return cloneRequestSuite(*widget.history[widget.historyIndex].request), true
+	}
+	if !widget.requestAvailable {
+		return http.HttpSuite{}, false
+	}
+	return cloneRequestSuite(widget.suite), true
+}
+
+func cloneRequestSuite(suite http.HttpSuite) http.HttpSuite {
+	cloned := suite
+	cloned.Header = suite.Header.Clone()
+	if cloned.Header == nil {
+		cloned.Header = nethttp.Header{}
+	}
+	cloned.Variables = make(map[string]string, len(suite.Variables))
+	for name, value := range suite.Variables {
+		cloned.Variables[name] = value
+	}
+	cloned.SecretValues = append([]string(nil), suite.SecretValues...)
+	return cloned
 }
 
 func (widget *Producer) showHistory(delta int) {

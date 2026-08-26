@@ -71,6 +71,11 @@ func (widget *Footer) UpdateRootDirectory(path string) {
 	widget.render()
 }
 
+func (widget *Footer) UpdateEnvironment(name string) {
+	widget.Parameters.EnvironmentName = name
+	widget.render()
+}
+
 func (widget *Footer) UpdateStatus(status string) {
 	widget.status = status
 	widget.render()

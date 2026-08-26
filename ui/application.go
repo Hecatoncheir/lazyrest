@@ -23,23 +23,24 @@ func NewApplication() *Application {
 }
 
 type Application struct {
-	Element        *tview.Application
-	Pages          *tview.Pages
-	Model          *Model
-	HttpFilesTree  *tree.Tree
-	Suites         *suites.Suites
-	Suite          *suite.Suite
-	Producer       *producer.Producer
-	Workspace      *workspace.Workspace
-	Layout         *layout.Layout
-	Footer         *footer.Footer
-	Diagnostics    *tview.TextView
-	Help           *tview.TextView
-	Captured       *tview.TextView
-	History        *tview.List
-	CommandPalette *tview.List
-	ThemePicker    *tview.List
-	SaveResponse   *tview.InputField
+	Element           *tview.Application
+	Pages             *tview.Pages
+	Model             *Model
+	HttpFilesTree     *tree.Tree
+	Suites            *suites.Suites
+	Suite             *suite.Suite
+	Producer          *producer.Producer
+	Workspace         *workspace.Workspace
+	Layout            *layout.Layout
+	Footer            *footer.Footer
+	Diagnostics       *tview.TextView
+	Help              *tview.TextView
+	Captured          *tview.TextView
+	History           *tview.List
+	CommandPalette    *tview.List
+	ThemePicker       *tview.List
+	EnvironmentPicker *tview.List
+	SaveResponse      *tview.InputField
 
 	config            Config
 	theme             theme.Theme
@@ -57,6 +58,22 @@ type Application struct {
 	footerProgressMutex  sync.Mutex
 	footerProgressCancel context.CancelFunc
 	footerProgressLabel  string
+
+	environmentLoadMutex sync.Mutex
+	environmentLoadID    uint64
+}
+
+func (widget *Application) startEnvironmentLoad() uint64 {
+	widget.environmentLoadMutex.Lock()
+	defer widget.environmentLoadMutex.Unlock()
+	widget.environmentLoadID++
+	return widget.environmentLoadID
+}
+
+func (widget *Application) isCurrentEnvironmentLoad(loadID uint64) bool {
+	widget.environmentLoadMutex.Lock()
+	defer widget.environmentLoadMutex.Unlock()
+	return widget.environmentLoadID == loadID
 }
 
 func (widget *Application) Build() *tview.Application {

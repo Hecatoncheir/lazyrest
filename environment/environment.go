@@ -34,6 +34,32 @@ type Environment struct {
 	SecretVariables []string
 }
 
+// Names returns the sorted union of profile names from the public and private
+// JSON files. Values are not decoded, so listing environments never exposes
+// their contents.
+func Names(rootDirectory string, config Config) ([]string, error) {
+	publicFile := config.PublicFile
+	if publicFile == "" {
+		publicFile = DefaultPublicFile
+	}
+	privateFile := config.PrivateFile
+	if privateFile == "" {
+		privateFile = DefaultPrivateFile
+	}
+
+	names := map[string]struct{}{}
+	for _, path := range []string{resolvePath(rootDirectory, publicFile), resolvePath(rootDirectory, privateFile)} {
+		fileNames, err := loadProfileNames(path)
+		if err != nil {
+			return nil, err
+		}
+		for _, name := range fileNames {
+			names[name] = struct{}{}
+		}
+	}
+	return sortedVariables(names), nil
+}
+
 func Load(rootDirectory string, config Config) (Environment, error) {
 	result := Environment{Name: config.Name, Values: map[string]string{}}
 	secretVariables := map[string]struct{}{}
@@ -140,6 +166,28 @@ func loadProfile(path, name string) (map[string]string, bool, error) {
 		return nil, false, fmt.Errorf("environment %q in %s: %w", name, path, err)
 	}
 	return values, true, nil
+}
+
+func loadProfileNames(path string) ([]string, error) {
+	file, err := os.Open(path)
+	if errors.Is(err, os.ErrNotExist) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("open environment file %s: %w", path, err)
+	}
+	defer func() { _ = file.Close() }()
+
+	var profiles map[string]json.RawMessage
+	if err := json.NewDecoder(file).Decode(&profiles); err != nil {
+		return nil, fmt.Errorf("decode environment file %s: %w", path, err)
+	}
+	names := make([]string, 0, len(profiles))
+	for name := range profiles {
+		names = append(names, name)
+	}
+	slices.Sort(names)
+	return names, nil
 }
 
 func loadDotEnv(path string) (map[string]string, bool, error) {

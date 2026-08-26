@@ -4,6 +4,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	parserhttp "github.com/Hecatoncheir/lazyrest/parser/http"
 )
 
 // HistorySummary contains the safe metadata needed by the project history
@@ -80,6 +82,8 @@ func (widget *Producer) ClearHistory() int {
 	widget.historyIndex = -1
 	widget.historyVisible = false
 	widget.resultAvailable = false
+	widget.requestAvailable = false
+	widget.suite = parserhttp.HttpSuite{}
 	widget.searchMode = false
 	widget.searchQuery = ""
 	widget.searchMatches = nil

@@ -41,8 +41,10 @@ const (
 	CenterView       Action = "center_view"
 	AlignBottom      Action = "align_bottom"
 	ToggleBody       Action = "toggle_body"
+	RerunRequest     Action = "rerun_request"
 	CopyResponseBody Action = "copy_response_body"
 	CopyResponse     Action = "copy_response"
+	CopyAsCurl       Action = "copy_as_curl"
 	SaveResponse     Action = "save_response"
 	SaveFullResponse Action = "save_full_response"
 	ClearCaptured    Action = "clear_captured_responses"
@@ -81,8 +83,10 @@ var defaults = map[Action][]string{
 	CenterView:       {"zz"},
 	AlignBottom:      {"zb"},
 	ToggleBody:       {"p"},
+	RerunRequest:     {"R"},
 	CopyResponseBody: {"y"},
 	CopyResponse:     {"Y"},
+	CopyAsCurl:       {"C"},
 	SaveResponse:     {"s"},
 	SaveFullResponse: {"S"},
 	ClearCaptured:    {"c"},
@@ -242,7 +246,7 @@ func (bindings *Bindings) validateConflicts() error {
 		{"files", append(append([]Action{}, global...), Open, Search, SearchNext, SearchPrevious, Reload)},
 		{"suites", append(append([]Action{}, global...), Open, Back, Search, MoveDown, MoveUp)},
 		{"suite", append(append([]Action{}, global...), Run, Back)},
-		{"producer", append(append([]Action{}, global...), Back, Search, SearchNext, SearchPrevious, HistoryPrevious, HistoryNext, ToggleBody, CopyResponseBody, CopyResponse, SaveResponse, SaveFullResponse)},
+		{"producer", append(append([]Action{}, global...), Back, Search, SearchNext, SearchPrevious, HistoryPrevious, HistoryNext, ToggleBody, RerunRequest, CopyResponseBody, CopyResponse, CopyAsCurl, SaveResponse, SaveFullResponse)},
 		{"search", []Action{SearchFinish}},
 		{"overlay", overlay},
 		{"captured responses", append(append([]Action{}, overlay...), ClearCaptured)},

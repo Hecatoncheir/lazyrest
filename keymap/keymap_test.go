@@ -132,12 +132,23 @@ func TestDefaultResponseExportBindings(t *testing.T) {
 	}{
 		{CopyResponseBody, 'y'},
 		{CopyResponse, 'Y'},
+		{CopyAsCurl, 'C'},
+		{RerunRequest, 'R'},
 		{SaveResponse, 's'},
 		{SaveFullResponse, 'S'},
 	} {
 		if !bindings.Matches(test.action, tcell.NewEventKey(tcell.KeyRune, test.key, tcell.ModNone)) {
 			t.Errorf("%s does not match %q", test.action, test.key)
 		}
+	}
+}
+
+func TestBindingsRejectProducerRequestActionConflicts(t *testing.T) {
+	if _, err := New(map[string][]string{"rerun_request": {"y"}}); err == nil {
+		t.Fatal("expected rerun request to conflict with response body copy")
+	}
+	if _, err := New(map[string][]string{"copy_as_curl": {"S"}}); err == nil {
+		t.Fatal("expected cURL copy to conflict with full response save")
 	}
 }
 

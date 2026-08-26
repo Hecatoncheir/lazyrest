@@ -20,9 +20,16 @@ func (application *Application) buildCommandPalette() {
 	palette.AddItem(translator.Text("choose_theme"), "", 0, func() {
 		application.openOverlay(OverlayThemePicker)
 	})
+	palette.AddItem(translator.Text("choose_environment"), "", 0, func() {
+		application.openOverlay(OverlayEnvironmentPicker)
+	})
 	palette.AddItem(translator.Text("reload_files_command"), "", 0, func() {
 		application.closeOverlay()
 		onReloadFiles(application)()
+	})
+	palette.AddItem(translator.Text("rerun_request"), "", 0, func() {
+		application.closeOverlay()
+		application.rerunCurrentRequest()
 	})
 	palette.AddItem(translator.Text("copy_response_body"), "", 0, func() {
 		application.closeOverlay()
@@ -31,6 +38,10 @@ func (application *Application) buildCommandPalette() {
 	palette.AddItem(translator.Text("copy_response"), "", 0, func() {
 		application.closeOverlay()
 		application.copyResponse(true)
+	})
+	palette.AddItem(translator.Text("copy_as_curl"), "", 0, func() {
+		application.closeOverlay()
+		application.copyAsCurl()
 	})
 	palette.AddItem(translator.Text("save_response"), "", 0, func() {
 		application.openSaveResponse(false)
@@ -112,7 +123,7 @@ func (application *Application) applyOverlayTheme() {
 			SetBorderColor(uiTheme.BorderFocus).
 			SetTitleColor(uiTheme.TitleFocus)
 	}
-	for _, list := range []*tview.List{application.CommandPalette, application.ThemePicker, application.History} {
+	for _, list := range []*tview.List{application.CommandPalette, application.ThemePicker, application.EnvironmentPicker, application.History} {
 		if list != nil {
 			application.applyCommandPaletteTheme(list)
 		}

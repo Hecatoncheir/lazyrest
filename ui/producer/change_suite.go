@@ -75,13 +75,16 @@ func (widget *Producer) ChangeSuite(suite http.HttpSuite) {
 	widget.historyDataMutex.Lock()
 	widget.historyVisible = false
 	widget.resultAvailable = false
+	widget.requestAvailable = true
 	widget.historyDataMutex.Unlock()
 	element := widget.Element.(*tview.TextView)
 
 	// What an earlier request answered is filled in now rather than while the
 	// file is read, because it depends on what has been run.
 	if unresolved := http.ResolveResponseReferences(&suite, &widget.responses); len(unresolved) > 0 {
-		widget.suite = suite
+		widget.historyDataMutex.Lock()
+		widget.suite = cloneRequestSuite(suite)
+		widget.historyDataMutex.Unlock()
 		widget.CancelActive()
 		// The run has to be reported as finished even though nothing was sent,
 		// or the footer keeps animating a request that will never arrive.
@@ -92,9 +95,12 @@ func (widget *Producer) ChangeSuite(suite http.HttpSuite) {
 		widget.updateTitle()
 		return
 	}
-	widget.suite = suite
+	widget.historyDataMutex.Lock()
+	widget.suite = cloneRequestSuite(suite)
+	widget.historyDataMutex.Unlock()
 
 	ctx, runID := widget.StartRun()
+	runnerConfig := widget.runnerConfiguration()
 	initialText := localizedRunningRequestText(widget.locale, formatIndeterminateProgressBar(0))
 
 	// Show loading state immediately
@@ -123,7 +129,7 @@ func (widget *Producer) ChangeSuite(suite http.HttpSuite) {
 
 	// Run in background
 	go func() {
-		r := runner.NewFromSuiteWithConfig(suite, widget.runnerConfig)
+		r := runner.NewFromSuiteWithConfig(suite, runnerConfig)
 
 		// Start executing with progress callback
 		response, err := r.Execute(ctx, func(current, total int64) {

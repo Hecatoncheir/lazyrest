@@ -13,8 +13,10 @@ type Parameters struct {
 	OnEscapeCallback           OnEscapeCallbackType
 	OnProgressCallback         func(current, total int64)
 	OnRunFinishedCallback      func(runner.Response, error)
+	OnRerunRequestCallback     func()
 	OnCopyBodyCallback         func()
 	OnCopyResponseCallback     func()
+	OnCopyAsCurlCallback       func()
 	OnSaveResponseCallback     func()
 	OnSaveFullResponseCallback func()
 	App                        *tview.Application

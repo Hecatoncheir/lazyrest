@@ -60,6 +60,11 @@ func onInputCallback(widget *Producer) func(event *tcell.EventKey) *tcell.EventK
 		case widget.keybindings.Matches(keymap.ToggleBody, event):
 			widget.toggleBodyView()
 			return nil
+		case widget.keybindings.Matches(keymap.RerunRequest, event):
+			if widget.onRerunRequest != nil {
+				widget.onRerunRequest()
+			}
+			return nil
 		case widget.keybindings.Matches(keymap.CopyResponseBody, event):
 			if widget.onCopyBody != nil {
 				widget.onCopyBody()
@@ -68,6 +73,11 @@ func onInputCallback(widget *Producer) func(event *tcell.EventKey) *tcell.EventK
 		case widget.keybindings.Matches(keymap.CopyResponse, event):
 			if widget.onCopyResponse != nil {
 				widget.onCopyResponse()
+			}
+			return nil
+		case widget.keybindings.Matches(keymap.CopyAsCurl, event):
+			if widget.onCopyAsCurl != nil {
+				widget.onCopyAsCurl()
 			}
 			return nil
 		case widget.keybindings.Matches(keymap.SaveResponse, event):

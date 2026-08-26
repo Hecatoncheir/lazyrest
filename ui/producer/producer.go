@@ -28,8 +28,10 @@ type Producer struct {
 	onEscapeCallback   OnEscapeCallbackType
 	onProgress         func(current, total int64)
 	onRunFinished      func(runner.Response, error)
+	onRerunRequest     func()
 	onCopyBody         func()
 	onCopyResponse     func()
+	onCopyAsCurl       func()
 	onSaveResponse     func()
 	onSaveFullResponse func()
 	app                *tview.Application
@@ -40,12 +42,14 @@ type Producer struct {
 	historyIndex       int
 	historyVisible     bool
 	resultAvailable    bool
+	requestAvailable   bool
 	currentText        string
 	searchMode         bool
 	searchQuery        string
 	searchMatches      []int
 	searchIndex        int
 	runnerConfig       runner.Config
+	runnerConfigMutex  sync.RWMutex
 	bodyViewMode       BodyViewMode
 	keybindings        *keymap.Bindings
 	locale             *locale.Translator
@@ -57,6 +61,12 @@ type Producer struct {
 	historyRequested   uint64
 	historyWritten     uint64
 	historyWrites      sync.WaitGroup
+}
+
+func (widget *Producer) runnerConfiguration() runner.Config {
+	widget.runnerConfigMutex.RLock()
+	defer widget.runnerConfigMutex.RUnlock()
+	return widget.runnerConfig
 }
 
 // WaitForHistory blocks until every pending history write has finished. It is
@@ -125,8 +135,10 @@ func (widget *Producer) Build(parameters Parameters) tview.Primitive {
 	widget.onEscapeCallback = parameters.OnEscapeCallback
 	widget.onProgress = parameters.OnProgressCallback
 	widget.onRunFinished = parameters.OnRunFinishedCallback
+	widget.onRerunRequest = parameters.OnRerunRequestCallback
 	widget.onCopyBody = parameters.OnCopyBodyCallback
 	widget.onCopyResponse = parameters.OnCopyResponseCallback
+	widget.onCopyAsCurl = parameters.OnCopyAsCurlCallback
 	widget.onSaveResponse = parameters.OnSaveResponseCallback
 	widget.onSaveFullResponse = parameters.OnSaveFullResponseCallback
 	widget.app = parameters.App

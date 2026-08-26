@@ -252,7 +252,13 @@ func (runner *Runner) Execute(ctx context.Context, onProgress ProgressCallback) 
 
 // requestPayload returns the body to send and the content type it implies.
 func (runner *Runner) requestPayload() (string, string, error) {
-	suite := runner.suite
+	return RequestPayload(runner.suite)
+}
+
+// RequestPayload returns the body that will be sent for suite and the content
+// type implied by its body format. It is shared with request exporters so they
+// describe the same request the runner executes.
+func RequestPayload(suite parser.HttpSuite) (string, string, error) {
 	switch suite.BodyType {
 	case "json":
 		return suite.Body, "application/json", nil

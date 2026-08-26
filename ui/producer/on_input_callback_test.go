@@ -48,6 +48,24 @@ func TestResponseSearchRebuildsMatchesWhenTextChanges(t *testing.T) {
 	}
 }
 
+func TestProducerRequestActionsUseConfiguredBindings(t *testing.T) {
+	reruns := 0
+	curlCopies := 0
+	widget := New()
+	widget.Build(Parameters{
+		Keybindings:            keymap.Default(),
+		Locale:                 locale.English(),
+		OnRerunRequestCallback: func() { reruns++ },
+		OnCopyAsCurlCallback:   func() { curlCopies++ },
+	})
+	handler := onInputCallback(widget)
+	handler(tcell.NewEventKey(tcell.KeyRune, 'R', tcell.ModNone))
+	handler(tcell.NewEventKey(tcell.KeyRune, 'C', tcell.ModNone))
+	if reruns != 1 || curlCopies != 1 {
+		t.Fatalf("unexpected request actions: reruns=%d curl copies=%d", reruns, curlCopies)
+	}
+}
+
 func buildSearchTestProducer() *Producer {
 	widget := New()
 	widget.Build(Parameters{Keybindings: keymap.Default(), Locale: locale.English()})

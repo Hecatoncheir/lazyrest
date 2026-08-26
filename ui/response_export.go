@@ -9,9 +9,39 @@ import (
 	"strings"
 
 	"github.com/Hecatoncheir/lazyrest/ui/footer"
+	"github.com/Hecatoncheir/lazyrest/ui/producer"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 )
+
+func (application *Application) rerunCurrentRequest() {
+	suite, ok := application.Producer.CurrentRequest()
+	if !ok {
+		application.showExportError(application.config.Locale.Text("no_request_to_rerun"))
+		return
+	}
+	onSuiteRun(application)(suite)
+}
+
+func (application *Application) copyAsCurl() {
+	command, err := application.Producer.CurlCommand()
+	if err != nil {
+		message := application.config.Locale.Text("no_request_to_export")
+		if errors.Is(err, producer.ErrHurlCurlUnsupported) {
+			message = application.config.Locale.Text("hurl_curl_unsupported")
+		}
+		application.showExportError(message)
+		return
+	}
+	if application.screen == nil {
+		application.showExportError(application.config.Locale.Text("clipboard_unavailable"))
+		return
+	}
+	application.screen.SetClipboard([]byte(command))
+	application.stopFooterProgress()
+	application.Footer.UpdateIndicatorState(footer.IndicatorSuccess)
+	application.Footer.UpdateStatus(application.config.Locale.Format("curl_copied", len([]byte(command))))
+}
 
 func (application *Application) copyResponse(full bool) {
 	exported, ok := application.Producer.CurrentResponse()

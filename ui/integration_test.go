@@ -95,6 +95,56 @@ func TestTUILoadsProjectDotEnvAsSecret(t *testing.T) {
 	}
 }
 
+func TestTUISelectsEnvironmentAndReparsesTheCurrentFile(t *testing.T) {
+	root := t.TempDir()
+	if err := os.WriteFile(filepath.Join(root, ".env"), []byte("HOST=base.example.test\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	profiles := `{"development":{"HOST":"dev.example.test"},"staging":{"HOST":"stage.example.test"}}`
+	if err := os.WriteFile(filepath.Join(root, environment.DefaultPublicFile), []byte(profiles), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	filePath := filepath.Join(root, "environment.http")
+	if err := os.WriteFile(filePath, []byte("GET https://{{HOST}}/health\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	application := BuildApplication(root, Config{})
+	screen, _ := runTestApplication(t, application)
+	application.Start()
+	waitFor(t, "base environment startup", func() bool {
+		state := application.Model.Snapshot()
+		return state.Startup.Phase == PhaseReady && state.Files.Phase == PhaseReady
+	})
+	application.Element.QueueUpdateDraw(func() {
+		onSelectFileCallback(application)(finder.File{Name: filepath.Base(filePath), Path: filePath})
+	})
+	waitFor(t, "base environment parsing", func() bool {
+		state := application.Model.Snapshot()
+		return len(state.Suites) == 1 && state.Suites[0].Uri == "https://base.example.test/health"
+	})
+
+	application.Element.QueueUpdateDraw(func() {
+		application.openOverlay(OverlayEnvironmentPicker)
+		for index := 0; index < application.EnvironmentPicker.GetItemCount(); index++ {
+			name, _ := application.EnvironmentPicker.GetItemText(index)
+			if name == "staging" {
+				application.EnvironmentPicker.SetCurrentItem(index)
+				return
+			}
+		}
+	})
+	waitFor(t, "environment picker", func() bool {
+		return application.Model.CurrentOverlay() == OverlayEnvironmentPicker
+	})
+	screen.InjectKey(tcell.KeyEnter, 0, tcell.ModNone)
+	waitFor(t, "staging environment parsing", func() bool {
+		state := application.Model.Snapshot()
+		return state.EnvironmentName == "staging" && len(state.Suites) == 1 &&
+			state.Suites[0].Uri == "https://stage.example.test/health"
+	})
+}
+
 func TestTUIUsesConfiguredLanguage(t *testing.T) {
 	translator, err := locale.New("ru", nil)
 	if err != nil {
@@ -259,7 +309,9 @@ func TestTUIProducerAnimatesProgressWhileWaiting(t *testing.T) {
 func TestTUIProducerCopiesAndSavesTheCurrentResponse(t *testing.T) {
 	root := t.TempDir()
 	rawBody := `{"ok":true,"items":[1,2]}`
+	var requestCount atomic.Int32
 	client := &http.Client{Transport: uiRoundTripFunc(func(*http.Request) (*http.Response, error) {
+		requestCount.Add(1)
 		return &http.Response{
 			StatusCode:    http.StatusOK,
 			Header:        http.Header{"Content-Type": []string{"application/json"}},
@@ -278,6 +330,16 @@ func TestTUIProducerCopiesAndSavesTheCurrentResponse(t *testing.T) {
 			Header: http.Header{},
 		})
 	})
+	waitForScreenText(t, application, screen, `"items"`)
+
+	screen.InjectKey(tcell.KeyRune, 'C', tcell.ModNone)
+	waitFor(t, "cURL request in clipboard", func() bool {
+		copied := applicationClipboard(application, screen)
+		return strings.Contains(copied, "--request 'GET'") && strings.Contains(copied, "--url 'https://example.test/items'")
+	})
+
+	screen.InjectKey(tcell.KeyRune, 'R', tcell.ModNone)
+	waitFor(t, "repeated request", func() bool { return requestCount.Load() == 2 })
 	waitForScreenText(t, application, screen, `"items"`)
 
 	screen.InjectKey(tcell.KeyRune, 'y', tcell.ModNone)
@@ -464,6 +526,11 @@ func TestTUIHistoryWindowSelectsAndClearsProjectHistory(t *testing.T) {
 		return application.Model.CurrentOverlay() == OverlayNone &&
 			application.Element.GetFocus() == application.Producer.Element &&
 			strings.Contains(application.Producer.Element.(*tview.TextView).GetText(false), "/older")
+	})
+	screen.InjectKey(tcell.KeyRune, 'R', tcell.ModNone)
+	waitFor(t, "older history rerun", func() bool {
+		summaries := application.Producer.HistorySummaries()
+		return len(summaries) == 3 && summaries[0].Name == "Older request" && summaries[0].Status == "200 OK"
 	})
 
 	application.Element.QueueUpdateDraw(func() { application.openOverlay(OverlayHistory) })

@@ -1,10 +1,6 @@
 package ui
 
 import (
-	"maps"
-	"slices"
-
-	"github.com/Hecatoncheir/lazyrest/environment"
 	parserhttp "github.com/Hecatoncheir/lazyrest/parser/http"
 )
 
@@ -18,31 +14,14 @@ func (application *Application) Start() {
 			state.Files = TaskState{Phase: PhaseLoading}
 		})
 		application.refreshDiagnostics()
+		environmentLoadID := application.startEnvironmentLoad()
 
 		go func() {
-			selectedEnvironment := environment.Environment{
-				Name:            application.config.EnvironmentName,
-				Values:          maps.Clone(application.config.ParseOptions.Variables),
-				SecretVariables: append([]string(nil), application.config.ParseOptions.SecretVariables...),
-			}
-			if selectedEnvironment.Values == nil {
-				selectedEnvironment.Values = map[string]string{}
-			}
-			loadedEnvironment, environmentError := application.loadEnvironment(
+			selectedEnvironment, environmentError := application.loadMergedEnvironment(
 				application.Model.Snapshot().RootDirectoryPath,
 				application.config.Environment,
+				application.config.EnvironmentName,
 			)
-			if environmentError == nil {
-				for key, value := range loadedEnvironment.Values {
-					selectedEnvironment.Values[key] = value
-				}
-				selectedEnvironment.SecretVariables = append(selectedEnvironment.SecretVariables, loadedEnvironment.SecretVariables...)
-				slices.Sort(selectedEnvironment.SecretVariables)
-				selectedEnvironment.SecretVariables = slices.Compact(selectedEnvironment.SecretVariables)
-				if loadedEnvironment.Name != "" {
-					selectedEnvironment.Name = loadedEnvironment.Name
-				}
-			}
 			scanResult := application.scanFiles(ctx)
 			if !treeWidget.IsCurrentReload(reloadID) {
 				return
@@ -52,16 +31,21 @@ func (application *Application) Start() {
 				if !treeWidget.FinishReload(reloadID) {
 					return
 				}
-				if environmentError == nil {
+				currentEnvironmentLoad := application.isCurrentEnvironmentLoad(environmentLoadID)
+				if environmentError == nil && currentEnvironmentLoad {
 					application.Suites.SetParseOptions(parserhttp.ParseOptions{
 						Variables:       selectedEnvironment.Values,
 						SecretVariables: selectedEnvironment.SecretVariables,
 					})
 				}
 				application.Model.update(func(state *State) {
-					state.Startup = taskState(environmentError)
+					if currentEnvironmentLoad {
+						state.Startup = taskState(environmentError)
+					} else {
+						state.Startup = TaskState{Phase: PhaseReady}
+					}
 					state.Files = taskState(scanResult.Err)
-					if environmentError == nil {
+					if environmentError == nil && currentEnvironmentLoad {
 						state.EnvironmentName = selectedEnvironment.Name
 					}
 					if scanResult.Err == nil {

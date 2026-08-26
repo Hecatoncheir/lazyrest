@@ -6,6 +6,9 @@ All notable changes to this project will be documented in this file.
 ### Added
 - A project-root `.env` file is loaded automatically as a private base environment, including for Hurl; `-dotenv-file` selects another filename, and JSON profiles plus request-local declarations retain their precedence.
 - The command palette can open a separate project History window that lists safe run metadata newest first, opens an entry in Producer with `Enter` / `l`, and clears memory and persisted entries with `c`.
+- Producer repeats the visible current-session request with `R`, including an entry selected from the History window.
+- Producer copies the resolved request as a quoted, multiline cURL command with `C` or **Copy as cURL**; GraphQL uses the same encoded payload as the runner.
+- **Choose environment** in the command palette switches between base `.env` values and JSON profiles, clears stale captures and cookies, and reparses the open request file without restarting.
 
 ### Changed
 - Producer history state is synchronized across UI reads, active requests, and background persistence.

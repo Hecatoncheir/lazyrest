@@ -41,6 +41,38 @@ func TestLoadMergesPublicAndPrivateProfiles(t *testing.T) {
 	}
 }
 
+func TestNamesReturnsSortedPublicAndPrivateProfileUnion(t *testing.T) {
+	root := t.TempDir()
+	if err := os.WriteFile(filepath.Join(root, DefaultPublicFile), []byte(`{"staging":{},"development":{}}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(root, DefaultPrivateFile), []byte(`{"production":{"token":"secret"},"development":{}}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	names, err := Names(root, Config{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []string{"development", "production", "staging"}
+	if !reflect.DeepEqual(names, want) {
+		t.Fatalf("unexpected environment names: got %v, want %v", names, want)
+	}
+}
+
+func TestNamesReportsMalformedEnvironmentFiles(t *testing.T) {
+	root := t.TempDir()
+	path := filepath.Join(root, DefaultPublicFile)
+	if err := os.WriteFile(path, []byte(`{"development":`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	_, err := Names(root, Config{})
+	if err == nil || !strings.Contains(err.Error(), path) {
+		t.Fatalf("unexpected environment names error: %v", err)
+	}
+}
+
 func TestLoadWithoutSelectedProfileDoesNotRequireFiles(t *testing.T) {
 	result, err := Load(t.TempDir(), Config{})
 	if err != nil {

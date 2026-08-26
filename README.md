@@ -24,6 +24,7 @@
 - `.hurl` files listed one entry at a time, each run with the entries it depends on.
 - Syntax highlighting for JSON, XML, and GraphQL across the panes, and HTTP methods coloured by what they do.
 - Response headers, protocol metadata, Pretty/Raw bodies, and clipboard/file export.
+- One-key request replay, environment switching, and executable cURL export from Producer.
 - Cancellable execution with animated progress bars, a timeout, and bounded response bodies.
 - File/request/response search, dedicated diagnostics and history windows, and a persistent history of the last 50 runs per project.
 - Mouse and Vim-style keyboard navigation.
@@ -291,6 +292,11 @@ the final word. Undefined variables and reference cycles appear as parser
 diagnostics. Private values are redacted from requests, responses, errors, and
 history output.
 
+Choose **Choose environment** from the command palette to switch between the
+base `.env` values and profiles found in either JSON file without restarting.
+lazyrest reloads the selected environment, clears captured responses and
+cookies from the previous one, and reparses the open request file immediately.
+
 ## Examples
 
 The [`example`](example) directory contains ready-to-run `.http` and `.hurl`
@@ -384,8 +390,10 @@ keybindings:
   center_view: ["zz"]
   align_bottom: ["zb"]
   toggle_body: ["p"]
+  rerun_request: ["R"]
   copy_response_body: ["y"]
   copy_response: ["Y"]
+  copy_as_curl: ["C"]
   save_response: ["s"]
   save_full_response: ["S"]
   clear_captured_responses: ["c"]
@@ -460,6 +468,13 @@ Pretty/Raw mode. `Y` copies the complete response — status, headers, and body 
 without the pane's labels or colour markup. Clipboard export uses the terminal's
 clipboard support, which may need OSC 52 to be enabled in the terminal.
 
+Press `C` to copy the request as a multiline POSIX-shell cURL command. The
+command uses the resolved URL, declared headers, encoded GraphQL payload, and
+body from the request. This explicit export includes real secret values, so treat
+the clipboard as sensitive. A multi-entry Hurl workflow cannot be represented
+as one cURL command. Requests restored from redacted on-disk history must be run
+once in the current session before they can be repeated or exported as cURL.
+
 Press `s` to save the unformatted body, or `S` to save the same complete response
 that `Y` copies, including the body in the active Pretty/Raw mode. The path prompt
 suggests a name from the request and timestamp, using the content type for a body
@@ -494,7 +509,9 @@ the response pane, and report when the exported body was truncated.
 - `/`: search in the focused Files, Suites, or Producer area; `Enter` finishes entering the query. In Files and Producer, `n` / `N` move cyclically through matches; Producer shows the current and total match count in its title.
 - `r`: reload the file tree in the background while Files is focused.
 - `p`: toggle Pretty/Raw response bodies while Producer is focused. Pretty formats and highlights JSON, XML, and GraphQL; Raw shows exactly what came over the wire.
+- `R`: repeat the request currently shown in Producer; current-session History selections are supported.
 - `y` / `Y`: copy the current response body / complete response while Producer is focused.
+- `C`: copy the current request as an executable cURL command.
 - `s` / `S`: save the unformatted current response body / complete response while Producer is focused.
 - `n` / `N`: next/previous match in the focused Files or Producer area.
 - `[` / `]`: previous/next response history entry.
@@ -521,6 +538,11 @@ Current roadmap, roughly in the order the remaining gaps matter:
   of named responses, which can be cleared without restarting.
 - [x] **Load `.env` files.** The project-root `.env` is an automatic private base
   environment, with JSON profiles and request-local declarations layered over it.
+- [x] **Repeat and export the current request.** Producer uses `R` to rerun the
+  visible request and `C` to copy it as cURL.
+- [x] **Switch environments without restarting.** The command palette lists the
+  base `.env` layer and profiles from both JSON environment files, then reparses
+  the open request file after a selection.
 - [ ] **`.gitignore` is not honoured.** Skipped directories come from the built-in
   list and the `ignore` key instead; a faithful implementation means globs,
   negation, and nested files.

@@ -45,12 +45,14 @@ const (
 	OverlayHistory
 	OverlayCommandPalette
 	OverlayThemePicker
+	OverlayEnvironmentPicker
 	OverlaySaveResponse
 )
 
 type State struct {
 	RootDirectoryPath string
 	EnvironmentName   string
+	Environment       TaskState
 	Startup           TaskState
 	Files             TaskState
 	Parser            TaskState
