@@ -1,0 +1,15 @@
+@baseUrl = "https://httpbin.org"
+
+# @name login
+POST {{baseUrl}}/anything
+Accept: application/json
+Content-Type: application/json
+
+{
+  "token": "example-token"
+}
+
+# @name Use the captured token
+GET {{baseUrl}}/bearer
+Accept: application/json
+Authorization: Bearer {{login.response.body.$.json.token}}

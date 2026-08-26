@@ -2,6 +2,7 @@ package ui
 
 import (
 	"context"
+	"errors"
 	"io"
 	"net/http"
 	"os"
@@ -277,4 +278,77 @@ func findFileReference(node *tview.TreeNode, path string) *tview.TreeNode {
 		}
 	}
 	return nil
+}
+
+func TestTUIChainsRequestsThroughAnEarlierResponse(t *testing.T) {
+	var sentAuthorization string
+	client := &http.Client{Transport: uiRoundTripFunc(func(request *http.Request) (*http.Response, error) {
+		if strings.HasSuffix(request.URL.Path, "/auth") {
+			return &http.Response{
+				StatusCode:    http.StatusOK,
+				Header:        http.Header{"Content-Type": []string{"application/json"}},
+				Body:          io.NopCloser(strings.NewReader(`{"token":"abc123"}`)),
+				ContentLength: 18,
+				Proto:         "HTTP/1.1",
+			}, nil
+		}
+		sentAuthorization = request.Header.Get("Authorization")
+		return &http.Response{
+			StatusCode:    http.StatusOK,
+			Header:        http.Header{"Content-Type": []string{"application/json"}},
+			Body:          io.NopCloser(strings.NewReader(`{"me":"ok"}`)),
+			ContentLength: 11,
+			Proto:         "HTTP/1.1",
+		}, nil
+	})}
+
+	application := BuildApplication(t.TempDir(), Config{
+		Runner: runner.Config{Client: client, Timeout: 10 * time.Second},
+	})
+	screen, _ := runTestApplication(t, application)
+
+	login := parserhttp.HttpSuite{
+		Name:   "login",
+		Method: http.MethodPost,
+		Uri:    "https://example.test/auth",
+		Header: http.Header{},
+	}
+	application.Element.QueueUpdateDraw(func() { onSuiteRun(application)(login) })
+	waitForScreenText(t, application, screen, "abc123")
+
+	profile := parserhttp.HttpSuite{
+		Name:   "profile",
+		Method: http.MethodGet,
+		Uri:    "https://example.test/me",
+		Header: http.Header{"Authorization": []string{"Bearer {{login.response.body.$.token}}"}},
+	}
+	application.Element.QueueUpdateDraw(func() { onSuiteRun(application)(profile) })
+	waitForScreenText(t, application, screen, `"me"`)
+
+	if sentAuthorization != "Bearer abc123" {
+		t.Fatalf("the captured token did not reach the request: %q", sentAuthorization)
+	}
+}
+
+func TestTUIReportsAReferenceToARequestThatHasNotRun(t *testing.T) {
+	client := &http.Client{Transport: uiRoundTripFunc(func(*http.Request) (*http.Response, error) {
+		t.Error("a request was sent although its reference could not be resolved")
+		return nil, errors.New("must not be reached")
+	})}
+
+	application := BuildApplication(t.TempDir(), Config{
+		Runner: runner.Config{Client: client, Timeout: 10 * time.Second},
+	})
+	screen, _ := runTestApplication(t, application)
+
+	suite := parserhttp.HttpSuite{
+		Name:   "profile",
+		Method: http.MethodGet,
+		Uri:    "https://example.test/me",
+		Header: http.Header{"Authorization": []string{"Bearer {{login.response.body.$.token}}"}},
+	}
+	application.Element.QueueUpdateDraw(func() { onSuiteRun(application)(suite) })
+	// The message wraps in the pane, so only the part before the wrap is
+	// matched.
+	waitForScreenText(t, application, screen, `"login" has not`)
 }

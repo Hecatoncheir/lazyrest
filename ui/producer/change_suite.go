@@ -2,6 +2,8 @@ package producer
 
 import (
 	"context"
+	"slices"
+	"strings"
 	"sync"
 	"time"
 
@@ -69,12 +71,23 @@ func (widget *Producer) animateProgress(ctx context.Context, runID uint64, done 
 }
 
 func (widget *Producer) ChangeSuite(suite http.HttpSuite) {
-	widget.suite = suite
 	widget.searchMode = false
 	widget.searchQuery = ""
 	widget.historyVisible = false
-	ctx, runID := widget.StartRun()
 	element := widget.Element.(*tview.TextView)
+
+	// What an earlier request answered is filled in now rather than while the
+	// file is read, because it depends on what has been run.
+	if unresolved := http.ResolveResponseReferences(&suite, widget.responses); len(unresolved) > 0 {
+		widget.suite = suite
+		widget.CancelActive()
+		widget.showCompletedResult(element, widget.renderUnresolved(unresolved))
+		widget.updateTitle()
+		return
+	}
+	widget.suite = suite
+
+	ctx, runID := widget.StartRun()
 	initialText := localizedRunningRequestText(widget.locale, formatIndeterminateProgressBar(0))
 
 	// Show loading state immediately
@@ -128,12 +141,35 @@ func (widget *Producer) ChangeSuite(suite http.HttpSuite) {
 			if widget.onRunFinished != nil {
 				widget.onRunFinished(response, err)
 			}
+			widget.recordResponse(suite, response, err)
 			widget.addHistory(suite, response, err)
 			text := widget.renderResult(suite, response, err)
 
 			widget.showCompletedResult(element, text)
 		})
 	}()
+}
+
+// recordResponse keeps the answer of a named request so that the requests
+// after it can refer to what it returned.
+func (widget *Producer) recordResponse(suite http.HttpSuite, response runner.Response, err error) {
+	if err != nil || suite.Name == "" {
+		return
+	}
+	if widget.responses == nil {
+		widget.responses = http.ResponseStore{}
+	}
+	widget.responses[suite.Name] = http.ResponseValue{Body: response.Body, Header: response.Header}
+}
+
+func (widget *Producer) renderUnresolved(unresolved []string) string {
+	slices.Sort(unresolved)
+	var text strings.Builder
+	text.WriteString("[red]" + widget.locale.Text("response_error") + ":[white]\n")
+	for _, reference := range unresolved {
+		text.WriteString(tview.Escape("- " + reference + "\n"))
+	}
+	return text.String()
 }
 
 func (widget *Producer) showCompletedResult(element *tview.TextView, text string) {

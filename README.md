@@ -214,6 +214,35 @@ GraphQL answers with `200` even when the operation failed, so an `errors` array
 in the response is listed separately and marks the run as failed. To send the
 raw query instead, declare `Content-Type: application/graphql` yourself.
 
+## Chaining requests
+
+A request can use what an earlier one answered. Name the first request, run it,
+then refer to its response:
+
+```http
+# @name login
+POST https://api.example.com/auth
+Content-Type: application/json
+
+{"user": "me", "password": "secret"}
+
+###
+
+GET https://api.example.com/profile
+Authorization: Bearer {{login.response.body.$.token}}
+```
+
+`{{name.response.body.$.path}}` reads a value out of a JSON body, with member
+names and array indices under a `$` root, such as
+`{{login.response.body.$.data.items[0].id}}`. A string is inserted as itself and
+anything else as its JSON form. `{{name.response.body}}` takes the whole body,
+and `{{name.response.headers.X-Token}}` takes a response header.
+
+References are resolved when the request runs, against the last answer of each
+named request in the current session. Nothing is stored on disk. A request whose
+references cannot be resolved is not sent; the pane says which reference was
+waiting and why.
+
 ## Environments
 
 Select a profile with `lazyrest -env development .`. Public values come from `http-client.env.json`:

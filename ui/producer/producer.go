@@ -44,6 +44,7 @@ type Producer struct {
 	locale           *locale.Translator
 	historyPath      string
 	syntax           syntax.Palette
+	responses        http.ResponseStore
 	historyMutex     sync.Mutex
 	historyRequested uint64
 	historyWritten   uint64

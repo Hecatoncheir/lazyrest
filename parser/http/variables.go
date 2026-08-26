@@ -69,7 +69,11 @@ func (resolver *variableResolver) resolveName(name string, stack []string) strin
 	}
 	raw, ok := resolver.variables[name]
 	if !ok {
-		resolver.missing[name] = struct{}{}
+		// A reference to an earlier response is resolved when the request
+		// runs, not while the file is being read.
+		if !strings.Contains(name, ".response.") {
+			resolver.missing[name] = struct{}{}
+		}
 		return "{{" + name + "}}"
 	}
 	value := resolver.resolveText(raw, append(stack, name))
