@@ -95,6 +95,32 @@ func TestUnsupportedCtrlDirectionKeepsFocus(t *testing.T) {
 	}
 }
 
+func TestQuitBindingClosesAnOverlayBeforeQuitting(t *testing.T) {
+	application := BuildApplication(t.TempDir(), Config{})
+	application.openOverlay(OverlayHelp)
+
+	event := tcell.NewEventKey(tcell.KeyRune, 'q', tcell.ModNone)
+	if returned := onInputCallback(application)(event); returned != nil {
+		t.Fatal("handled q event was not consumed")
+	}
+	if overlay := application.Model.CurrentOverlay(); overlay != OverlayNone {
+		t.Fatalf("q did not close the overlay: %v", overlay)
+	}
+}
+
+func TestCtrlCRemainsAnUnconditionalQuitWithAnOverlay(t *testing.T) {
+	application := BuildApplication(t.TempDir(), Config{})
+	application.openOverlay(OverlayHelp)
+
+	event := tcell.NewEventKey(tcell.KeyCtrlC, 0, tcell.ModCtrl)
+	if returned := onInputCallback(application)(event); returned != nil {
+		t.Fatal("handled Ctrl+C event was not consumed")
+	}
+	if overlay := application.Model.CurrentOverlay(); overlay != OverlayHelp {
+		t.Fatalf("Ctrl+C was handled as an overlay close: %v", overlay)
+	}
+}
+
 func newNavigationTestApplication() *Application {
 	return &Application{
 		Element:       tview.NewApplication(),

@@ -445,7 +445,8 @@ the response pane, and report when the exported body was truncated.
 - `?`: open the built-in keyboard reference; press `?`, `q`, or `Esc` to close.
 - `:` or `Ctrl+p`: open the command palette.
 - `Ctrl+r`: reload `~/.config/lazyrest/config.yml` without restarting.
-- `q` or `Ctrl+C`: quit.
+- `q`: close the active window; quit lazyrest when no window is open.
+- `Ctrl+C`: quit from anywhere.
 
 ## TODO
 

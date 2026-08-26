@@ -249,7 +249,7 @@ func helpText(bindings *keymap.Bindings, translator *locale.Translator) string {
 		translator.Text("global"),
 		line(keymap.Help, translator.Text("help_toggle")),
 		line(keymap.Diagnostics, translator.Text("diagnostics_toggle")),
-		line(keymap.Quit, translator.Text("quit")),
+		line(keymap.Quit, translator.Text("quit_help")),
 		line(keymap.FocusLeft, translator.Text("focus_left")),
 		line(keymap.FocusDown, translator.Text("focus_down")),
 		line(keymap.FocusUp, translator.Text("focus_up")),

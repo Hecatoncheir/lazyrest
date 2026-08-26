@@ -121,6 +121,14 @@ func TestTUIDiagnosticsAndHelpWorkflow(t *testing.T) {
 			strings.Contains(applicationText(application, screen), "Move focus left")
 	})
 
+	screen.InjectKey(tcell.KeyRune, 'q', tcell.ModNone)
+	waitFor(t, "q closed help without quitting", func() bool {
+		return application.Model.Snapshot().Overlay == OverlayNone
+	})
+	screen.InjectKey(tcell.KeyRune, '?', tcell.ModNone)
+	waitFor(t, "help reopened after q", func() bool {
+		return application.Model.Snapshot().Overlay == OverlayHelp
+	})
 	screen.InjectKey(tcell.KeyEsc, 0, tcell.ModNone)
 	waitFor(t, "closed overlay", func() bool {
 		return application.Model.Snapshot().Overlay == OverlayNone

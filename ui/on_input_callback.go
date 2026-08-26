@@ -20,7 +20,11 @@ func onInputCallback(application *Application) onInputCallbackType {
 			if overlay != OverlayNone {
 				switch {
 				case bindings.Matches(keymap.Quit, event):
-					stopApplication(application)
+					if event.Key() == tcell.KeyCtrlC {
+						stopApplication(application)
+					} else {
+						application.closeOverlay()
+					}
 					return nil
 				case bindings.Matches(keymap.Back, event):
 					application.closeOverlay()
