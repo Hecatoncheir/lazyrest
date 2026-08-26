@@ -9,6 +9,7 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 - An unknown key in the configuration is refused instead of being dropped without a word, so a typo such as `keybinding` for `keybindings` no longer looks accepted.
+- `color.Color.ToRGB` returned 16-bit channels where 0 to 255 was meant. The colours on screen were right only because tcell masks each channel, so a theme rendered correctly by coincidence.
 - The summary of a response is translated. It was built with English baked in, so a Russian or Chinese interface still read "Response code" and "Content length".
 
 ### Changed
