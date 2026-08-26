@@ -8,6 +8,7 @@ All notable changes to this project will be documented in this file.
 - Cookies set by a response are carried into the requests that follow, so a session survives a whole run. The jar is held in memory only; `-cookies=false` turns it off.
 - `-max-redirects` bounds how many redirects a request follows, and `-follow-redirects=false` returns the redirect itself so that its `Location` can be read.
 - `-insecure` accepts any server certificate, for a host serving a self-signed one.
+- A `.hurl` file is listed one entry at a time instead of as a single opaque session. Selecting an entry runs the file up to it, because an entry may use what an earlier one captured; the last entry runs the whole file as before.
 - The Suites list leads every row with its HTTP method, coloured by what the method does: reads take the success colour of the theme, a create its progress colour, an update its accent, and a delete its failure colour. The row carrying the selection is drawn plain, so the selection stays readable.
 
 ### Fixed

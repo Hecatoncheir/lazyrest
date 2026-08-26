@@ -11,6 +11,10 @@ type HttpSuite struct {
 	BodyType     string
 	IsHurl       bool
 	HurlFilePath string
+	// HurlEntry is the position of an entry in its Hurl file, counted from
+	// one. Hurl runs a file in order, so an entry is reached by running
+	// everything up to it.
+	HurlEntry int
 	// Variables are passed to Hurl, which does its own substitution.
 	Variables map[string]string
 	// GraphQLVariables and GraphQLOperation complete a GraphQL request whose

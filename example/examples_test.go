@@ -59,8 +59,16 @@ func TestHurlExamplesAreRunnableSessions(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if len(suites) != 1 || !suites[0].IsHurl {
-				t.Fatalf("expected one Hurl session, got %+v", suites)
+			if len(suites) == 0 {
+				t.Fatalf("no entries were read from %s", path)
+			}
+			for index, suite := range suites {
+				if !suite.IsHurl {
+					t.Errorf("entry %d is not marked as Hurl: %+v", index, suite)
+				}
+				if suite.HurlEntry != index+1 {
+					t.Errorf("entry %d is numbered %d", index, suite.HurlEntry)
+				}
 			}
 		})
 	}

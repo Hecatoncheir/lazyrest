@@ -251,6 +251,10 @@ go run . example
 The examples use the public `https://httpbin.org` test service and require
 internet access. Running `.hurl` examples also requires the `hurl` executable.
 
+A `.hurl` file is listed one entry at a time. Hurl runs a file in order and an
+entry may use what an earlier one captured, so selecting an entry runs the file
+up to it with `--to-entry`; the last entry therefore runs the whole file.
+
 ## Configuration
 
 lazyrest merges configuration in this order, with later layers taking priority:

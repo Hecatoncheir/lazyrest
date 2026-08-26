@@ -422,6 +422,48 @@ func TestExecuteHurl_PassesVariablesToHurl(t *testing.T) {
 	}
 }
 
+func TestExecuteHurl_RunsUpToTheSelectedEntry(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("the stub executable is a shell script")
+	}
+	directory := t.TempDir()
+	capturedPath := filepath.Join(directory, "captured")
+	stub := filepath.Join(directory, "hurl")
+	script := "#!/bin/sh\n" +
+		"echo \"$@\" > \"$LAZYREST_TEST_CAPTURE\"\n" +
+		"echo '{\"entries\":[]}'\n"
+	if err := os.WriteFile(stub, []byte(script), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	hurlFile := filepath.Join(directory, "workflow.hurl")
+	if err := os.WriteFile(hurlFile, []byte("GET https://example.test/a\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("LAZYREST_TEST_CAPTURE", capturedPath)
+
+	run := func(entry int) string {
+		suite := parser.HttpSuite{IsHurl: true, HurlFilePath: hurlFile, HurlEntry: entry}
+		runner := NewFromSuiteWithConfig(suite, Config{HurlExecutable: stub})
+		if _, err := runner.Execute(context.Background(), nil); err != nil {
+			t.Fatal(err)
+		}
+		captured, err := os.ReadFile(capturedPath)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return strings.TrimSpace(string(captured))
+	}
+
+	// An entry may use what an earlier one captured, so it is reached by
+	// running the file up to it.
+	if arguments := run(2); !strings.Contains(arguments, "--to-entry 2") {
+		t.Fatalf("the entry was not passed to Hurl: %q", arguments)
+	}
+	if arguments := run(0); strings.Contains(arguments, "--to-entry") {
+		t.Fatalf("a whole-file run was limited to an entry: %q", arguments)
+	}
+}
+
 func TestNewClientKeepsCookiesAcrossRequests(t *testing.T) {
 	seen := make(chan string, 2)
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

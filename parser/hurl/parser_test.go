@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"strings"
 	"testing"
 
 	"github.com/Hecatoncheir/lazyrest/parser/http"
@@ -43,22 +44,54 @@ Extra-Header: Value
 		t.Fatal(err)
 	}
 
-	if len(suites) != 1 {
-		t.Fatalf("expected one runnable Hurl file, got %d", len(suites))
+	if len(suites) != 2 {
+		t.Fatalf("expected one suite per entry, got %d: %+v", len(suites), suites)
 	}
 
-	suite := suites[0]
-	if !suite.IsHurl {
-		t.Error("expected Hurl suite")
+	for index, suite := range suites {
+		if !suite.IsHurl {
+			t.Errorf("entry %d is not marked as Hurl", index)
+		}
+		if suite.HurlFilePath != tmpFile.Name() {
+			t.Errorf("entry %d has path %q, want %q", index, suite.HurlFilePath, tmpFile.Name())
+		}
+		if suite.HurlEntry != index+1 {
+			t.Errorf("entry %d is numbered %d", index, suite.HurlEntry)
+		}
+		if suite.Name == "" {
+			t.Errorf("entry %d has no display name", index)
+		}
 	}
-	if suite.HurlFilePath != tmpFile.Name() {
-		t.Errorf("expected path %q, got %q", tmpFile.Name(), suite.HurlFilePath)
+	if suites[0].Method != "GET" || suites[0].Uri != "https://example.com/1" {
+		t.Errorf("unexpected first entry: %+v", suites[0])
 	}
-	if suite.Method != "HURL" || suite.Uri != tmpFile.Name() {
-		t.Errorf("unexpected Hurl suite: %+v", suite)
+	if suites[1].Method != "POST" || suites[1].Uri != "https://example.com/2" {
+		t.Errorf("unexpected second entry: %+v", suites[1])
 	}
-	if suite.Name == "" {
-		t.Error("expected display name")
+	if !strings.Contains(suites[0].Body, "Body content 1") {
+		t.Errorf("the first entry lost its body: %q", suites[0].Body)
+	}
+	if strings.Contains(suites[0].Body, "example.com/2") {
+		t.Errorf("the first entry swallowed the second: %q", suites[0].Body)
+	}
+}
+
+func TestGetSuitesFromFile_KeepsTheWholeFileWhenNoEntryIsRecognized(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "prose.hurl")
+	if err := os.WriteFile(path, []byte("# nothing runnable here\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	parser, err := NewParser()
+	if err != nil {
+		t.Fatal(err)
+	}
+	suites, err := parser.GetSuitesFromFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(suites) != 1 || suites[0].Method != "HURL" || suites[0].HurlEntry != 0 {
+		t.Fatalf("expected the whole file as one suite, got %+v", suites)
 	}
 }
 

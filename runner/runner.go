@@ -12,6 +12,7 @@ import (
 	"os"
 	"os/exec"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -308,6 +309,11 @@ func (runner *Runner) executeHurl(ctx context.Context) (Response, error) {
 	arguments := []string{"--json"}
 	if variablesPath != "" {
 		arguments = append(arguments, "--variables-file", variablesPath)
+	}
+	// Hurl runs a file in order and an entry may use what an earlier one
+	// captured, so reaching an entry means running everything up to it.
+	if runner.suite.HurlEntry > 0 {
+		arguments = append(arguments, "--to-entry", strconv.Itoa(runner.suite.HurlEntry))
 	}
 	arguments = append(arguments, runner.suite.HurlFilePath)
 
