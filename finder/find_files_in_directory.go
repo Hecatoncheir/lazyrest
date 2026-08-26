@@ -58,6 +58,7 @@ func Find(ctx context.Context, directoryPath string, options Options) (Directory
 	scan := &scanner{
 		extensions: options.Extensions,
 		ignored:    ignored,
+		gitIgnore:  newGitIgnoreMatcher(filepath.Clean(directoryPath)),
 		maxDepth:   maxDepth,
 		visited:    map[string]struct{}{},
 	}
@@ -67,6 +68,7 @@ func Find(ctx context.Context, directoryPath string, options Options) (Directory
 type scanner struct {
 	extensions []string
 	ignored    map[string]struct{}
+	gitIgnore  *gitIgnoreMatcher
 	maxDepth   int
 	// visited holds the directories already walked, resolved through any
 	// symbolic link, so that a link back into the tree is not followed twice.
@@ -94,6 +96,7 @@ func (scan *scanner) walk(ctx context.Context, directoryPath string, depth int) 
 		}
 		scan.visited[resolved] = struct{}{}
 	}
+	directory.Warnings = append(directory.Warnings, scan.gitIgnore.load(directoryPath)...)
 
 	entities, err := os.ReadDir(directoryPath)
 	if err != nil {
@@ -119,13 +122,18 @@ func (scan *scanner) walk(ctx context.Context, directoryPath string, depth int) 
 			isDirectory = info.IsDir()
 		}
 
+		if isDirectory {
+			if _, skip := scan.ignored[entityName]; skip {
+				continue
+			}
+		}
+		if scan.gitIgnore.matches(entityPath, isDirectory) {
+			continue
+		}
 		if !isDirectory {
 			if scan.matches(entityName) {
 				directory.Files = append(directory.Files, File{Name: entityName, Path: entityPath})
 			}
-			continue
-		}
-		if _, skip := scan.ignored[entityName]; skip {
 			continue
 		}
 

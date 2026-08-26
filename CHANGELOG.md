@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+### Added
+- File discovery honours `.gitignore` files from the project root and nested directories, including Git globs, directory-only rules, and negation; invalid patterns appear in diagnostics.
+
 ## [v0.17.0] - 2026-08-27
 ### Added
 - A project-root `.env` file is loaded automatically as a private base environment, including for Hurl; `-dotenv-file` selects another filename, and JSON profiles plus request-local declarations retain their precedence.

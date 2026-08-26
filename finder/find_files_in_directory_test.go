@@ -299,3 +299,140 @@ func TestFindStopsAtTheDepthLimitAndSaysSo(t *testing.T) {
 		t.Fatalf("unexpected warning: %q", directory.Warnings[0])
 	}
 }
+
+func TestFindHonoursRootGitIgnorePatterns(t *testing.T) {
+	root := t.TempDir()
+	writeFinderFixture(t, root, map[string]string{
+		".gitignore":              "ignored*.http\n!ignored-keep.http\n**/generated/\n/root-only.http\n",
+		"ignored.http":            "GET https://example.test\n",
+		"ignored-keep.http":       "GET https://example.test\n",
+		"generated/request.http":  "GET https://example.test\n",
+		"root-only.http":          "GET https://example.test\n",
+		"nested/root-only.http":   "GET https://example.test\n",
+		"nested/ordinary.http":    "GET https://example.test\n",
+		"nested/generated/a.http": "GET https://example.test\n",
+	})
+
+	directory, err := Find(context.Background(), root, Options{Extensions: []string{".http"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	assertFinderFiles(t, root, directory, []string{
+		"ignored-keep.http",
+		"nested/ordinary.http",
+		"nested/root-only.http",
+	})
+}
+
+func TestFindHonoursNestedGitIgnoreAndNegation(t *testing.T) {
+	root := t.TempDir()
+	writeFinderFixture(t, root, map[string]string{
+		".gitignore":           "*.http\n",
+		"root.http":            "GET https://example.test\n",
+		"nested/.gitignore":    "!keep.http\n",
+		"nested/keep.http":     "GET https://example.test\n",
+		"nested/ignored.http":  "GET https://example.test\n",
+		"sibling/keep.http":    "GET https://example.test\n",
+		"sibling/ignored.http": "GET https://example.test\n",
+	})
+
+	directory, err := Find(context.Background(), root, Options{Extensions: []string{".http"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	assertFinderFiles(t, root, directory, []string{"nested/keep.http"})
+}
+
+func TestFindDoesNotReincludeAFileBelowAnIgnoredDirectory(t *testing.T) {
+	root := t.TempDir()
+	writeFinderFixture(t, root, map[string]string{
+		".gitignore":        "blocked/\n!blocked/keep.http\n",
+		"blocked/keep.http": "GET https://example.test\n",
+		"visible.http":      "GET https://example.test\n",
+	})
+
+	directory, err := Find(context.Background(), root, Options{Extensions: []string{".http"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	assertFinderFiles(t, root, directory, []string{"visible.http"})
+}
+
+func TestFindConfigurationIgnoreStillPrunesAReincludedDirectory(t *testing.T) {
+	root := t.TempDir()
+	writeFinderFixture(t, root, map[string]string{
+		".gitignore":        "!skip/\n!skip/request.http\n",
+		"skip/request.http": "GET https://example.test\n",
+		"keep/request.http": "GET https://example.test\n",
+	})
+
+	directory, err := Find(context.Background(), root, Options{
+		Extensions: []string{".http"},
+		Ignore:     []string{"skip"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	assertFinderFiles(t, root, directory, []string{"keep/request.http"})
+}
+
+func TestFindReportsInvalidGitIgnorePatterns(t *testing.T) {
+	root := t.TempDir()
+	writeFinderFixture(t, root, map[string]string{
+		".gitignore":   "[[:spaci:]]\n",
+		"visible.http": "GET https://example.test\n",
+	})
+
+	directory, err := Find(context.Background(), root, Options{Extensions: []string{".http"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	assertFinderFiles(t, root, directory, []string{"visible.http"})
+	if len(directory.Warnings) != 1 {
+		t.Fatalf("invalid pattern warnings = %#v, want one", directory.Warnings)
+	}
+	if !strings.Contains(directory.Warnings[0], ".gitignore:1") || !strings.Contains(directory.Warnings[0], "spaci") {
+		t.Fatalf("invalid pattern warning lacks its source: %q", directory.Warnings[0])
+	}
+}
+
+func writeFinderFixture(t *testing.T, root string, files map[string]string) {
+	t.Helper()
+	for relativePath, contents := range files {
+		path := filepath.Join(root, filepath.FromSlash(relativePath))
+		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(path, []byte(contents), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+}
+
+func assertFinderFiles(t *testing.T, root string, directory Directory, expected []string) {
+	t.Helper()
+	actual := make(map[string]struct{})
+	var collect func(Directory)
+	collect = func(current Directory) {
+		for _, file := range current.Files {
+			relativePath, err := filepath.Rel(root, file.Path)
+			if err != nil {
+				t.Fatal(err)
+			}
+			actual[filepath.ToSlash(relativePath)] = struct{}{}
+		}
+		for _, child := range current.Directories {
+			collect(child)
+		}
+	}
+	collect(directory)
+
+	if len(actual) != len(expected) {
+		t.Fatalf("files = %#v, want %#v", actual, expected)
+	}
+	for _, relativePath := range expected {
+		if _, ok := actual[relativePath]; !ok {
+			t.Fatalf("files = %#v, missing %q", actual, relativePath)
+		}
+	}
+}

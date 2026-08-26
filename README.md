@@ -407,9 +407,12 @@ keybindings:
 `ignore` names directories the file tree does not descend into, on top of the
 built-in list: `.git`, `.hg`, `.svn`, `.cache`, `.venv`, `.tox`, `node_modules`,
 `vendor`, `target`, `dist`, and `build`. The lists of the configuration layers
-add up, so a project can skip more without losing what you chose. Symbolic links
-to directories are followed once each, and a scan stops at 32 directories deep
-with a warning in the diagnostics window.
+add up, so a project can skip more without losing what you chose. Files and
+directories matched by `.gitignore` files in the project root or nested
+directories are also skipped. Git globs, anchored and directory-only patterns,
+`**`, and `!` negation use normal Git precedence; invalid patterns produce a
+diagnostic. Symbolic links to directories are followed once each, and a scan
+stops at 32 directories deep with a warning in the diagnostics window.
 
 The built-in languages are English (`en`), Russian (`ru`), Spanish (`es`), and Simplified Chinese (`zh`). The `languages` section is optional and overrides individual built-in strings. Missing strings fall back to the selected built-in language and then to English. A new language can be added by defining it under `languages` and selecting its code with `language`.
 
@@ -543,9 +546,8 @@ Current roadmap, roughly in the order the remaining gaps matter:
 - [x] **Switch environments without restarting.** The command palette lists the
   base `.env` layer and profiles from both JSON environment files, then reparses
   the open request file after a selection.
-- [ ] **`.gitignore` is not honoured.** Skipped directories come from the built-in
-  list and the `ignore` key instead; a faithful implementation means globs,
-  negation, and nested files.
+- [x] **Honour `.gitignore`.** Project and nested ignore files now filter both
+  files and directories with Git globs, negation, and normal precedence.
 
 ## Development
 
