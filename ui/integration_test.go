@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -58,6 +59,40 @@ func TestTUIRemainsInteractiveDuringBackgroundStartup(t *testing.T) {
 		state := application.Model.Snapshot()
 		return state.Files.Phase == PhaseReady && state.Startup.Phase == PhaseReady
 	})
+}
+
+func TestTUILoadsProjectDotEnvAsSecret(t *testing.T) {
+	root := t.TempDir()
+	secret := "dotenv-secret-value"
+	if err := os.WriteFile(filepath.Join(root, ".env"), []byte("HOST=api.example.test\nTOKEN="+secret+"\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	filePath := filepath.Join(root, "dotenv.http")
+	request := "# @name Dotenv request\nGET https://{{HOST}}/users\nAuthorization: Bearer {{TOKEN}}\n"
+	if err := os.WriteFile(filePath, []byte(request), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	application := BuildApplication(root, Config{})
+	_, _ = runTestApplication(t, application)
+	application.Start()
+	waitFor(t, "dotenv startup", func() bool {
+		state := application.Model.Snapshot()
+		return state.Startup.Phase == PhaseReady && state.Files.Phase == PhaseReady
+	})
+	application.Element.QueueUpdateDraw(func() {
+		onSelectFileCallback(application)(finder.File{Name: filepath.Base(filePath), Path: filePath})
+	})
+	waitFor(t, "dotenv request parsing", func() bool {
+		return len(application.Model.Snapshot().Suites) == 1
+	})
+	suite := application.Model.Snapshot().Suites[0]
+	if suite.Uri != "https://api.example.test/users" || suite.Header.Get("Authorization") != "Bearer "+secret {
+		t.Fatalf("dotenv variables were not resolved: %+v", suite)
+	}
+	if !slices.Contains(suite.SecretValues, secret) {
+		t.Fatalf("dotenv value is not protected by redaction: %#v", suite.SecretValues)
+	}
 }
 
 func TestTUIUsesConfiguredLanguage(t *testing.T) {
@@ -376,6 +411,70 @@ func TestTUICapturedResponsesWindowShowsSafeSummariesAndClearsSession(t *testing
 		application.Element.QueueUpdate(func() { text = application.Captured.GetText(false) })
 		return strings.Contains(text, application.config.Locale.Text("no_captured_responses"))
 	})
+}
+
+func TestTUIHistoryWindowSelectsAndClearsProjectHistory(t *testing.T) {
+	root := t.TempDir()
+	historyPath := filepath.Join(root, "state", "history.json")
+	client := &http.Client{Transport: uiRoundTripFunc(func(request *http.Request) (*http.Response, error) {
+		status := "200 OK"
+		statusCode := http.StatusOK
+		if strings.HasSuffix(request.URL.Path, "/newer") {
+			status = "201 Created"
+			statusCode = http.StatusCreated
+		}
+		return &http.Response{
+			StatusCode:    statusCode,
+			Status:        status,
+			Header:        http.Header{"Content-Type": []string{"application/json"}},
+			Body:          io.NopCloser(strings.NewReader(`{"ok":true}`)),
+			ContentLength: -1,
+			Proto:         "HTTP/1.1",
+		}, nil
+	})}
+	application := BuildApplication(root, Config{
+		HistoryPath: historyPath,
+		Runner:      runner.Config{Client: client, Timeout: 10 * time.Second},
+	})
+	screen, _ := runTestApplication(t, application)
+
+	run := func(name, path string) {
+		application.Element.QueueUpdateDraw(func() {
+			onSuiteRun(application)(parserhttp.HttpSuite{
+				Name: name, Method: http.MethodGet, Uri: "https://example.test/" + path,
+				Header: http.Header{}, SourceFilePath: filepath.Join(root, "requests.http"),
+			})
+		})
+	}
+	run("Older request", "older")
+	waitFor(t, "first history entry", func() bool { return len(application.Producer.HistorySummaries()) == 1 })
+	run("Newer request", "newer")
+	waitFor(t, "second history entry", func() bool { return len(application.Producer.HistorySummaries()) == 2 })
+
+	application.Element.QueueUpdateDraw(func() { application.openOverlay(OverlayHistory) })
+	waitFor(t, "history window", func() bool { return application.Model.CurrentOverlay() == OverlayHistory })
+	newest, newestDetails := application.History.GetItemText(0)
+	if !strings.Contains(newest, "Newer request") || !strings.Contains(newestDetails, "201 Created") {
+		t.Fatalf("newest history item is wrong: %q / %q", newest, newestDetails)
+	}
+
+	application.Element.QueueUpdateDraw(func() { application.History.SetCurrentItem(1) })
+	screen.InjectKey(tcell.KeyRune, 'l', tcell.ModNone)
+	waitFor(t, "older history selection", func() bool {
+		return application.Model.CurrentOverlay() == OverlayNone &&
+			application.Element.GetFocus() == application.Producer.Element &&
+			strings.Contains(application.Producer.Element.(*tview.TextView).GetText(false), "/older")
+	})
+
+	application.Element.QueueUpdateDraw(func() { application.openOverlay(OverlayHistory) })
+	waitFor(t, "reopened history window", func() bool { return application.Model.CurrentOverlay() == OverlayHistory })
+	screen.InjectKey(tcell.KeyRune, 'c', tcell.ModNone)
+	waitFor(t, "cleared project history", func() bool { return len(application.Producer.HistorySummaries()) == 0 })
+	application.Producer.WaitForHistory()
+	contents, err := os.ReadFile(historyPath)
+	if err != nil || strings.Contains(string(contents), "Older request") || strings.Contains(string(contents), "Newer request") {
+		t.Fatalf("persistent history was not cleared: %q, %v", contents, err)
+	}
 }
 
 func setInputText(t *testing.T, application *Application, input *tview.InputField, text string) {

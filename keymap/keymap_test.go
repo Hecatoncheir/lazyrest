@@ -148,9 +148,22 @@ func TestDefaultCapturedResponsesBinding(t *testing.T) {
 	}
 }
 
+func TestDefaultHistoryWindowBinding(t *testing.T) {
+	bindings := Default()
+	if !bindings.Matches(ClearHistory, tcell.NewEventKey(tcell.KeyRune, 'c', tcell.ModNone)) {
+		t.Fatal("clear history does not match c")
+	}
+}
+
 func TestBindingsRejectCapturedResponsesConflicts(t *testing.T) {
 	if _, err := New(map[string][]string{"clear_captured_responses": {"q"}}); err == nil {
 		t.Fatal("expected clear captured responses to conflict with close overlay")
+	}
+}
+
+func TestBindingsRejectHistoryWindowConflicts(t *testing.T) {
+	if _, err := New(map[string][]string{"clear_history": {"q"}}); err == nil {
+		t.Fatal("expected clear history to conflict with close overlay")
 	}
 }
 

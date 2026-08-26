@@ -46,6 +46,7 @@ const (
 	SaveResponse     Action = "save_response"
 	SaveFullResponse Action = "save_full_response"
 	ClearCaptured    Action = "clear_captured_responses"
+	ClearHistory     Action = "clear_history"
 	HistoryPrevious  Action = "history_previous"
 	HistoryNext      Action = "history_next"
 	CommandPalette   Action = "command_palette"
@@ -85,6 +86,7 @@ var defaults = map[Action][]string{
 	SaveResponse:     {"s"},
 	SaveFullResponse: {"S"},
 	ClearCaptured:    {"c"},
+	ClearHistory:     {"c"},
 	HistoryPrevious:  {"["},
 	HistoryNext:      {"]"},
 	CommandPalette:   {":", "ctrl+p"},
@@ -244,6 +246,7 @@ func (bindings *Bindings) validateConflicts() error {
 		{"search", []Action{SearchFinish}},
 		{"overlay", overlay},
 		{"captured responses", append(append([]Action{}, overlay...), ClearCaptured)},
+		{"history", append(append([]Action{}, overlay...), Open, ClearHistory)},
 	}
 	for _, context := range contexts {
 		used := map[string]struct {

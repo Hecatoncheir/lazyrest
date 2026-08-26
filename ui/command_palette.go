@@ -41,6 +41,9 @@ func (application *Application) buildCommandPalette() {
 	palette.AddItem(translator.Text("captured_responses"), "", 0, func() {
 		application.openOverlay(OverlayCaptured)
 	})
+	palette.AddItem(translator.Text("history_window"), "", 0, func() {
+		application.openOverlay(OverlayHistory)
+	})
 	palette.AddItem(translator.Text("diagnostics"), "", 0, func() {
 		application.openOverlay(OverlayDiagnostics)
 	})
@@ -109,7 +112,7 @@ func (application *Application) applyOverlayTheme() {
 			SetBorderColor(uiTheme.BorderFocus).
 			SetTitleColor(uiTheme.TitleFocus)
 	}
-	for _, list := range []*tview.List{application.CommandPalette, application.ThemePicker} {
+	for _, list := range []*tview.List{application.CommandPalette, application.ThemePicker, application.History} {
 		if list != nil {
 			application.applyCommandPaletteTheme(list)
 		}
@@ -123,6 +126,7 @@ func (application *Application) applyCommandPaletteTheme(palette *tview.List) {
 		SetBackgroundColor(uiTheme.BackgroundFocus).
 		SetBorderColor(uiTheme.BorderFocus)
 	palette.SetMainTextColor(uiTheme.SuiteForeground).
+		SetSecondaryTextColor(uiTheme.SuiteForeground).
 		SetSelectedTextColor(uiTheme.SuiteFocusForeground).
 		SetSelectedBackgroundColor(uiTheme.SuiteFocusBackground)
 }

@@ -93,6 +93,8 @@ func (widget *Producer) loadHistory() error {
 	if len(stored.Entries) > maxHistoryEntries {
 		stored.Entries = stored.Entries[len(stored.Entries)-maxHistoryEntries:]
 	}
+	widget.historyDataMutex.Lock()
+	defer widget.historyDataMutex.Unlock()
 	widget.history = make([]HistoryEntry, 0, len(stored.Entries))
 	for _, entry := range stored.Entries {
 		var entryErr error
@@ -112,11 +114,11 @@ func (widget *Producer) persistHistory() {
 	if widget.historyPath == "" {
 		return
 	}
-	stored := widget.buildStoredHistory()
 
 	widget.historyMutex.Lock()
 	widget.historyRequested++
 	generation := widget.historyRequested
+	stored := widget.buildStoredHistory()
 	widget.historyMutex.Unlock()
 
 	widget.historyWrites.Add(1)
@@ -140,6 +142,8 @@ func (widget *Producer) saveHistory() error {
 }
 
 func (widget *Producer) buildStoredHistory() storedHistory {
+	widget.historyDataMutex.RLock()
+	defer widget.historyDataMutex.RUnlock()
 	stored := storedHistory{Version: historyVersion, Entries: make([]storedHistoryEntry, 0, len(widget.history))}
 	for _, entry := range widget.history {
 		errorText := ""

@@ -8,6 +8,8 @@ import (
 	"testing"
 
 	"github.com/Hecatoncheir/lazyrest/finder"
+	"github.com/Hecatoncheir/lazyrest/keymap"
+	"github.com/Hecatoncheir/lazyrest/locale"
 	"github.com/Hecatoncheir/lazyrest/ui/theme"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
@@ -179,5 +181,27 @@ func TestStartReloadCancelsPreviousReload(t *testing.T) {
 	widget.CancelReload()
 	if !errors.Is(secondContext.Err(), context.Canceled) {
 		t.Fatalf("active reload was not cancelled: %v", secondContext.Err())
+	}
+}
+
+func TestApplySettingsUpdatesExistingTreeNodes(t *testing.T) {
+	widget := New()
+	widget.Build(newMockParams(t.TempDir()))
+	root := tview.NewTreeNode("project").SetReference(finder.Directory{Name: "project"})
+	file := tview.NewTreeNode("request.http").SetReference(finder.File{Name: "request.http"})
+	root.AddChild(file)
+	element := widget.Element.(*tview.TreeView)
+	element.SetRoot(root).SetCurrentNode(file)
+
+	dracula, err := theme.FromConfig(theme.Config{Preset: "dracula"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	widget.ApplySettings(dracula, locale.English(), keymap.Default())
+	if root.GetColor() != dracula.Tree.NodeDirectory.Foreground || file.GetColor() != dracula.Tree.Node.Foreground {
+		t.Fatalf("existing nodes kept stale colours: root=%v file=%v", root.GetColor(), file.GetColor())
+	}
+	if element.GetBackgroundColor() != dracula.Tree.Background {
+		t.Fatalf("tree kept stale background: got %v, want %v", element.GetBackgroundColor(), dracula.Tree.Background)
 	}
 }

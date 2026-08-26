@@ -18,14 +18,14 @@
 - Immediate TUI startup with background environment loading and recursive `.http` / `.hurl` discovery.
 - Pure Go, with no CGO and no external parser: `go install` and cross-compilation need nothing but the Go toolchain.
 - Requests chained through what an earlier one answered, so a token is captured rather than copied by hand.
-- Public/private environment profiles plus recursive `{{variable}}` substitution, shared with Hurl.
+- Automatic private `.env` loading, public/private environment profiles, and recursive `{{variable}}` substitution shared with Hurl.
 - Cookies carried from one request to the next, with control over redirects and certificate checks.
 - GraphQL requests encoded the way servers expect, with a variables block and errors surfaced from `200` responses.
 - `.hurl` files listed one entry at a time, each run with the entries it depends on.
 - Syntax highlighting for JSON, XML, and GraphQL across the panes, and HTTP methods coloured by what they do.
 - Response headers, protocol metadata, Pretty/Raw bodies, and clipboard/file export.
 - Cancellable execution with animated progress bars, a timeout, and bounded response bodies.
-- File/request/response search, a dedicated diagnostics window, and a persistent history of the last 50 runs.
+- File/request/response search, dedicated diagnostics and history windows, and a persistent history of the last 50 runs per project.
 - Mouse and Vim-style keyboard navigation.
 
 ## Requirements
@@ -152,6 +152,7 @@ When the directory is omitted, the current working directory is used.
 -insecure                 accept any server certificate
 -hurl string              Hurl executable name or path (default "hurl")
 -env string               environment profile name
+-dotenv-file string       dotenv file loaded as a private base environment (default ".env")
 -env-file string          public environment file (default "http-client.env.json")
 -private-env-file string  private environment file (default "http-client.private.env.json")
 -version                  print the version and exit
@@ -250,7 +251,20 @@ reference was waiting and why.
 
 ## Environments
 
-Select a profile with `lazyrest -env development .`. Public values come from `http-client.env.json`:
+A `.env` file in the project root is loaded automatically, even when no profile is selected:
+
+```dotenv
+HOST=api.example.com
+TOKEN="local-secret"
+BASE_URL=https://{{HOST}}/v1
+```
+
+Use these values as `{{HOST}}`, `{{TOKEN}}`, or `{{BASE_URL}}` in `.http` files.
+All `.env` values are treated as private: they are passed to Hurl through a
+private file and redacted from requests, responses, errors, and history output.
+Use `-dotenv-file .env.local` to select a different project-root filename.
+
+Select a profile with `lazyrest -env development .`. Public profile values come from `http-client.env.json`:
 
 ```json
 {
@@ -270,7 +284,12 @@ Put secrets in `http-client.private.env.json`, which is ignored by Git:
 }
 ```
 
-Use the values as `{{baseUrl}}` or `{{token}}` in `.http` files. They are also handed to Hurl through a private file, so `.hurl` files can use the same variables. Private values override public ones, while declarations inside an `.http` file override both. Undefined variables and reference cycles appear as parser diagnostics. Private values are redacted from requests, responses, errors, and history output.
+Use profile values as `{{baseUrl}}` or `{{token}}` in `.http` files. `.env`
+provides the base layer, a selected public profile overrides it, the selected
+private profile overrides both, and declarations inside an `.http` file have
+the final word. Undefined variables and reference cycles appear as parser
+diagnostics. Private values are redacted from requests, responses, errors, and
+history output.
 
 ## Examples
 
@@ -370,6 +389,7 @@ keybindings:
   save_response: ["s"]
   save_full_response: ["S"]
   clear_captured_responses: ["c"]
+  clear_history: ["c"]
   history_previous: ["["]
   history_next: ["]"]
   command_palette: [":", "ctrl+p"]
@@ -417,7 +437,12 @@ keeps the full body of the current session. Writing happens in the background,
 so a large response does not stall the interface. Known secret values and
 sensitive headers such as `Authorization`, cookies, and API keys are redacted
 before writing. The directory uses permissions `0700`, history files use `0600`,
-and updates are atomic. Delete a project's file to clear its persistent history.
+and updates are atomic.
+
+Choose **History** from the command palette to see the project's entries newest
+first, with request name, source file, timestamp, status, and duration but no
+body or header values. Press `Enter` or `l` to open an entry in Producer. Press
+`c` to clear both the in-memory list and the project's persisted entries.
 
 ## Captured responses
 
@@ -473,6 +498,7 @@ the response pane, and report when the exported body was truncated.
 - `s` / `S`: save the unformatted current response body / complete response while Producer is focused.
 - `n` / `N`: next/previous match in the focused Files or Producer area.
 - `[` / `]`: previous/next response history entry.
+- **History** in the command palette: inspect the project's saved runs; use `j` / `k`, open one with `Enter` / `l`, or clear all entries with `c`.
 - `d`: open parser, startup, and file-discovery diagnostics; press `d`, `q`, or `Esc` to close.
 - `?`: open the built-in keyboard reference; press `?`, `q`, or `Esc` to close.
 - `:` or `Ctrl+p`: open the command palette.
@@ -488,12 +514,13 @@ Current roadmap, roughly in the order the remaining gaps matter:
   through matches and the Producer title shows the current position.
 - [x] **Use consistent Vim viewport commands.** `gg`, `G`, `Ctrl+f`, `Ctrl+b`,
   `zt`, `zz`, and `zb` now work across selectable and scrollable areas.
-- [x] **Keep history per project.** Entries are stored under a stable project ID
-  and only restored for the same canonical root.
+- [x] **Keep history per project and make it directly accessible.** Entries are
+  stored under a stable project ID, restored only for that root, and listed in
+  a separate History window.
 - [x] **Show what the session captured.** The command palette opens a safe summary
   of named responses, which can be cleared without restarting.
-- [ ] **`.env` files are not read.** Variables come from `http-client.env.json` and
-  its private counterpart only.
+- [x] **Load `.env` files.** The project-root `.env` is an automatic private base
+  environment, with JSON profiles and request-local declarations layered over it.
 - [ ] **`.gitignore` is not honoured.** Skipped directories come from the built-in
   list and the `ignore` key instead; a faithful implementation means globs,
   negation, and nested files.
@@ -502,6 +529,7 @@ Current roadmap, roughly in the order the remaining gaps matter:
 
 ```sh
 go test ./...
+go test -cover ./...       # package-level coverage
 go test -race ./...        # what CI runs
 go test ./ui -run TUI      # the terminal integration tests
 go vet ./...

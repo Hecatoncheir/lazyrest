@@ -52,6 +52,7 @@ type Producer struct {
 	historyPath        string
 	syntax             syntax.Palette
 	responses          http.ResponseStore
+	historyDataMutex   sync.RWMutex
 	historyMutex       sync.Mutex
 	historyRequested   uint64
 	historyWritten     uint64

@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+### Added
+- A project-root `.env` file is loaded automatically as a private base environment, including for Hurl; `-dotenv-file` selects another filename, and JSON profiles plus request-local declarations retain their precedence.
+- The command palette can open a separate project History window that lists safe run metadata newest first, opens an entry in Producer with `Enter` / `l`, and clears memory and persisted entries with `c`.
+
+### Changed
+- Producer history state is synchronized across UI reads, active requests, and background persistence.
+- Runtime theme regression coverage now verifies that existing content in Files and Suites is recolored immediately.
+
 ## [v0.16.0] - 2026-08-26
 ### Added
 - Producer can save the complete plain-text response with `S`, matching what `Y` copies and respecting the active Pretty/Raw body mode.

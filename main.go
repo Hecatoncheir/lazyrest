@@ -39,6 +39,7 @@ func run(arguments []string, output io.Writer) error {
 	environmentName := flags.String("env", "", "environment profile from the HTTP client environment files")
 	environmentFile := flags.String("env-file", environment.DefaultPublicFile, "public HTTP client environment file")
 	privateEnvironmentFile := flags.String("private-env-file", environment.DefaultPrivateFile, "private HTTP client environment file")
+	dotEnvFile := flags.String("dotenv-file", environment.DefaultDotEnvFile, "dotenv file loaded as a private base environment")
 	configFile := flags.String("config", "", "additional configuration file with highest priority")
 	generateConfig := flags.Bool("generate-config", false, "create a default configuration file")
 	printConfig := flags.Bool("print-config", false, "print the resolved configuration and exit")
@@ -136,6 +137,7 @@ func run(arguments []string, output io.Writer) error {
 			Name:        *environmentName,
 			PublicFile:  *environmentFile,
 			PrivateFile: *privateEnvironmentFile,
+			DotEnvFile:  *dotEnvFile,
 		},
 	})
 }

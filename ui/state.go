@@ -42,6 +42,7 @@ const (
 	OverlayDiagnostics
 	OverlayHelp
 	OverlayCaptured
+	OverlayHistory
 	OverlayCommandPalette
 	OverlayThemePicker
 	OverlaySaveResponse

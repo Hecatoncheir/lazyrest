@@ -72,8 +72,10 @@ func (widget *Producer) ChangeSuite(suite http.HttpSuite) {
 	widget.searchQuery = ""
 	widget.searchMatches = nil
 	widget.searchIndex = -1
+	widget.historyDataMutex.Lock()
 	widget.historyVisible = false
 	widget.resultAvailable = false
+	widget.historyDataMutex.Unlock()
 	element := widget.Element.(*tview.TextView)
 
 	// What an earlier request answered is filled in now rather than while the

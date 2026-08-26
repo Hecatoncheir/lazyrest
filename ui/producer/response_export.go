@@ -27,11 +27,16 @@ type ResponseExport struct {
 // reads the sanitized in-memory history entry rather than the rendered TextView,
 // which contains the request, labels, and tview colour markup.
 func (widget *Producer) CurrentResponse() (ResponseExport, bool) {
-	if widget == nil || widget.IsRunning() || !widget.resultAvailable ||
-		widget.historyIndex < 0 || widget.historyIndex >= len(widget.history) {
+	if widget == nil || widget.IsRunning() {
+		return ResponseExport{}, false
+	}
+	widget.historyDataMutex.RLock()
+	if !widget.resultAvailable || widget.historyIndex < 0 || widget.historyIndex >= len(widget.history) {
+		widget.historyDataMutex.RUnlock()
 		return ResponseExport{}, false
 	}
 	entry := widget.history[widget.historyIndex]
+	widget.historyDataMutex.RUnlock()
 	if entry.Err != nil || (entry.Response.Code == "" && entry.Response.StatusCode == 0) {
 		return ResponseExport{}, false
 	}

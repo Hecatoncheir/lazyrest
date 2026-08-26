@@ -4,6 +4,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/Hecatoncheir/lazyrest/keymap"
+	"github.com/Hecatoncheir/lazyrest/locale"
 	"github.com/Hecatoncheir/lazyrest/parser/http"
 	"github.com/Hecatoncheir/lazyrest/ui/theme"
 	"github.com/rivo/tview"
@@ -170,5 +172,27 @@ func TestRenderDropsMarkupFromTheSelectedRow(t *testing.T) {
 	}
 	if strings.Contains(second, "[#") {
 		t.Errorf("the row that gained the selection kept its colour: %q", second)
+	}
+}
+
+func TestApplySettingsRehighlightsExistingRows(t *testing.T) {
+	widget := New()
+	widget.Build(Parameters{Theme: theme.NewDefault(), OnEscapeCallback: func() {}, OnSuiteSelectCallbackType: func(http.HttpSuite) {}})
+	widget.suites = []http.HttpSuite{
+		{Name: "Selected", Method: "GET", Uri: "/selected"},
+		{Name: "Create user", Method: "POST", Uri: "/users", Body: `{"name":"Ada"}`, BodyType: "json"},
+	}
+	widget.render()
+	dracula, err := theme.FromConfig(theme.Config{Preset: "dracula"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	widget.ApplySettings(dracula, locale.English(), keymap.Default())
+
+	main, secondary := widget.Element.(*tview.List).GetItemText(1)
+	for _, expected := range []string{"[#f1fa8c]POST[-]", `[#8be9fd]"name"`, `[#50fa7b]"Ada"`} {
+		if !strings.Contains(main+secondary, expected) {
+			t.Errorf("existing request was not rehighlighted with Dracula: missing %q in %q / %q", expected, main, secondary)
+		}
 	}
 }

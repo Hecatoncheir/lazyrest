@@ -140,8 +140,13 @@ func (widget *Producer) updateTitle() {
 		mode = widget.locale.Text("raw")
 	}
 	title := widget.locale.Text("producer") + " [" + mode + "]"
-	if widget.historyVisible && len(widget.history) > 0 {
-		title += fmt.Sprintf(" %s %d/%d", widget.locale.Text("history"), widget.historyIndex+1, len(widget.history))
+	widget.historyDataMutex.RLock()
+	historyVisible := widget.historyVisible
+	historyIndex := widget.historyIndex
+	historyLength := len(widget.history)
+	widget.historyDataMutex.RUnlock()
+	if historyVisible && historyLength > 0 {
+		title += fmt.Sprintf(" %s %d/%d", widget.locale.Text("history"), historyIndex+1, historyLength)
 	}
 	if widget.searchMode || widget.searchQuery != "" {
 		title += " /" + widget.searchQuery

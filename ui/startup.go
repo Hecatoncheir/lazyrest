@@ -1,6 +1,9 @@
 package ui
 
 import (
+	"maps"
+	"slices"
+
 	"github.com/Hecatoncheir/lazyrest/environment"
 	parserhttp "github.com/Hecatoncheir/lazyrest/parser/http"
 )
@@ -19,15 +22,26 @@ func (application *Application) Start() {
 		go func() {
 			selectedEnvironment := environment.Environment{
 				Name:            application.config.EnvironmentName,
-				Values:          application.config.ParseOptions.Variables,
-				SecretVariables: application.config.ParseOptions.SecretVariables,
+				Values:          maps.Clone(application.config.ParseOptions.Variables),
+				SecretVariables: append([]string(nil), application.config.ParseOptions.SecretVariables...),
 			}
-			var environmentError error
-			if application.config.Environment.Name != "" {
-				selectedEnvironment, environmentError = application.loadEnvironment(
-					application.Model.Snapshot().RootDirectoryPath,
-					application.config.Environment,
-				)
+			if selectedEnvironment.Values == nil {
+				selectedEnvironment.Values = map[string]string{}
+			}
+			loadedEnvironment, environmentError := application.loadEnvironment(
+				application.Model.Snapshot().RootDirectoryPath,
+				application.config.Environment,
+			)
+			if environmentError == nil {
+				for key, value := range loadedEnvironment.Values {
+					selectedEnvironment.Values[key] = value
+				}
+				selectedEnvironment.SecretVariables = append(selectedEnvironment.SecretVariables, loadedEnvironment.SecretVariables...)
+				slices.Sort(selectedEnvironment.SecretVariables)
+				selectedEnvironment.SecretVariables = slices.Compact(selectedEnvironment.SecretVariables)
+				if loadedEnvironment.Name != "" {
+					selectedEnvironment.Name = loadedEnvironment.Name
+				}
 			}
 			scanResult := application.scanFiles(ctx)
 			if !treeWidget.IsCurrentReload(reloadID) {

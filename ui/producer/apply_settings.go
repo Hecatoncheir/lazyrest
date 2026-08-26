@@ -16,8 +16,8 @@ func (widget *Producer) ApplySettings(uiTheme theme.Theme, translator *locale.Tr
 	widget.applyTheme(element, element.HasFocus())
 	element.SetFocusFunc(func() { widget.applyTheme(element, true) })
 	element.SetBlurFunc(func() { widget.applyTheme(element, false) })
-	if !widget.IsRunning() && len(widget.history) > 0 {
-		widget.setText(widget.renderEntry(widget.history[widget.historyIndex]))
+	if entry, ok := widget.currentHistoryEntry(); !widget.IsRunning() && ok {
+		widget.setText(widget.renderEntry(entry))
 	}
 	widget.updateTitle()
 }

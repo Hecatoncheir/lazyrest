@@ -26,19 +26,24 @@ type HistoryEntry struct {
 }
 
 func (widget *Producer) addHistory(suite http.HttpSuite, response runner.Response, err error) {
-	widget.history = append(widget.history, sanitizedHistoryEntry(suite, response, err, time.Now()))
+	entry := sanitizedHistoryEntry(suite, response, err, time.Now())
+	widget.historyDataMutex.Lock()
+	widget.history = append(widget.history, entry)
 	if len(widget.history) > maxHistoryEntries {
 		widget.history = widget.history[len(widget.history)-maxHistoryEntries:]
 	}
 	widget.historyIndex = len(widget.history) - 1
 	widget.historyVisible = false
 	widget.resultAvailable = err == nil && (response.Code != "" || response.StatusCode != 0)
+	widget.historyDataMutex.Unlock()
 	widget.updateTitle()
 	widget.persistHistory()
 }
 
 func (widget *Producer) showHistory(delta int) {
+	widget.historyDataMutex.Lock()
 	if len(widget.history) == 0 {
+		widget.historyDataMutex.Unlock()
 		return
 	}
 	widget.historyIndex += delta
@@ -51,8 +56,18 @@ func (widget *Producer) showHistory(delta int) {
 	entry := widget.history[widget.historyIndex]
 	widget.historyVisible = true
 	widget.resultAvailable = entry.Err == nil && (entry.Response.Code != "" || entry.Response.StatusCode != 0)
+	widget.historyDataMutex.Unlock()
 	widget.setText(widget.renderEntry(entry))
 	widget.updateTitle()
+}
+
+func (widget *Producer) currentHistoryEntry() (HistoryEntry, bool) {
+	widget.historyDataMutex.RLock()
+	defer widget.historyDataMutex.RUnlock()
+	if widget.historyIndex < 0 || widget.historyIndex >= len(widget.history) {
+		return HistoryEntry{}, false
+	}
+	return widget.history[widget.historyIndex], true
 }
 
 // renderEntry draws an entry with the settings the widget currently holds.

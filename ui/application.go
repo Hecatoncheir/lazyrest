@@ -36,6 +36,7 @@ type Application struct {
 	Diagnostics    *tview.TextView
 	Help           *tview.TextView
 	Captured       *tview.TextView
+	History        *tview.List
 	CommandPalette *tview.List
 	ThemePicker    *tview.List
 	SaveResponse   *tview.InputField
