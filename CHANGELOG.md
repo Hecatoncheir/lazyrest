@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [Unreleased]
+## [v0.19.0] - 2026-08-27
 ### Added
 - Persistent history now defaults to metadata-only storage through `history: metadata`; `history: full` opts into restoring redacted request and response details.
 
