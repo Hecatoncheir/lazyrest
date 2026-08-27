@@ -2,10 +2,20 @@ name: Go Tests and Release
 
 on:
   push:
-    branches: [ "main" ]
-    tags: [ 'v*' ]
+    branches: ["main"]
   pull_request:
-    branches: [ "main" ]
+    branches: ["main"]
+  schedule:
+    - cron: "17 3 * * 1"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release version from CHANGELOG.md (for example v0.20.0)"
+        required: true
+        type: string
+
+permissions:
+  contents: read
 
 jobs:
   build:
@@ -13,13 +23,59 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
-          fetch-depth: 0 # Important to fetch all history for changelog parsing
+          fetch-depth: 0
 
       - name: Set up Go
         uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
           cache-dependency-path: go.sum
+
+      # A release is requested from main by version. No tag exists yet: it is
+      # created only after this job and the archive job have both succeeded.
+      - name: Validate release request
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          RELEASE_VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          if [[ ! "$RELEASE_VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "version must match vMAJOR.MINOR.PATCH" >&2
+            exit 1
+          fi
+          if [ "$GITHUB_REF" != "refs/heads/main" ]; then
+            echo "releases must be dispatched from main" >&2
+            exit 1
+          fi
+          git fetch origin main --tags
+          if [ "$(git rev-parse HEAD)" != "$(git rev-parse origin/main)" ]; then
+            echo "the release commit is not the current origin/main" >&2
+            exit 1
+          fi
+          if git show-ref --verify --quiet "refs/tags/$RELEASE_VERSION"; then
+            echo "tag $RELEASE_VERSION already exists" >&2
+            exit 1
+          fi
+          latest_version=$(git tag --list 'v[0-9]*' --sort=-version:refname | head -n 1)
+          highest_version=$(printf '%s\n%s\n' "$latest_version" "$RELEASE_VERSION" | sort -V | tail -n 1)
+          if [ -n "$latest_version" ] && [ "$highest_version" != "$RELEASE_VERSION" ]; then
+            echo "$RELEASE_VERSION must be newer than $latest_version" >&2
+            exit 1
+          fi
+          release_heading=$(grep -F "## [$RELEASE_VERSION] - " CHANGELOG.md || true)
+          if ! printf '%s\n' "$release_heading" | grep -Eq '^## \[v[0-9]+\.[0-9]+\.[0-9]+\] - [0-9]{4}-[0-9]{2}-[0-9]{2}$'; then
+            echo "CHANGELOG.md has no dated $RELEASE_VERSION section" >&2
+            exit 1
+          fi
+          release_notes=$(awk -v heading="$release_heading" '
+            $0 == heading { capture = 1; next }
+            capture && /^## \[/ { exit }
+            capture { print }
+          ' CHANGELOG.md)
+          if ! printf '%s' "$release_notes" | grep -q '[^[:space:]]'; then
+            echo "CHANGELOG.md has no release notes for $RELEASE_VERSION" >&2
+            exit 1
+          fi
 
       - name: Verify formatting
         run: test -z "$(gofmt -l .)"
@@ -30,19 +86,35 @@ jobs:
       - name: Run go vet
         run: go vet ./...
 
+      - name: Scan reachable dependencies for vulnerabilities
+        run: go run golang.org/x/vuln/cmd/govulncheck@v1.7.0 ./...
+
       - name: Run golangci-lint
         uses: golangci/golangci-lint-action@v9
         with:
           version: v2.13.1
 
-      - name: Run Unit Tests
+      - name: Run unit tests
         run: go test -race ./...
 
-      - name: Build Project
+      - name: Run fuzz smoke tests
+        run: |
+          set -euo pipefail
+          while read -r package_name fuzz_target; do
+            go test "$package_name" -run=^$ -fuzz="^${fuzz_target}$" -fuzztime=2s -parallel=2
+          done <<'EOF'
+          ./parser/http FuzzHTTPDocumentSyntax
+          ./parser/http FuzzResolveVariables
+          ./parser/http FuzzResolveResponseReferences
+          ./parser/http FuzzSecretRedaction
+          ./parser/hurl FuzzSplitEntries
+          ./environment FuzzParseDotEnvValue
+          ./ui/producer FuzzShellQuote
+          EOF
+
+      - name: Build project
         run: go build -v ./...
 
-      # Every released target is compiled here too, so that a break on another
-      # platform is caught on the pull request rather than at the tag.
       - name: Build every target
         env:
           CGO_ENABLED: "0"
@@ -52,9 +124,8 @@ jobs:
             GOOS="${target%/*}" GOARCH="${target#*/}" go build -o /dev/null .
           done
 
-  binaries:
-    needs: build
-    if: startsWith(github.ref, 'refs/tags/v')
+  fuzz:
+    if: github.event_name == 'schedule'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -65,14 +136,48 @@ jobs:
           go-version-file: go.mod
           cache-dependency-path: go.sum
 
-      # The build is pure Go, so every target comes off one runner without a
-      # cross compiler.
-      - name: Build every target
+      - name: Run scheduled fuzz tests
+        run: |
+          set -euo pipefail
+          while read -r package_name fuzz_target; do
+            go test "$package_name" -run=^$ -fuzz="^${fuzz_target}$" -fuzztime=30s -parallel=4
+          done <<'EOF'
+          ./parser/http FuzzHTTPDocumentSyntax
+          ./parser/http FuzzResolveVariables
+          ./parser/http FuzzResolveResponseReferences
+          ./parser/http FuzzSecretRedaction
+          ./parser/hurl FuzzSplitEntries
+          ./environment FuzzParseDotEnvValue
+          ./ui/producer FuzzShellQuote
+          EOF
+
+  binaries:
+    needs: build
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Go
+        uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          cache-dependency-path: go.sum
+
+      - name: Build every release target
         env:
           CGO_ENABLED: "0"
+          RELEASE_VERSION: ${{ inputs.version }}
         run: |
           set -euo pipefail
           mkdir -p dist
+          # cyclonedx-gomod derives the main component version from Git. This
+          # tag exists only on the isolated runner and is never pushed.
+          git tag "$RELEASE_VERSION" "$GITHUB_SHA"
+          tools_dir="$RUNNER_TEMP/lazyrest-tools"
+          mkdir -p "$tools_dir"
+          GOBIN="$tools_dir" go install github.com/CycloneDX/cyclonedx-gomod/cmd/cyclonedx-gomod@v1.10.0
+          sbom_tool="$tools_dir/cyclonedx-gomod"
           for target in linux/amd64 linux/arm64 darwin/amd64 darwin/arm64 windows/amd64; do
             goos="${target%/*}"
             goarch="${target#*/}"
@@ -80,14 +185,21 @@ jobs:
             if [ "$goos" = "windows" ]; then
               extension=".exe"
             fi
-            rm -rf build
-            mkdir -p build
-            GOOS="$goos" GOARCH="$goarch" go build -trimpath -ldflags "-s -w -X main.version=$GITHUB_REF_NAME" -o "build/lazyrest$extension" .
-            cp LICENSE README.md build/
+            staging="$RUNNER_TEMP/lazyrest-$goos-$goarch"
+            mkdir -p "$staging"
+            GOOS="$goos" GOARCH="$goarch" go build -trimpath -ldflags "-s -w -X main.version=$RELEASE_VERSION" -o "$staging/lazyrest$extension" .
+            cp LICENSE README.md "$staging/"
+            GOOS="$goos" GOARCH="$goarch" "$sbom_tool" app \
+              -json \
+              -packages \
+              -std \
+              -output "$staging/SBOM.cdx.json" \
+              .
+            cp "$staging/SBOM.cdx.json" "dist/lazyrest-$goos-$goarch.sbom.cdx.json"
             if [ "$goos" = "windows" ]; then
-              (cd build && zip -qr "../dist/lazyrest-$goos-$goarch.zip" .)
+              (cd "$staging" && zip -qr "$GITHUB_WORKSPACE/dist/lazyrest-$goos-$goarch.zip" .)
             else
-              tar -czf "dist/lazyrest-$goos-$goarch.tar.gz" -C build .
+              tar -czf "dist/lazyrest-$goos-$goarch.tar.gz" -C "$staging" .
             fi
           done
 
@@ -100,8 +212,11 @@ jobs:
 
   release:
     needs: binaries
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
+    concurrency:
+      group: lazyrest-release
+      cancel-in-progress: false
     permissions:
       contents: write
     steps:
@@ -115,29 +230,49 @@ jobs:
           path: dist
           merge-multiple: true
 
-      - name: Extract Changelog
+      - name: Extract changelog
         id: changelog
+        env:
+          RELEASE_VERSION: ${{ inputs.version }}
         run: |
-          # Get the current tag (e.g., v0.1.0)
-          TAG=${GITHUB_REF#refs/tags/}
-          # Search for the section in CHANGELOG.md starting with ## [tag] 
-          # and extract everything until the next ## section or end of file
-          CHANGELOG=$(sed -n "/## \[$TAG\]/,/## \[/p" CHANGELOG.md | sed '1d;$d')
-          # Escape special characters for GH output
-          echo "body<<EOF" >> $GITHUB_OUTPUT
-          echo "$CHANGELOG" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
+          set -euo pipefail
+          notes_file="$RUNNER_TEMP/release-notes.md"
+          release_heading=$(grep -F "## [$RELEASE_VERSION] - " CHANGELOG.md)
+          awk -v heading="$release_heading" '
+            $0 == heading { capture = 1; next }
+            capture && /^## \[/ { exit }
+            capture { print }
+          ' CHANGELOG.md > "$notes_file"
+          test -s "$notes_file"
+          echo "path=$notes_file" >> "$GITHUB_OUTPUT"
 
-      - name: Checksums
+      - name: Create checksums
         run: |
           cd dist
           sha256sum * > SHA256SUMS
 
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v3
-        with:
-          body: ${{ steps.changelog.outputs.body }}
-          files: dist/*
-          generate_release_notes: false # We are providing our own from changelog
+      - name: Publish tag and GitHub Release
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_VERSION: ${{ inputs.version }}
+          NOTES_FILE: ${{ steps.changelog.outputs.path }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          tag_pushed=false
+          cleanup() {
+            if [ "$tag_pushed" = true ]; then
+              gh release delete "$RELEASE_VERSION" --yes >/dev/null 2>&1 || true
+              git push origin ":refs/tags/$RELEASE_VERSION" >/dev/null 2>&1 || true
+            fi
+          }
+          trap cleanup ERR INT TERM
+          git tag -a "$RELEASE_VERSION" "$GITHUB_SHA" -m "$RELEASE_VERSION"
+          git push origin "refs/tags/$RELEASE_VERSION"
+          tag_pushed=true
+          gh release create "$RELEASE_VERSION" dist/* \
+            --verify-tag \
+            --title "$RELEASE_VERSION" \
+            --notes-file "$NOTES_FILE"
+          trap - ERR INT TERM

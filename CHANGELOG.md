@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+### Added
+- Seeded fuzz targets cover HTTP document splitting, headers, variables, response references, secret redaction, Hurl entries, dotenv values, and POSIX shell quoting; CI runs short mutations on every change and a deeper weekly fuzz job.
+- CI scans reachable Go dependencies with `govulncheck`, Dependabot monitors Go modules and GitHub Actions weekly, and every release archive includes a target-specific CycloneDX SBOM that is also published as a separate release asset.
+
+### Changed
+- Releases are now explicitly dispatched by version from `main`. The workflow validates the version and changelog, runs all checks, builds every archive, and only then publishes the tag and GitHub Release, cleaning up a partially published tag if release creation fails.
+
 ## [v0.19.1] - 2026-08-27
 ### Fixed
 - Clearing history now registers its background persistence snapshot before exposing the empty in-memory state, preventing `WaitForHistory` from racing with a concurrent write.

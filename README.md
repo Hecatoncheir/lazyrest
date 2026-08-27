@@ -558,10 +558,13 @@ visible.
   history mode.
 - [x] **Surface history persistence failures.** Report corrupted history files and
   background write failures in Diagnostics instead of silently ignoring them.
-- [ ] **Fuzz the handwritten parsers.** Cover request splitting, headers, variables,
+- [x] **Fuzz the handwritten parsers.** Cover request splitting, headers, variables,
   dotenv values, response references, redaction, and shell quoting with seeded
   fuzz tests.
-- [ ] **Automate security checks.** Run `govulncheck` in CI, monitor dependency
+- [x] **Make releases transactional.** Validate an explicit version on `main`, run
+  checks and build archives before publishing its tag, and clean up a partial
+  publication when GitHub Release creation fails.
+- [x] **Automate security checks.** Run `govulncheck` in CI, monitor dependency
   updates, and attach provenance or an SBOM to release archives.
 - [ ] **Add a headless runner.** Allow named requests to run without the TUI so the
   same `.http` and `.hurl` files can be used in CI and scripts.
@@ -578,9 +581,31 @@ go test -cover ./...       # package-level coverage
 go test -race ./...        # what CI runs
 go test ./ui -run TUI      # the terminal integration tests
 go vet ./...
+go run golang.org/x/vuln/cmd/govulncheck@v1.7.0 ./...
 golangci-lint run ./...    # the set is pinned in .golangci.yml
 go build ./...
 ```
 
 The build must stay free of CGO, which CI checks by compiling every released
 target with `CGO_ENABLED=0`.
+
+Seed corpora run as ordinary tests. CI also mutates every fuzz target briefly on
+pushes and pull requests, with a longer scheduled run each Monday. To investigate
+one target locally, use for example:
+
+```sh
+go test ./parser/http -run=^$ -fuzz='^FuzzHTTPDocumentSyntax$' -fuzztime=30s
+```
+
+To publish a release, first add and commit a dated `## [vX.Y.Z]` section to
+`CHANGELOG.md` on `main`, then dispatch **Go Tests and Release** with that version:
+
+```sh
+gh workflow run go-test.yml --ref main -f version=vX.Y.Z
+```
+
+The workflow refuses an existing or non-increasing tag and a missing changelog
+section. It publishes the tag only after tests and all platform archives pass.
+Every archive contains a target-specific CycloneDX `SBOM.cdx.json`; the same
+SBOMs and their checksums are also attached separately to the GitHub Release.
+Dependabot checks Go modules and GitHub Actions for updates every Monday.
