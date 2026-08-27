@@ -31,7 +31,7 @@
 
 ## Requirements
 
-- Go 1.25 or newer when building from source.
+- Go 1.25.13 or newer when building from source.
 - The [`hurl`](https://hurl.dev/docs/installation.html) executable for `.hurl` files. It is not required for ordinary `.http` requests.
 
 ## Installation

@@ -11,6 +11,7 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 - Releases are now explicitly dispatched by version from `main`. The workflow validates the version and changelog, runs all checks, builds every archive, and only then publishes the tag and GitHub Release, cleaning up a partially published tag if release creation fails.
+- The minimum Go toolchain is now 1.25.13 so released binaries include the latest standard-library security fixes from the Go 1.25 line.
 
 ## [v0.19.1] - 2026-08-27
 ### Fixed

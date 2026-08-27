@@ -1,6 +1,6 @@
 module github.com/Hecatoncheir/lazyrest
 
-go 1.25.5
+go 1.25.13
 
 require (
 	github.com/gdamore/tcell/v2 v2.13.10
