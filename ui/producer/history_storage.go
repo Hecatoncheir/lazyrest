@@ -29,29 +29,105 @@ type storedHistory struct {
 }
 
 type storedHistoryEntry struct {
-	Suite     storedSuite     `json:"suite"`
-	Response  runner.Response `json:"response"`
-	Error     string          `json:"error,omitempty"`
-	CreatedAt time.Time       `json:"created_at"`
+	Suite          storedSuite    `json:"suite"`
+	Response       storedResponse `json:"response"`
+	Error          string         `json:"error,omitempty"`
+	CreatedAt      time.Time      `json:"created_at"`
+	DetailsOmitted bool           `json:"details_omitted,omitempty"`
 }
 
-// storedSuite shadows the header of the embedded suite so that both the current
-// and the version 1 header format can be read.
+// storedSuite is an explicit allowlist of request fields that are safe and
+// useful to restore. Keeping it separate from HttpSuite prevents a newly added
+// runtime field from silently becoming part of the on-disk history format.
 type storedSuite struct {
-	parserhttp.HttpSuite
-	Header storedHeader
+	Name             string       `json:"Name"`
+	Method           string       `json:"Method"`
+	URI              string       `json:"Uri"`
+	Header           storedHeader `json:"Header"`
+	Body             string       `json:"Body"`
+	BodyType         string       `json:"BodyType"`
+	IsHurl           bool         `json:"IsHurl"`
+	HurlEntry        int          `json:"HurlEntry,omitempty"`
+	GraphQLVariables string       `json:"GraphQLVariables,omitempty"`
+	GraphQLOperation string       `json:"GraphQLOperation,omitempty"`
+}
+
+// storedResponse serves the same purpose for responses. Its JSON field names
+// match the history written before the allowlist was introduced.
+type storedResponse struct {
+	Code          string        `json:"Code"`
+	StatusCode    int           `json:"StatusCode"`
+	Time          time.Duration `json:"Time"`
+	ContentLength int           `json:"ContentLength"`
+	Body          string        `json:"Body"`
+	Truncated     bool          `json:"Truncated"`
+	Header        storedHeader  `json:"Header"`
+	Protocol      string        `json:"Protocol"`
+	GraphQLErrors []string      `json:"GraphQLErrors,omitempty"`
 }
 
 type storedHeader http.Header
 
 func newStoredSuite(suite parserhttp.HttpSuite) storedSuite {
-	return storedSuite{HttpSuite: suite, Header: storedHeader(suite.Header)}
+	return storedSuite{
+		Name:             suite.Name,
+		Method:           suite.Method,
+		URI:              suite.Uri,
+		Header:           cloneStoredHeader(suite.Header),
+		Body:             suite.Body,
+		BodyType:         suite.BodyType,
+		IsHurl:           suite.IsHurl,
+		HurlEntry:        suite.HurlEntry,
+		GraphQLVariables: suite.GraphQLVariables,
+		GraphQLOperation: suite.GraphQLOperation,
+	}
 }
 
 func (stored storedSuite) suite() parserhttp.HttpSuite {
-	restored := stored.HttpSuite
-	restored.Header = http.Header(stored.Header)
-	return restored
+	return parserhttp.HttpSuite{
+		Name:             stored.Name,
+		Method:           stored.Method,
+		Uri:              stored.URI,
+		Header:           http.Header(stored.Header).Clone(),
+		Body:             stored.Body,
+		BodyType:         stored.BodyType,
+		IsHurl:           stored.IsHurl,
+		HurlEntry:        stored.HurlEntry,
+		GraphQLVariables: stored.GraphQLVariables,
+		GraphQLOperation: stored.GraphQLOperation,
+	}
+}
+
+func newStoredResponse(response runner.Response) storedResponse {
+	return storedResponse{
+		Code:          response.Code,
+		StatusCode:    response.StatusCode,
+		Time:          response.Time,
+		ContentLength: response.ContentLength,
+		Body:          response.Body,
+		Truncated:     response.Truncated,
+		Header:        cloneStoredHeader(response.Header),
+		Protocol:      response.Protocol,
+		GraphQLErrors: append([]string(nil), response.GraphQLErrors...),
+	}
+}
+
+func (stored storedResponse) response() runner.Response {
+	return runner.Response{
+		Code:          stored.Code,
+		StatusCode:    stored.StatusCode,
+		Time:          stored.Time,
+		ContentLength: stored.ContentLength,
+		Body:          stored.Body,
+		Truncated:     stored.Truncated,
+		Header:        http.Header(stored.Header).Clone(),
+		Protocol:      stored.Protocol,
+		GraphQLErrors: append([]string(nil), stored.GraphQLErrors...),
+	}
+}
+
+func cloneStoredHeader(header http.Header) storedHeader {
+	return storedHeader(header.Clone())
 }
 
 func (header *storedHeader) UnmarshalJSON(contents []byte) error {
@@ -93,17 +169,33 @@ func (widget *Producer) loadHistory() error {
 	if len(stored.Entries) > maxHistoryEntries {
 		stored.Entries = stored.Entries[len(stored.Entries)-maxHistoryEntries:]
 	}
-	widget.historyDataMutex.Lock()
-	defer widget.historyDataMutex.Unlock()
-	widget.history = make([]HistoryEntry, 0, len(stored.Entries))
+	restored := make([]HistoryEntry, 0, len(stored.Entries))
+	rewriteMetadata := false
 	for _, entry := range stored.Entries {
 		var entryErr error
 		if entry.Error != "" {
 			entryErr = errors.New(entry.Error)
 		}
-		widget.history = append(widget.history, HistoryEntry{Suite: entry.Suite.suite(), Response: entry.Response, Err: entryErr, CreatedAt: entry.CreatedAt})
+		historyEntry := HistoryEntry{
+			Suite:          entry.Suite.suite(),
+			Response:       entry.Response.response(),
+			Err:            entryErr,
+			CreatedAt:      entry.CreatedAt,
+			DetailsOmitted: entry.DetailsOmitted,
+		}
+		if widget.historyModeValue() == HistoryMetadata && !historyEntry.DetailsOmitted {
+			historyEntry = metadataOnlyHistoryEntry(historyEntry)
+			rewriteMetadata = true
+		}
+		restored = append(restored, historyEntry)
 	}
+	widget.historyDataMutex.Lock()
+	widget.history = restored
 	widget.historyIndex = len(widget.history) - 1
+	widget.historyDataMutex.Unlock()
+	if rewriteMetadata {
+		widget.persistHistory()
+	}
 	return nil
 }
 
@@ -125,12 +217,16 @@ func (widget *Producer) persistHistory() {
 	go func() {
 		defer widget.historyWrites.Done()
 		widget.historyMutex.Lock()
-		defer widget.historyMutex.Unlock()
 		if generation <= widget.historyWritten {
+			widget.historyMutex.Unlock()
 			return
 		}
 		widget.historyWritten = generation
-		_ = writeHistory(widget.historyPath, stored)
+		err := writeHistory(widget.historyPath, stored)
+		widget.historyMutex.Unlock()
+		if err != nil {
+			widget.reportHistoryError("persist", err)
+		}
 	}()
 }
 
@@ -146,14 +242,46 @@ func (widget *Producer) buildStoredHistory() storedHistory {
 	defer widget.historyDataMutex.RUnlock()
 	stored := storedHistory{Version: historyVersion, Entries: make([]storedHistoryEntry, 0, len(widget.history))}
 	for _, entry := range widget.history {
+		if widget.historyModeValue() == HistoryMetadata {
+			entry = metadataOnlyHistoryEntry(entry)
+		}
 		errorText := ""
 		if entry.Err != nil {
 			errorText = entry.Err.Error()
 		}
 		suite, response := boundedEntryBodies(entry.Suite, entry.Response)
-		stored.Entries = append(stored.Entries, storedHistoryEntry{Suite: newStoredSuite(suite), Response: response, Error: errorText, CreatedAt: entry.CreatedAt})
+		stored.Entries = append(stored.Entries, storedHistoryEntry{
+			Suite:          newStoredSuite(suite),
+			Response:       newStoredResponse(response),
+			Error:          errorText,
+			CreatedAt:      entry.CreatedAt,
+			DetailsOmitted: entry.DetailsOmitted,
+		})
 	}
 	return stored
+}
+
+func metadataOnlyHistoryEntry(entry HistoryEntry) HistoryEntry {
+	entry.Suite = parserhttp.HttpSuite{
+		Name:     entry.Suite.Name,
+		Method:   entry.Suite.Method,
+		BodyType: entry.Suite.BodyType,
+		IsHurl:   entry.Suite.IsHurl,
+	}
+	entry.Response = runner.Response{
+		Code:          entry.Response.Code,
+		StatusCode:    entry.Response.StatusCode,
+		Time:          entry.Response.Time,
+		ContentLength: entry.Response.ContentLength,
+		Truncated:     entry.Response.Truncated,
+		Protocol:      entry.Response.Protocol,
+	}
+	if entry.Err != nil {
+		entry.Err = errors.New("request failed; details were not persisted")
+	}
+	entry.DetailsOmitted = true
+	entry.request = nil
+	return entry
 }
 
 // boundedEntryBodies limits what a single entry contributes to the file. The
@@ -214,15 +342,26 @@ func writeHistory(path string, stored storedHistory) error {
 
 func sanitizedHistoryEntry(suite parserhttp.HttpSuite, response runner.Response, err error, createdAt time.Time) HistoryEntry {
 	secrets := append([]string(nil), suite.SecretValues...)
+	secrets = append(secrets, parserhttp.SensitiveResponseValues(response.Body, response.Header)...)
 	suite.Name = redactSecrets(suite.Name, secrets)
+	suite.Method = redactSecrets(suite.Method, secrets)
 	suite.Uri = redactSecrets(suite.Uri, secrets)
 	suite.Body = redactSecrets(suite.Body, secrets)
+	suite.BodyType = redactSecrets(suite.BodyType, secrets)
+	suite.GraphQLVariables = redactSecrets(suite.GraphQLVariables, secrets)
+	suite.GraphQLOperation = redactSecrets(suite.GraphQLOperation, secrets)
 	suite.HurlFilePath = ""
 	suite.Variables = nil
 	suite.Header = sanitizeHeaders(suite.Header, secrets)
 	suite.SecretValues = nil
+	response.Code = redactSecrets(response.Code, secrets)
 	response.Body = redactSecrets(response.Body, secrets)
 	response.Header = sanitizeHeaders(response.Header, secrets)
+	response.Protocol = redactSecrets(response.Protocol, secrets)
+	response.GraphQLErrors = append([]string(nil), response.GraphQLErrors...)
+	for index, message := range response.GraphQLErrors {
+		response.GraphQLErrors[index] = redactSecrets(message, secrets)
+	}
 	var sanitizedError error
 	if err != nil {
 		sanitizedError = errors.New(redactSecrets(err.Error(), secrets))
@@ -234,7 +373,7 @@ func sanitizeHeaders(headers http.Header, secrets []string) http.Header {
 	result := make(http.Header, len(headers))
 	for key, values := range headers {
 		cleanKey := redactSecrets(key, secrets)
-		if isSensitiveHeader(key) {
+		if parserhttp.IsSensitiveHeader(key) {
 			result[cleanKey] = []string{"<redacted>"}
 			continue
 		}

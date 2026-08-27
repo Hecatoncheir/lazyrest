@@ -37,7 +37,7 @@ func (widget *Producer) CurrentResponse() (ResponseExport, bool) {
 	}
 	entry := widget.history[widget.historyIndex]
 	widget.historyDataMutex.RUnlock()
-	if entry.Err != nil || (entry.Response.Code == "" && entry.Response.StatusCode == 0) {
+	if entry.DetailsOmitted || entry.Err != nil || (entry.Response.Code == "" && entry.Response.StatusCode == 0) {
 		return ResponseExport{}, false
 	}
 	body, _ := formatResponseBody(entry.Response, widget.bodyViewMode)

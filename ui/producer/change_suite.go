@@ -154,6 +154,7 @@ func (widget *Producer) ChangeSuite(suite http.HttpSuite) {
 			if widget.onRunFinished != nil {
 				widget.onRunFinished(response, err)
 			}
+			suite.SecretValues = append(suite.SecretValues, http.SensitiveResponseValues(response.Body, response.Header)...)
 			widget.recordResponse(suite, response, err)
 			widget.addHistory(suite, response, err)
 			text := widget.renderResult(suite, response, err)

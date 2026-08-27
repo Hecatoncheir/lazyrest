@@ -102,6 +102,35 @@ func TestExecute_Error(t *testing.T) {
 	}
 }
 
+func TestExecute_BlocksInvalidParsedRequestBeforeNetwork(t *testing.T) {
+	called := false
+	suite := parser.HttpSuite{
+		Method: "POST",
+		Uri:    "http://example.test/upload",
+		Header: http.Header{},
+		Diagnostics: []parser.Diagnostic{{
+			Line:     3,
+			Column:   1,
+			Message:  "read request body file: missing.json",
+			Severity: parser.DiagnosticError,
+		}},
+	}
+	runner := NewFromSuiteWithConfig(suite, Config{
+		Client: &http.Client{Transport: roundTripFunc(func(*http.Request) (*http.Response, error) {
+			called = true
+			return nil, errors.New("network must not be reached")
+		})},
+	})
+
+	_, err := runner.Execute(context.Background(), nil)
+	if !errors.Is(err, parser.ErrRequestNotRunnable) {
+		t.Fatalf("unexpected validation error: %v", err)
+	}
+	if called {
+		t.Fatal("invalid parsed request reached the HTTP transport")
+	}
+}
+
 func TestExecute_WithBodyAndHeaders(t *testing.T) {
 	testJSON := `{"key": "value"}`
 	mockSuite := parser.HttpSuite{

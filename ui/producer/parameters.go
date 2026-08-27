@@ -19,9 +19,11 @@ type Parameters struct {
 	OnCopyAsCurlCallback       func()
 	OnSaveResponseCallback     func()
 	OnSaveFullResponseCallback func()
+	OnHistoryErrorCallback     func(error)
 	App                        *tview.Application
 	RunnerConfig               runner.Config
 	Keybindings                *keymap.Bindings
 	Locale                     *locale.Translator
 	HistoryPath                string
+	HistoryMode                HistoryMode
 }

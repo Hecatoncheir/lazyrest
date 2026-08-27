@@ -2,13 +2,16 @@ package producer
 
 import (
 	"context"
+	"fmt"
+	"sync"
+	"sync/atomic"
+
 	"github.com/Hecatoncheir/lazyrest/keymap"
 	"github.com/Hecatoncheir/lazyrest/locale"
 	"github.com/Hecatoncheir/lazyrest/parser/http"
 	"github.com/Hecatoncheir/lazyrest/runner"
 	"github.com/Hecatoncheir/lazyrest/ui/syntax"
 	"github.com/Hecatoncheir/lazyrest/ui/theme"
-	"sync"
 
 	"github.com/rivo/tview"
 )
@@ -34,6 +37,7 @@ type Producer struct {
 	onCopyAsCurl       func()
 	onSaveResponse     func()
 	onSaveFullResponse func()
+	onHistoryError     func(error)
 	app                *tview.Application
 	runMutex           sync.Mutex
 	runID              uint64
@@ -61,6 +65,7 @@ type Producer struct {
 	historyRequested   uint64
 	historyWritten     uint64
 	historyWrites      sync.WaitGroup
+	historyMode        atomic.Uint32
 }
 
 func (widget *Producer) runnerConfiguration() runner.Config {
@@ -141,13 +146,17 @@ func (widget *Producer) Build(parameters Parameters) tview.Primitive {
 	widget.onCopyAsCurl = parameters.OnCopyAsCurlCallback
 	widget.onSaveResponse = parameters.OnSaveResponseCallback
 	widget.onSaveFullResponse = parameters.OnSaveFullResponseCallback
+	widget.onHistoryError = parameters.OnHistoryErrorCallback
 	widget.app = parameters.App
 	widget.runnerConfig = parameters.RunnerConfig
 	widget.keybindings = parameters.Keybindings
 	widget.locale = parameters.Locale
 	widget.historyPath = parameters.HistoryPath
+	widget.historyMode.Store(uint32(parameters.HistoryMode))
 	widget.syntax = parameters.Theme.Syntax
-	_ = widget.loadHistory()
+	if err := widget.loadHistory(); err != nil {
+		widget.reportHistoryError("load", err)
+	}
 	widget.bodyViewMode = BodyViewPretty
 	theme := parameters.Theme.Producer
 	widget.theme = theme
@@ -172,4 +181,11 @@ func (widget *Producer) Build(parameters Parameters) tview.Primitive {
 	widget.Element = element
 	widget.updateTitle()
 	return element
+}
+
+func (widget *Producer) reportHistoryError(operation string, err error) {
+	if widget == nil || err == nil || widget.onHistoryError == nil {
+		return
+	}
+	widget.onHistoryError(fmt.Errorf("%s history %q: %w", operation, widget.historyPath, err))
 }

@@ -167,6 +167,7 @@ func (application *Application) reloadConfiguration() {
 	application.config.Keybindings = settings.Keybindings
 	application.config.Locale = settings.Locale
 	application.config.Theme = settings.Theme
+	application.config.HistoryBodies = !settings.HistoryMetadata
 	application.config.ConfigPath = path
 	application.theme = settings.Theme
 	focused := application.Element.GetFocus()
@@ -177,6 +178,7 @@ func (application *Application) reloadConfiguration() {
 	application.Suites.ApplySettings(settings.Theme, settings.Locale, settings.Keybindings)
 	application.Suite.ApplySettings(settings.Theme, settings.Locale, settings.Keybindings)
 	application.Producer.ApplySettings(settings.Theme, settings.Locale, settings.Keybindings)
+	application.Producer.SetHistoryMode(historyMode(!settings.HistoryMetadata))
 	application.Footer.ApplySettings(settings.Theme, settings.Locale)
 	application.buildOverlays()
 	if focused != nil {

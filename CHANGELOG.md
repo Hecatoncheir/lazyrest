@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+### Added
+- Persistent history now defaults to metadata-only storage through `history: metadata`; `history: full` opts into restoring redacted request and response details.
+
+### Changed
+- Loading detailed history while metadata mode is active removes request and response details from memory and rewrites the project history without them.
+
+### Fixed
+- Persistent history now redacts GraphQL variables, GraphQL error messages, and other stored strings, and serializes an explicit allowlist of request and response fields so new runtime-only fields cannot leak to disk accidentally.
+- Tokens, credentials, and session values created by responses are now treated as secrets when they come from sensitive response references, headers, or common JSON fields, keeping them out of rendering and persisted full history.
+- Corrupted history files and failed background writes are now retained as deduplicated Diagnostics entries instead of being silently ignored.
+- Parser diagnostics now distinguish warnings from blocking errors, and requests with missing external bodies, undefined variables, or cyclic variable references are rejected before any network call.
+
 ## [v0.18.0] - 2026-08-27
 ### Added
 - File discovery honours `.gitignore` files from the project root and nested directories, including Git globs, directory-only rules, and negation; invalid patterns appear in diagnostics.

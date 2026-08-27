@@ -164,6 +164,9 @@ func NewFromSuiteWithConfig(suite parser.HttpSuite, config Config) Runner {
 }
 
 func (runner *Runner) Execute(ctx context.Context, onProgress ProgressCallback) (Response, error) {
+	if err := runner.suite.ValidateForExecution(); err != nil {
+		return Response{}, err
+	}
 	if ctx == nil {
 		ctx = context.Background()
 	}

@@ -26,7 +26,7 @@
 - Response headers, protocol metadata, Pretty/Raw bodies, and clipboard/file export.
 - One-key request replay, environment switching, and executable cURL export from Producer.
 - Cancellable execution with animated progress bars, a timeout, and bounded response bodies.
-- File/request/response search, dedicated diagnostics and history windows, and a persistent history of the last 50 runs per project.
+- File/request/response search, dedicated diagnostics and history windows, and a metadata-only persistent history of the last 50 runs per project.
 - Mouse and Vim-style keyboard navigation.
 
 ## Requirements
@@ -327,6 +327,7 @@ Each action accepts one or more keys. Configured keys replace the defaults for t
 
 ```yaml
 language: zh
+history: metadata
 
 ignore:
   - fixtures
@@ -421,7 +422,7 @@ whichever preset or override is active. It covers the body preview in Suites,
 the request in Suite, and the request and response in Producer. Bodies over
 256 KiB are shown without highlighting to keep the panes responsive.
 
-The built-in theme presets are `gruvbox` (default), `catppuccin-mocha`, `tokyo-night`, `dracula`, `nord`, and `monokai`. Every theme color remains an optional hexadecimal RGB override applied on top of the selected preset. Choose **Choose theme** from the command palette to switch the current session immediately. Press `Ctrl+r` or choose **Reload configuration** to apply language, translations, keybindings, and theme changes from configuration without restarting lazyrest. Invalid configuration leaves the current settings active and displays an error in the footer.
+The built-in theme presets are `gruvbox` (default), `catppuccin-mocha`, `tokyo-night`, `dracula`, `nord`, and `monokai`. Every theme color remains an optional hexadecimal RGB override applied on top of the selected preset. Choose **Choose theme** from the command palette to switch the current session immediately. Press `Ctrl+r` or choose **Reload configuration** to apply language, translations, keybindings, theme, and history-mode changes from configuration without restarting lazyrest. Invalid configuration leaves the current settings active and displays an error in the footer.
 
 Supported named keys are `enter`, `esc`, `backspace`, `tab`, arrow keys, `home`, `end`, `pgup`, `pgdn`, `f1` through `f12`, and `ctrl+a` through `ctrl+z`. Single non-whitespace printable characters are case-sensitive. Viewport actions also accept printable key sequences such as `gg`, `zt`, `zz`, and `zb`.
 
@@ -443,12 +444,26 @@ The latest 50 request results are stored separately for every project under
 `~/.config/lazyrest/history/<project-id>.json` and restored only when that same
 canonical project root is opened again. The previous shared `history.json` is
 left untouched rather than importing its mixed entries into one project.
-Bodies are limited to 64 KiB per entry in the file, while the response pane
-keeps the full body of the current session. Writing happens in the background,
-so a large response does not stall the interface. Known secret values and
-sensitive headers such as `Authorization`, cookies, and API keys are redacted
-before writing. The directory uses permissions `0700`, history files use `0600`,
-and updates are atomic.
+
+`history: metadata` is the default. It persists only the request name and method
+plus response status, timing, size, and protocol. URLs, headers, bodies, error
+details, GraphQL data, and runnable request state remain in memory for the
+current session and are omitted from disk. A restored metadata entry explains
+that its details were not persisted and cannot be repeated or exported.
+
+Set `history: full` in the configuration only when restored request and response
+details are useful enough to justify storing them. Bodies are then limited to
+64 KiB per entry. Sensitive headers such as `Authorization`, cookies, and API
+keys are redacted, as are known secrets, credentials found in common JSON token
+or session fields, and values captured through sensitive response references.
+Switching back to metadata mode rewrites previously stored detailed entries the
+next time the project is opened or configuration is reloaded.
+
+Writing happens in the background so a large response does not stall the
+interface. The directory uses permissions `0700`, history files use `0600`, and
+updates are atomic. A corrupted history file or failed background write is kept
+as a deduplicated entry in **Diagnostics**; lazyrest continues running with the
+history that remains available in memory.
 
 Choose **History** from the command palette to see the project's entries newest
 first, with request name, source file, timestamp, status, and duration but no
@@ -526,28 +541,34 @@ the response pane, and report when the exported body was truncated.
 - `q`: close the active window; quit lazyrest when no window is open.
 - `Ctrl+C`: quit from anywhere.
 
-## TODO
+## Roadmap
 
-Current roadmap, roughly in the order the remaining gaps matter:
+The next improvements are ordered by risk and user impact. Completed work stays
+listed here until the next release so that the direction of the project remains
+visible.
 
-- [x] **Walk through response search matches.** `n` / `N` move cyclically
-  through matches and the Producer title shows the current position.
-- [x] **Use consistent Vim viewport commands.** `gg`, `G`, `Ctrl+f`, `Ctrl+b`,
-  `zt`, `zz`, and `zb` now work across selectable and scrollable areas.
-- [x] **Keep history per project and make it directly accessible.** Entries are
-  stored under a stable project ID, restored only for that root, and listed in
-  a separate History window.
-- [x] **Show what the session captured.** The command palette opens a safe summary
-  of named responses, which can be cleared without restarting.
-- [x] **Load `.env` files.** The project-root `.env` is an automatic private base
-  environment, with JSON profiles and request-local declarations layered over it.
-- [x] **Repeat and export the current request.** Producer uses `R` to rerun the
-  visible request and `C` to copy it as cURL.
-- [x] **Switch environments without restarting.** The command palette lists the
-  base `.env` layer and profiles from both JSON environment files, then reparses
-  the open request file after a selection.
-- [x] **Honour `.gitignore`.** Project and nested ignore files now filter both
-  files and directories with Git globs, negation, and normal precedence.
+- [x] **Harden persistent history against secret leaks.** Persist only an explicit
+  allowlist of request and response fields, and redact GraphQL variables, GraphQL
+  errors, and every other stored string that can contain a known secret.
+- [x] **Distinguish fatal parser errors from warnings.** Keep useful diagnostics,
+  but prevent a request from running when an external body is missing or another
+  error makes the request unsafe to send.
+- [x] **Protect secrets created at runtime.** Treat sensitive response references,
+  such as tokens returned by a login request, as secrets and add a metadata-only
+  history mode.
+- [x] **Surface history persistence failures.** Report corrupted history files and
+  background write failures in Diagnostics instead of silently ignoring them.
+- [ ] **Fuzz the handwritten parsers.** Cover request splitting, headers, variables,
+  dotenv values, response references, redaction, and shell quoting with seeded
+  fuzz tests.
+- [ ] **Automate security checks.** Run `govulncheck` in CI, monitor dependency
+  updates, and attach provenance or an SBOM to release archives.
+- [ ] **Add a headless runner.** Allow named requests to run without the TUI so the
+  same `.http` and `.hurl` files can be used in CI and scripts.
+- [ ] **Refresh changed files automatically.** Watch the project tree and reparse
+  affected request files without requiring a manual reload.
+- [ ] **Expand distribution.** Add package-manager installation and notarized macOS
+  builds after the release process and signing credentials are ready.
 
 ## Development
 

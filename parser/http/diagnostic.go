@@ -2,10 +2,22 @@ package http
 
 import "fmt"
 
+type DiagnosticSeverity uint8
+
+const (
+	DiagnosticWarning DiagnosticSeverity = iota
+	DiagnosticError
+)
+
 type Diagnostic struct {
-	Line    int
-	Column  int
-	Message string
+	Line     int
+	Column   int
+	Message  string
+	Severity DiagnosticSeverity
+}
+
+func (diagnostic Diagnostic) IsBlocking() bool {
+	return diagnostic.Severity >= DiagnosticError
 }
 
 func (diagnostic Diagnostic) String() string {

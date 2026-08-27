@@ -2,6 +2,7 @@ package http
 
 import (
 	"context"
+	"errors"
 	"os"
 	"path/filepath"
 	"slices"
@@ -164,10 +165,16 @@ X-Missing: {{missing}}
 	for _, diagnostic := range result.Diagnostics {
 		if strings.Contains(diagnostic.Message, "undefined variable: missing") {
 			foundMissing = true
+			if !diagnostic.IsBlocking() {
+				t.Error("undefined variable diagnostic must block execution")
+			}
 		}
 	}
 	if !foundMissing {
 		t.Errorf("expected missing-variable diagnostic, got %+v", result.Diagnostics)
+	}
+	if err := suite.ValidateForExecution(); !errors.Is(err, ErrRequestNotRunnable) {
+		t.Fatalf("request with an undefined variable remained runnable: %v", err)
 	}
 }
 
@@ -236,10 +243,19 @@ func TestParseFileWithOptions_ReportsVariableCycle(t *testing.T) {
 	for _, diagnostic := range result.Diagnostics {
 		if strings.Contains(diagnostic.Message, "cyclic variable reference") {
 			found = true
+			if !diagnostic.IsBlocking() {
+				t.Error("variable cycle diagnostic must block execution")
+			}
 		}
 	}
 	if !found {
 		t.Fatalf("expected cycle diagnostic, got %+v", result.Diagnostics)
+	}
+	if len(result.Suites) != 1 {
+		t.Fatalf("expected one blocked request, got %d", len(result.Suites))
+	}
+	if err := result.Suites[0].ValidateForExecution(); !errors.Is(err, ErrRequestNotRunnable) {
+		t.Fatalf("request with a variable cycle remained runnable: %v", err)
 	}
 }
 
@@ -395,9 +411,18 @@ func TestParseFile_ReportsMissingExternalBodyFile(t *testing.T) {
 	for _, diagnostic := range result.Diagnostics {
 		if strings.Contains(diagnostic.Message, "read request body file") {
 			found = true
+			if !diagnostic.IsBlocking() {
+				t.Error("missing external body diagnostic must block execution")
+			}
 		}
 	}
 	if !found {
 		t.Fatalf("missing body file was not reported: %+v", result.Diagnostics)
+	}
+	if len(result.Suites) != 1 {
+		t.Fatalf("expected one blocked request, got %d", len(result.Suites))
+	}
+	if err := result.Suites[0].ValidateForExecution(); !errors.Is(err, ErrRequestNotRunnable) {
+		t.Fatalf("request with a missing external body remained runnable: %v", err)
 	}
 }

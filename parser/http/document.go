@@ -151,16 +151,22 @@ func parseDocument(source string, options ParseOptions) ([]HttpSuite, []Diagnost
 			// The body is loaded before substitution so that the file can use
 			// variables too.
 			if err := loadExternalBody(&suite, options.baseDirectory); err != nil {
-				diagnostics = append(diagnostics, diagnosticAt(current.line, err.Error()))
+				diagnostic := blockingDiagnosticAt(current.line, err.Error())
+				diagnostics = append(diagnostics, diagnostic)
+				suite.Diagnostics = append(suite.Diagnostics, diagnostic)
 			}
 			applyGraphQL(&suite)
 			resolution := resolveSuiteVariables(&suite, variables)
 			suite.SecretValues = resolveSecretVariables(options.SecretVariables, variables)
 			for _, name := range resolution.Missing {
-				diagnostics = append(diagnostics, diagnosticAt(current.line, "undefined variable: "+name))
+				diagnostic := blockingDiagnosticAt(current.line, "undefined variable: "+name)
+				diagnostics = append(diagnostics, diagnostic)
+				suite.Diagnostics = append(suite.Diagnostics, diagnostic)
 			}
 			for _, cycle := range resolution.Cycles {
-				diagnostics = append(diagnostics, diagnosticAt(current.line, "cyclic variable reference: "+cycle))
+				diagnostic := blockingDiagnosticAt(current.line, "cyclic variable reference: "+cycle)
+				diagnostics = append(diagnostics, diagnostic)
+				suite.Diagnostics = append(suite.Diagnostics, diagnostic)
 			}
 			if suite.Name == "" {
 				suite.Name = strings.TrimSpace(suite.Method + " " + suite.Uri)
@@ -196,6 +202,10 @@ func (suite HttpSuite) isRecognizedRequest() bool {
 
 func diagnosticAt(line int, message string) Diagnostic {
 	return Diagnostic{Line: line, Column: 1, Message: message}
+}
+
+func blockingDiagnosticAt(line int, message string) Diagnostic {
+	return Diagnostic{Line: line, Column: 1, Message: message, Severity: DiagnosticError}
 }
 
 func getNameFromComment(comment string) string {

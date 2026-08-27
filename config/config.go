@@ -18,12 +18,20 @@ import (
 )
 
 type Settings struct {
-	Ignore      []string
-	Keybindings *keymap.Bindings
-	Locale      *locale.Translator
-	Theme       theme.Theme
-	Document    Document
+	Ignore          []string
+	Keybindings     *keymap.Bindings
+	Locale          *locale.Translator
+	Theme           theme.Theme
+	HistoryMetadata bool
+	Document        Document
 }
+
+type HistoryMode string
+
+const (
+	HistoryMetadata HistoryMode = "metadata"
+	HistoryFull     HistoryMode = "full"
+)
 
 type Document struct {
 	Language    string                       `yaml:"language"`
@@ -31,6 +39,7 @@ type Document struct {
 	Languages   map[string]map[string]string `yaml:"languages,omitempty"`
 	Keybindings map[string][]string          `yaml:"keybindings"`
 	Theme       theme.Config                 `yaml:"theme"`
+	History     HistoryMode                  `yaml:"history"`
 }
 
 func DefaultPath() (string, error) {
@@ -76,7 +85,7 @@ func ProjectPath(rootDirectory string) string {
 }
 
 func DefaultDocument() Document {
-	return Document{Language: "en", Keybindings: keymap.Default().Map(), Theme: theme.DefaultConfig()}
+	return Document{Language: "en", Keybindings: keymap.Default().Map(), Theme: theme.DefaultConfig(), History: HistoryMetadata}
 }
 
 func LoadDefault() (Settings, string, error) {
@@ -113,7 +122,17 @@ func LoadFiles(paths []string) (Settings, error) {
 	if err != nil {
 		return Settings{}, fmt.Errorf("validate configuration: %w", err)
 	}
-	return Settings{Ignore: document.Ignore, Keybindings: bindings, Locale: translator, Theme: uiTheme, Document: document}, nil
+	if document.History != HistoryMetadata && document.History != HistoryFull {
+		return Settings{}, fmt.Errorf("validate configuration: history must be %q or %q", HistoryMetadata, HistoryFull)
+	}
+	return Settings{
+		Ignore:          document.Ignore,
+		Keybindings:     bindings,
+		Locale:          translator,
+		Theme:           uiTheme,
+		HistoryMetadata: document.History == HistoryMetadata,
+		Document:        document,
+	}, nil
 }
 
 func Marshal(document Document) ([]byte, error) {
@@ -171,6 +190,9 @@ func read(path string) (Document, error) {
 func merge(target *Document, source Document) {
 	if source.Language != "" {
 		target.Language = source.Language
+	}
+	if source.History != "" {
+		target.History = source.History
 	}
 	// The lists add up: a project says what else to skip without losing what
 	// the user chose.

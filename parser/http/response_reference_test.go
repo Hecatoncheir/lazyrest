@@ -5,6 +5,7 @@ import (
 	nethttp "net/http"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 )
@@ -26,16 +27,17 @@ func TestResolveResponseReferences(t *testing.T) {
 		name      string
 		reference string
 		want      string
+		secret    bool
 	}{
-		{name: "a string member", reference: "{{login.response.body.$.token}}", want: "abc123"},
+		{name: "a string member", reference: "{{login.response.body.$.token}}", want: "abc123", secret: true},
 		{name: "a nested number", reference: "{{login.response.body.$.user.id}}", want: "42"},
 		{name: "an array index", reference: "{{login.response.body.$.user.roles[0]}}", want: "admin"},
 		{name: "a boolean", reference: "{{login.response.body.$.ok}}", want: "true"},
 		{name: "a whole object", reference: "{{login.response.body.$.user.roles}}", want: `["admin","dev"]`},
-		{name: "the whole body", reference: "{{login.response.body}}", want: `{"token": "abc123", "user": {"id": 42, "roles": ["admin", "dev"]}, "ok": true}`},
-		{name: "a header", reference: "{{login.response.headers.X-Session}}", want: "s-1"},
-		{name: "a header by another case", reference: "{{login.response.headers.x-session}}", want: "s-1"},
-		{name: "spaces inside the braces", reference: "{{ login.response.body.$.token }}", want: "abc123"},
+		{name: "the whole body", reference: "{{login.response.body}}", want: `{"token": "abc123", "user": {"id": 42, "roles": ["admin", "dev"]}, "ok": true}`, secret: true},
+		{name: "a header", reference: "{{login.response.headers.X-Session}}", want: "s-1", secret: true},
+		{name: "a header by another case", reference: "{{login.response.headers.x-session}}", want: "s-1", secret: true},
+		{name: "spaces inside the braces", reference: "{{ login.response.body.$.token }}", want: "abc123", secret: true},
 	}
 
 	for _, testCase := range cases {
@@ -47,6 +49,9 @@ func TestResolveResponseReferences(t *testing.T) {
 			}
 			if suite.Uri != "https://example.com/"+testCase.want {
 				t.Errorf("got %q, want %q", suite.Uri, "https://example.com/"+testCase.want)
+			}
+			if marked := slices.Contains(suite.SecretValues, testCase.want); marked != testCase.secret {
+				t.Errorf("secret classification for %q is %v, want %v: %#v", testCase.reference, marked, testCase.secret, suite.SecretValues)
 			}
 		})
 	}
@@ -74,6 +79,21 @@ func TestResolveResponseReferences_ReachesEveryPartOfARequest(t *testing.T) {
 	}
 	if got := suite.Header.Get("Authorization"); got != "Bearer abc123" {
 		t.Errorf("the header was not resolved: %q", got)
+	}
+	if !slices.Contains(suite.SecretValues, "abc123") {
+		t.Fatalf("runtime token was not marked as secret: %#v", suite.SecretValues)
+	}
+}
+
+func TestResolveResponseReferences_TreatsAnyValueInASensitiveHeaderAsSecret(t *testing.T) {
+	suite := HttpSuite{
+		Header: nethttp.Header{"X-Api-Key": []string{"{{login.response.body.$.user.id}}"}},
+	}
+	if unresolved := ResolveResponseReferences(&suite, loginStore()); len(unresolved) != 0 {
+		t.Fatalf("unexpected failures: %v", unresolved)
+	}
+	if !slices.Contains(suite.SecretValues, "42") {
+		t.Fatalf("value placed in a sensitive header was not protected: %#v", suite.SecretValues)
 	}
 }
 

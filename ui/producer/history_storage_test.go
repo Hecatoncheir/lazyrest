@@ -13,16 +13,39 @@ import (
 
 	parserhttp "github.com/Hecatoncheir/lazyrest/parser/http"
 	"github.com/Hecatoncheir/lazyrest/runner"
+	"github.com/Hecatoncheir/lazyrest/ui/theme"
 )
+
+func fullHistoryProducer(path string, history []HistoryEntry) *Producer {
+	widget := &Producer{historyPath: path, history: history}
+	widget.historyMode.Store(uint32(HistoryFull))
+	return widget
+}
 
 func TestHistoryPersistsAndRedactsSecrets(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "lazyrest", "history.json")
 	secret := "super-secret"
+	runtimeSecret := "server-issued-secret"
 	entry := sanitizedHistoryEntry(parserhttp.HttpSuite{
-		Name: "Secret " + secret, Uri: "https://example.test?token=" + secret, Body: secret,
-		Header: http.Header{"Authorization": {"Bearer " + secret}, "Accept": {secret}}, SecretValues: []string{secret},
-	}, runner.Response{Body: secret, Header: http.Header{"Set-Cookie": {secret}, "X-Value": {secret}}}, errors.New("failed "+secret), time.Now())
-	widget := &Producer{historyPath: path, history: []HistoryEntry{entry}}
+		Name:             "Secret " + secret,
+		Method:           "POST-" + secret,
+		Uri:              "https://example.test?token=" + secret,
+		Header:           http.Header{"Authorization": {"Bearer " + secret}, "Accept": {secret}},
+		Body:             secret,
+		BodyType:         "json-" + secret,
+		HurlFilePath:     "/private/" + secret,
+		Variables:        map[string]string{"token": secret},
+		GraphQLVariables: `{"token":"` + secret + `"}`,
+		GraphQLOperation: "Login" + secret,
+		SecretValues:     []string{secret},
+	}, runner.Response{
+		Code:          "200 " + secret,
+		Body:          `{"accessToken":"` + runtimeSecret + `"}`,
+		Header:        http.Header{"Set-Cookie": {secret}, "X-Value": {runtimeSecret}},
+		Protocol:      "HTTP/2-" + secret,
+		GraphQLErrors: []string{"rejected " + runtimeSecret},
+	}, errors.New("failed "+runtimeSecret), time.Now())
+	widget := fullHistoryProducer(path, []HistoryEntry{entry})
 	if err := widget.saveHistory(); err != nil {
 		t.Fatal(err)
 	}
@@ -33,6 +56,14 @@ func TestHistoryPersistsAndRedactsSecrets(t *testing.T) {
 	if strings.Contains(string(contents), secret) {
 		t.Fatal("persisted history contains a secret")
 	}
+	if strings.Contains(string(contents), runtimeSecret) {
+		t.Fatal("persisted history contains a server-issued secret")
+	}
+	for _, runtimeField := range []string{`"HurlFilePath":`, `"Variables":`, `"SecretValues":`} {
+		if strings.Contains(string(contents), runtimeField) {
+			t.Fatalf("persisted history contains runtime-only field %s", runtimeField)
+		}
+	}
 	info, err := os.Stat(path)
 	if err != nil {
 		t.Fatal(err)
@@ -41,12 +72,18 @@ func TestHistoryPersistsAndRedactsSecrets(t *testing.T) {
 		t.Fatalf("unexpected history permissions: %o", info.Mode().Perm())
 	}
 
-	restored := &Producer{historyPath: path}
+	restored := fullHistoryProducer(path, nil)
 	if err := restored.loadHistory(); err != nil {
 		t.Fatal(err)
 	}
 	if len(restored.history) != 1 || restored.history[0].Suite.Uri == "" {
 		t.Fatalf("history was not restored: %+v", restored.history)
+	}
+	if variables := restored.history[0].Suite.GraphQLVariables; !strings.Contains(variables, "<redacted>") {
+		t.Fatalf("redacted GraphQL variables were not restored: %q", variables)
+	}
+	if graphQLErrors := restored.history[0].Response.GraphQLErrors; len(graphQLErrors) != 1 || !strings.Contains(graphQLErrors[0], "<redacted>") {
+		t.Fatalf("redacted GraphQL errors were not restored: %#v", graphQLErrors)
 	}
 }
 
@@ -61,7 +98,7 @@ func TestHistoryDoesNotPersistResponseReferenceScope(t *testing.T) {
 		SourceFilePath: sourceFilePath,
 	}, runner.Response{Code: "200 OK"}, nil, time.Now())
 
-	widget := &Producer{historyPath: historyPath, history: []HistoryEntry{entry}}
+	widget := fullHistoryProducer(historyPath, []HistoryEntry{entry})
 	if err := widget.saveHistory(); err != nil {
 		t.Fatal(err)
 	}
@@ -73,7 +110,7 @@ func TestHistoryDoesNotPersistResponseReferenceScope(t *testing.T) {
 		t.Fatalf("persisted history contains the response reference scope: %s", contents)
 	}
 
-	restored := &Producer{historyPath: historyPath}
+	restored := fullHistoryProducer(historyPath, nil)
 	if err := restored.loadHistory(); err != nil {
 		t.Fatal(err)
 	}
@@ -93,6 +130,50 @@ func TestHistoryRejectsCorruptedFileWithoutReplacingCurrentState(t *testing.T) {
 	}
 	if len(widget.history) != 1 {
 		t.Fatal("corrupted history replaced in-memory state")
+	}
+}
+
+func TestBuildReportsCorruptedHistory(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "history.json")
+	if err := os.WriteFile(path, []byte("not-json"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	var reported error
+	widget := New()
+	widget.Build(Parameters{
+		Theme:       theme.NewDefault(),
+		HistoryPath: path,
+		OnHistoryErrorCallback: func(err error) {
+			reported = err
+		},
+	})
+	if reported == nil || !strings.Contains(reported.Error(), "load history") || !strings.Contains(reported.Error(), path) {
+		t.Fatalf("corrupted history was not reported with its path: %v", reported)
+	}
+}
+
+func TestPersistHistoryReportsBackgroundWriteFailure(t *testing.T) {
+	root := t.TempDir()
+	blocker := filepath.Join(root, "not-a-directory")
+	if err := os.WriteFile(blocker, []byte("block directory creation"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	reported := make(chan error, 1)
+	widget := &Producer{
+		historyPath: filepath.Join(blocker, "history.json"),
+		onHistoryError: func(err error) {
+			reported <- err
+		},
+	}
+	widget.persistHistory()
+	widget.WaitForHistory()
+	select {
+	case err := <-reported:
+		if !strings.Contains(err.Error(), "persist history") || !strings.Contains(err.Error(), widget.historyPath) {
+			t.Fatalf("write failure lacked context: %v", err)
+		}
+	default:
+		t.Fatal("background history write failure was not reported")
 	}
 }
 
@@ -122,7 +203,7 @@ func TestHistoryReadsVersionOneHeaders(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	widget := &Producer{historyPath: path}
+	widget := fullHistoryProducer(path, nil)
 	if err := widget.loadHistory(); err != nil {
 		t.Fatal(err)
 	}
@@ -142,12 +223,12 @@ func TestHistoryKeepsRepeatedHeadersAcrossReload(t *testing.T) {
 		Header: http.Header{"Accept": {"application/json", "text/html"}},
 	}, runner.Response{Code: "200 OK"}, nil, time.Now())
 
-	widget := &Producer{historyPath: path, history: []HistoryEntry{entry}}
+	widget := fullHistoryProducer(path, []HistoryEntry{entry})
 	if err := widget.saveHistory(); err != nil {
 		t.Fatal(err)
 	}
 
-	restored := &Producer{historyPath: path}
+	restored := fullHistoryProducer(path, nil)
 	if err := restored.loadHistory(); err != nil {
 		t.Fatal(err)
 	}
@@ -178,6 +259,101 @@ func TestHistoryDoesNotPersistHurlVariables(t *testing.T) {
 	}
 }
 
+func TestMetadataHistoryOmitsRequestAndResponseDetails(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "history.json")
+	runtimeToken := "server-issued-token"
+	privatePath := "https://example.test/users?access=" + runtimeToken
+	entry := sanitizedHistoryEntry(parserhttp.HttpSuite{
+		Name:             "List users",
+		Method:           http.MethodPost,
+		Uri:              privatePath,
+		Header:           http.Header{"X-Trace": {runtimeToken}},
+		Body:             `{"accessToken":"` + runtimeToken + `"}`,
+		BodyType:         parserhttp.BodyTypeGraphQL,
+		GraphQLVariables: `{"token":"` + runtimeToken + `"}`,
+	}, runner.Response{
+		Code:          "200 OK",
+		StatusCode:    http.StatusOK,
+		Time:          25 * time.Millisecond,
+		ContentLength: 128,
+		Body:          `{"accessToken":"` + runtimeToken + `"}`,
+		Header:        http.Header{"X-Trace": {runtimeToken}},
+		Protocol:      "HTTP/2.0",
+		GraphQLErrors: []string{"echoed " + runtimeToken},
+	}, errors.New("request failed with "+runtimeToken), time.Now())
+	widget := &Producer{historyPath: path, history: []HistoryEntry{entry}}
+
+	if err := widget.saveHistory(); err != nil {
+		t.Fatal(err)
+	}
+	contents, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, forbidden := range []string{runtimeToken, privatePath, "request failed with"} {
+		if strings.Contains(string(contents), forbidden) {
+			t.Fatalf("metadata history contains private detail %q: %s", forbidden, contents)
+		}
+	}
+	if !strings.Contains(string(contents), `"details_omitted": true`) {
+		t.Fatalf("metadata history was not marked as omitted: %s", contents)
+	}
+
+	restored := &Producer{historyPath: path}
+	if err := restored.loadHistory(); err != nil {
+		t.Fatal(err)
+	}
+	if len(restored.history) != 1 {
+		t.Fatalf("metadata history was not restored: %+v", restored.history)
+	}
+	got := restored.history[0]
+	if !got.DetailsOmitted || got.Suite.Name != "List users" || got.Suite.Method != http.MethodPost || got.Response.StatusCode != http.StatusOK || got.Response.ContentLength != 128 {
+		t.Fatalf("safe metadata was not preserved: %+v", got)
+	}
+	if got.Suite.Uri != "" || got.Suite.Body != "" || len(got.Suite.Header) != 0 || got.Response.Body != "" || len(got.Response.Header) != 0 || len(got.Response.GraphQLErrors) != 0 {
+		t.Fatalf("restored metadata contains request or response details: %+v", got)
+	}
+	restored.resultAvailable = true
+	if _, ok := restored.CurrentResponse(); ok {
+		t.Fatal("metadata-only restored entry was exposed for response export")
+	}
+}
+
+func TestMetadataHistoryRewritesPreviouslyStoredDetails(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "history.json")
+	privateDetail := "legacy-private-detail"
+	legacy := fullHistoryProducer(path, []HistoryEntry{sanitizedHistoryEntry(parserhttp.HttpSuite{
+		Name:   "Legacy request",
+		Method: http.MethodPost,
+		Uri:    "https://example.test/" + privateDetail,
+		Body:   privateDetail,
+	}, runner.Response{
+		Code:          "200 OK",
+		StatusCode:    http.StatusOK,
+		Body:          privateDetail,
+		ContentLength: len(privateDetail),
+	}, nil, time.Now())})
+	if err := legacy.saveHistory(); err != nil {
+		t.Fatal(err)
+	}
+
+	metadata := &Producer{historyPath: path}
+	if err := metadata.loadHistory(); err != nil {
+		t.Fatal(err)
+	}
+	metadata.WaitForHistory()
+	contents, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(contents), privateDetail) {
+		t.Fatalf("metadata migration left private details on disk: %s", contents)
+	}
+	if len(metadata.history) != 1 || !metadata.history[0].DetailsOmitted {
+		t.Fatalf("legacy entry was not converted to metadata: %+v", metadata.history)
+	}
+}
+
 func TestHistoryBoundsPersistedBodiesWithoutTouchingMemory(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "history.json")
 	large := strings.Repeat("x", maxHistoryBodyBytes*2)
@@ -187,7 +363,7 @@ func TestHistoryBoundsPersistedBodiesWithoutTouchingMemory(t *testing.T) {
 		Body:   large,
 	}, runner.Response{Code: "200 OK", Body: large}, nil, time.Now())
 
-	widget := &Producer{historyPath: path, history: []HistoryEntry{entry}}
+	widget := fullHistoryProducer(path, []HistoryEntry{entry})
 	if err := widget.saveHistory(); err != nil {
 		t.Fatal(err)
 	}
@@ -203,7 +379,7 @@ func TestHistoryBoundsPersistedBodiesWithoutTouchingMemory(t *testing.T) {
 		t.Fatalf("history file was not bounded: %d bytes", info.Size())
 	}
 
-	restored := &Producer{historyPath: path}
+	restored := fullHistoryProducer(path, nil)
 	if err := restored.loadHistory(); err != nil {
 		t.Fatal(err)
 	}
@@ -223,11 +399,11 @@ func TestPersistHistoryWritesOutsideTheCaller(t *testing.T) {
 		Uri:    "https://example.test",
 	}, runner.Response{Code: "200 OK"}, nil, time.Now())
 
-	widget := &Producer{historyPath: path, history: []HistoryEntry{entry}}
+	widget := fullHistoryProducer(path, []HistoryEntry{entry})
 	widget.persistHistory()
 	widget.WaitForHistory()
 
-	restored := &Producer{historyPath: path}
+	restored := fullHistoryProducer(path, nil)
 	if err := restored.loadHistory(); err != nil {
 		t.Fatal(err)
 	}

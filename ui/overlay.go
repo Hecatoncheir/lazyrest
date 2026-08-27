@@ -160,7 +160,7 @@ func (application *Application) refreshDiagnostics() {
 	application.Diagnostics.ScrollToBeginning()
 	application.Diagnostics.SetTitle(fmt.Sprintf(
 		application.config.Locale.Text("diagnostics")+" (%d) — d/Esc "+application.config.Locale.Text("close"),
-		len(state.Diagnostics),
+		diagnosticsCount(state),
 	))
 }
 
@@ -196,6 +196,8 @@ func (application *Application) refreshStatus() {
 		return
 	case state.Environment.Phase == PhaseFailed || state.Startup.Phase == PhaseFailed || state.Files.Phase == PhaseFailed || state.Parser.Phase == PhaseFailed:
 		status = application.config.Locale.Text("error_press")
+	case len(state.HistoryErrors) > 0:
+		status = application.config.Locale.PluralDiagnostics(diagnosticsCount(state)) + " — " + application.config.Locale.Text("press_d")
 	case state.Request.Outcome == OutcomeSuccess:
 		status = application.config.Locale.Text("success")
 	case state.Request.Outcome == OutcomeFailure:
@@ -213,7 +215,7 @@ func footerIndicatorState(state State) footer.IndicatorState {
 		state.Startup.Phase == PhaseLoading || state.Files.Phase == PhaseLoading:
 		return footer.IndicatorDefault
 	case state.Environment.Phase == PhaseFailed || state.Startup.Phase == PhaseFailed || state.Files.Phase == PhaseFailed ||
-		state.Parser.Phase == PhaseFailed || state.Request.Outcome == OutcomeFailure:
+		state.Parser.Phase == PhaseFailed || state.Request.Outcome == OutcomeFailure || len(state.HistoryErrors) > 0:
 		return footer.IndicatorFailure
 	case state.Request.Outcome == OutcomeSuccess:
 		return footer.IndicatorSuccess
@@ -244,6 +246,9 @@ func renderDiagnosticsWithLocale(state State, translator *locale.Translator) str
 	case len(state.Directory.Warnings) > 0:
 		sections = append(sections, translator.Text("file_discovery_warnings")+"\n- "+strings.Join(state.Directory.Warnings, "\n- "))
 	}
+	if len(state.HistoryErrors) > 0 {
+		sections = append(sections, translator.Text("history_persistence")+"\n- "+strings.Join(state.HistoryErrors, "\n- "))
+	}
 
 	fileName := ""
 	if state.SelectedFile != nil {
@@ -261,7 +266,11 @@ func renderDiagnosticsWithLocale(state State, translator *locale.Translator) str
 			lines := make([]string, 0, len(state.Diagnostics)+1)
 			lines = append(lines, translator.Format("parser_diagnostics_for", fileName))
 			for _, diagnostic := range state.Diagnostics {
-				lines = append(lines, "- "+diagnostic.String())
+				severity := translator.Text("diagnostic_warning")
+				if diagnostic.IsBlocking() {
+					severity = translator.Text("diagnostic_error")
+				}
+				lines = append(lines, fmt.Sprintf("- %s: %s", severity, diagnostic.String()))
 			}
 			sections = append(sections, strings.Join(lines, "\n"))
 		}

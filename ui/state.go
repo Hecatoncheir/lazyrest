@@ -62,6 +62,7 @@ type State struct {
 	Suites            []parserhttp.HttpSuite
 	SelectedSuite     *parserhttp.HttpSuite
 	Diagnostics       []parserhttp.Diagnostic
+	HistoryErrors     []string
 	Overlay           Overlay
 }
 
@@ -111,6 +112,7 @@ func cloneState(state State) State {
 		cloned.SelectedSuite = &selectedSuite
 	}
 	cloned.Diagnostics = append([]parserhttp.Diagnostic(nil), state.Diagnostics...)
+	cloned.HistoryErrors = append([]string(nil), state.HistoryErrors...)
 	return cloned
 }
 
@@ -132,6 +134,7 @@ func cloneSuite(suite parserhttp.HttpSuite) parserhttp.HttpSuite {
 		cloned.Header = nethttp.Header{}
 	}
 	cloned.SecretValues = append([]string(nil), suite.SecretValues...)
+	cloned.Diagnostics = append([]parserhttp.Diagnostic(nil), suite.Diagnostics...)
 	cloned.Variables = maps.Clone(suite.Variables)
 	return cloned
 }

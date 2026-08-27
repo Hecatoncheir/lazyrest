@@ -1,6 +1,13 @@
 package http
 
-import nethttp "net/http"
+import (
+	"errors"
+	"fmt"
+	nethttp "net/http"
+	"strings"
+)
+
+var ErrRequestNotRunnable = errors.New("request has blocking parser diagnostics")
 
 type HttpSuite struct {
 	Name     string
@@ -25,10 +32,26 @@ type HttpSuite struct {
 	GraphQLVariables string
 	GraphQLOperation string
 	SecretValues     []string
+	// Diagnostics belong to this request rather than the document as a whole.
+	// Error-severity diagnostics prevent execution; warnings remain informational.
+	Diagnostics []Diagnostic `json:"-"`
 }
 
 func NewHttpSuite() HttpSuite {
 	return HttpSuite{
 		Header: nethttp.Header{},
 	}
+}
+
+func (suite HttpSuite) ValidateForExecution() error {
+	messages := make([]string, 0, len(suite.Diagnostics))
+	for _, diagnostic := range suite.Diagnostics {
+		if diagnostic.IsBlocking() {
+			messages = append(messages, diagnostic.String())
+		}
+	}
+	if len(messages) == 0 {
+		return nil
+	}
+	return fmt.Errorf("%w: %s", ErrRequestNotRunnable, strings.Join(messages, "; "))
 }

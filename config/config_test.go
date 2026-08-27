@@ -191,3 +191,47 @@ func TestLoadFilesAddsUpIgnoreLists(t *testing.T) {
 		t.Fatalf("unexpected ignore list: %#v", settings.Ignore)
 	}
 }
+
+func TestHistoryModeDefaultsToMetadataAndLayersCanOverrideIt(t *testing.T) {
+	directory := t.TempDir()
+	defaults, err := Load(filepath.Join(directory, "missing.yml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !defaults.HistoryMetadata || defaults.Document.History != HistoryMetadata {
+		t.Fatalf("history default is not metadata-only: %+v", defaults.Document)
+	}
+
+	user := filepath.Join(directory, "user.yml")
+	project := filepath.Join(directory, "project.yml")
+	if err := os.WriteFile(user, []byte("history: full\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	full, err := Load(user)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if full.HistoryMetadata || full.Document.History != HistoryFull {
+		t.Fatalf("full history mode was not loaded: %+v", full.Document)
+	}
+	if err := os.WriteFile(project, []byte("history: metadata\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	metadata, err := LoadFiles([]string{user, project})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !metadata.HistoryMetadata {
+		t.Fatal("later metadata history layer did not override full mode")
+	}
+}
+
+func TestLoadRejectsUnknownHistoryMode(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "config.yml")
+	if err := os.WriteFile(path, []byte("history: everything\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := Load(path); err == nil || !strings.Contains(err.Error(), "history") {
+		t.Fatalf("unknown history mode was accepted: %v", err)
+	}
+}

@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/Hecatoncheir/lazyrest/keymap"
+	"github.com/Hecatoncheir/lazyrest/ui/producer"
 	"github.com/Hecatoncheir/lazyrest/ui/theme"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
@@ -15,6 +16,7 @@ func TestReloadConfigurationAppliesLanguageThemeAndKeys(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "config.yml")
 	application := BuildApplication(t.TempDir(), Config{ConfigPath: path})
 	contents := `language: ru
+history: full
 keybindings:
   command_palette: ["x", ":"]
 theme:
@@ -37,6 +39,9 @@ theme:
 	}
 	if application.theme.Tree.Background == theme.NewDefault().Tree.Background {
 		t.Fatal("theme was not reloaded")
+	}
+	if application.Producer.HistoryMode() != producer.HistoryFull {
+		t.Fatal("history mode was not reloaded")
 	}
 }
 

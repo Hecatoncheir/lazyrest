@@ -23,7 +23,7 @@ func TestRunGenerateAndPrintConfig(t *testing.T) {
 	if err := run([]string{"--config", generated, "--print-config", t.TempDir()}, &output); err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(output.String(), "keybindings:") || !strings.Contains(output.String(), "theme:") {
+	if !strings.Contains(output.String(), "keybindings:") || !strings.Contains(output.String(), "theme:") || !strings.Contains(output.String(), "history: metadata") {
 		t.Fatalf("resolved config was not printed: %q", output.String())
 	}
 }

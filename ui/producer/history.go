@@ -19,11 +19,12 @@ import (
 const maxHistoryEntries = 50
 
 type HistoryEntry struct {
-	Suite     http.HttpSuite
-	Response  runner.Response
-	Err       error
-	CreatedAt time.Time
-	request   *http.HttpSuite
+	Suite          http.HttpSuite
+	Response       runner.Response
+	Err            error
+	CreatedAt      time.Time
+	DetailsOmitted bool
+	request        *http.HttpSuite
 }
 
 func (widget *Producer) addHistory(suite http.HttpSuite, response runner.Response, err error) {
@@ -77,6 +78,7 @@ func cloneRequestSuite(suite http.HttpSuite) http.HttpSuite {
 		cloned.Variables[name] = value
 	}
 	cloned.SecretValues = append([]string(nil), suite.SecretValues...)
+	cloned.Diagnostics = append([]http.Diagnostic(nil), suite.Diagnostics...)
 	return cloned
 }
 
@@ -112,7 +114,11 @@ func (widget *Producer) currentHistoryEntry() (HistoryEntry, bool) {
 
 // renderEntry draws an entry with the settings the widget currently holds.
 func (widget *Producer) renderEntry(entry HistoryEntry) string {
-	return widget.renderResult(entry.Suite, entry.Response, entry.Err)
+	text := widget.renderResult(entry.Suite, entry.Response, entry.Err)
+	if entry.DetailsOmitted {
+		text += "\n\n[yellow]" + tview.Escape(widget.locale.Text("history_details_omitted")) + "[-]"
+	}
+	return text
 }
 
 func (widget *Producer) renderResult(suite http.HttpSuite, response runner.Response, err error) string {
@@ -224,7 +230,7 @@ func renderHeaders(headers nethttp.Header, secretValues []string) string {
 	for _, key := range keys {
 		displayKey := redactSecrets(key, secretValues)
 		value := strings.Join(headers.Values(key), ", ")
-		if isSensitiveHeader(key) {
+		if http.IsSensitiveHeader(key) {
 			value = "<redacted>"
 		} else {
 			value = redactSecrets(value, secretValues)
@@ -236,13 +242,4 @@ func renderHeaders(headers nethttp.Header, secretValues []string) string {
 
 func redactSecrets(value string, secrets []string) string {
 	return http.RedactSecrets(value, secrets)
-}
-
-func isSensitiveHeader(name string) bool {
-	normalized := strings.ToLower(strings.ReplaceAll(name, "_", "-"))
-	switch normalized {
-	case "authorization", "proxy-authorization", "cookie", "set-cookie", "x-api-key":
-		return true
-	}
-	return strings.Contains(normalized, "token") || strings.Contains(normalized, "secret")
 }

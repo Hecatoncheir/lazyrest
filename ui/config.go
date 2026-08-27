@@ -21,4 +21,5 @@ type Config struct {
 	ConfigPaths     []string
 	Ignore          []string
 	HistoryPath     string
+	HistoryBodies   bool
 }

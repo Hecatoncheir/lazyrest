@@ -111,11 +111,13 @@ func BuildApplication(rootDirectoryPath string, config Config) *Application {
 		OnCopyAsCurlCallback:       func() { applicationWidget.copyAsCurl() },
 		OnSaveResponseCallback:     func() { applicationWidget.openSaveResponse(false) },
 		OnSaveFullResponseCallback: func() { applicationWidget.openSaveResponse(true) },
+		OnHistoryErrorCallback:     applicationWidget.recordHistoryError,
 		App:                        applicationElement,
 		RunnerConfig:               config.Runner,
 		Keybindings:                config.Keybindings,
 		Locale:                     config.Locale,
 		HistoryPath:                config.HistoryPath,
+		HistoryMode:                historyMode(config.HistoryBodies),
 	}
 	producerWidget.Build(producerParameters)
 	applicationWidget.Producer = producerWidget
@@ -171,4 +173,11 @@ func BuildApplication(rootDirectoryPath string, config Config) *Application {
 
 	applicationElement.SetInputCapture(onInputCallback(applicationWidget))
 	return applicationWidget
+}
+
+func historyMode(storeBodies bool) producer.HistoryMode {
+	if storeBodies {
+		return producer.HistoryFull
+	}
+	return producer.HistoryMetadata
 }

@@ -117,7 +117,11 @@ func HasResponseReference(text string) bool {
 // text so that the request shows what it was waiting for.
 func ResolveResponseReferences(suite *HttpSuite, store *ResponseStore) []string {
 	unresolved := map[string]struct{}{}
-	resolve := func(text string) string {
+	secrets := make(map[string]struct{}, len(suite.SecretValues))
+	for _, secret := range suite.SecretValues {
+		secrets[secret] = struct{}{}
+	}
+	resolve := func(text string, sensitiveDestination bool) string {
 		return responseReferencePattern.ReplaceAllStringFunc(text, func(match string) string {
 			parts := responseReferencePattern.FindStringSubmatch(match)
 			value, err := lookupResponseValue(store, suite.SourceFilePath, parts[1], parts[2], parts[3])
@@ -125,20 +129,32 @@ func ResolveResponseReferences(suite *HttpSuite, store *ResponseStore) []string 
 				unresolved[strings.TrimSpace(match)+": "+err.Error()] = struct{}{}
 				return match
 			}
+			if value != "" && (sensitiveDestination || sensitiveResponseReference(parts[2], parts[3])) {
+				secrets[value] = struct{}{}
+			}
 			return value
 		})
 	}
 
-	suite.Uri = resolve(suite.Uri)
-	suite.Body = resolve(suite.Body)
-	suite.GraphQLVariables = resolve(suite.GraphQLVariables)
+	suite.Uri = resolve(suite.Uri, false)
+	suite.Body = resolve(suite.Body, false)
+	suite.GraphQLVariables = resolve(suite.GraphQLVariables, false)
 	resolved := make(nethttp.Header, len(suite.Header))
 	for name, values := range suite.Header {
+		resolvedName := resolve(name, false)
+		sensitiveDestination := IsSensitiveHeader(name) || IsSensitiveHeader(resolvedName)
 		for _, value := range values {
-			resolved.Add(resolve(name), resolve(value))
+			resolved.Add(resolvedName, resolve(value, sensitiveDestination))
 		}
 	}
 	suite.Header = resolved
+	suite.SecretValues = suite.SecretValues[:0]
+	for secret := range secrets {
+		if secret != "" {
+			suite.SecretValues = append(suite.SecretValues, secret)
+		}
+	}
+	sort.Strings(suite.SecretValues)
 
 	result := make([]string, 0, len(unresolved))
 	for reference := range unresolved {

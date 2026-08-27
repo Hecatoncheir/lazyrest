@@ -197,6 +197,7 @@ func TestTUIDiagnosticsAndHelpWorkflow(t *testing.T) {
 	screen.InjectKey(tcell.KeyRune, 'd', tcell.ModNone)
 	waitFor(t, "diagnostics window", func() bool {
 		return application.Model.Snapshot().Overlay == OverlayDiagnostics &&
+			strings.Contains(applicationText(application, screen), "Error: line") &&
 			strings.Contains(applicationText(application, screen), "undefined variable: missing")
 	})
 
@@ -704,7 +705,10 @@ func TestTUIChainsRequestsThroughAnEarlierResponse(t *testing.T) {
 		SourceFilePath: sourceFilePath,
 	}
 	application.Element.QueueUpdateDraw(func() { onSuiteRun(application)(login) })
-	waitForScreenText(t, application, screen, "abc123")
+	waitForScreenText(t, application, screen, "<redacted>")
+	if content := applicationText(application, screen); strings.Contains(content, "abc123") {
+		t.Fatalf("runtime token was rendered in the TUI:\n%s", content)
+	}
 
 	profile := parserhttp.HttpSuite{
 		Name:           "profile",
@@ -751,7 +755,10 @@ func TestTUIDoesNotResolveAResponseReferenceFromAnotherFile(t *testing.T) {
 		SourceFilePath: "first.http",
 	}
 	application.Element.QueueUpdateDraw(func() { onSuiteRun(application)(login) })
-	waitForScreenText(t, application, screen, "first-token")
+	waitForScreenText(t, application, screen, "<redacted>")
+	if content := applicationText(application, screen); strings.Contains(content, "first-token") {
+		t.Fatalf("runtime token was rendered in the TUI:\n%s", content)
+	}
 
 	profile := parserhttp.HttpSuite{
 		Name:           "profile",
