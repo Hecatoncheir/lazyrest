@@ -206,14 +206,18 @@ func (widget *Producer) persistHistory() {
 	if widget.historyPath == "" {
 		return
 	}
+	widget.scheduleHistoryWrite(widget.buildStoredHistory())
+}
 
+func (widget *Producer) scheduleHistoryWrite(stored storedHistory) {
+	widget.historyWaitMutex.Lock()
 	widget.historyMutex.Lock()
 	widget.historyRequested++
 	generation := widget.historyRequested
-	stored := widget.buildStoredHistory()
-	widget.historyMutex.Unlock()
-
 	widget.historyWrites.Add(1)
+	widget.historyMutex.Unlock()
+	widget.historyWaitMutex.Unlock()
+
 	go func() {
 		defer widget.historyWrites.Done()
 		widget.historyMutex.Lock()

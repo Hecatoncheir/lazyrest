@@ -64,6 +64,7 @@ type Producer struct {
 	historyMutex       sync.Mutex
 	historyRequested   uint64
 	historyWritten     uint64
+	historyWaitMutex   sync.Mutex
 	historyWrites      sync.WaitGroup
 	historyMode        atomic.Uint32
 }
@@ -80,7 +81,9 @@ func (widget *Producer) WaitForHistory() {
 	if widget == nil {
 		return
 	}
+	widget.historyWaitMutex.Lock()
 	widget.historyWrites.Wait()
+	widget.historyWaitMutex.Unlock()
 }
 
 func (widget *Producer) StartRun() (context.Context, uint64) {

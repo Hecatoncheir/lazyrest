@@ -88,11 +88,16 @@ func (widget *Producer) ClearHistory() int {
 	widget.searchQuery = ""
 	widget.searchMatches = nil
 	widget.searchIndex = -1
+	if widget.historyPath != "" {
+		// Queue the empty snapshot before unlocking the state. Once callers can
+		// observe an empty history, WaitForHistory must already know about the
+		// write that makes the same state durable.
+		widget.scheduleHistoryWrite(storedHistory{Version: historyVersion, Entries: []storedHistoryEntry{}})
+	}
 	widget.historyDataMutex.Unlock()
 	if widget.Element != nil && !widget.IsRunning() {
 		widget.setText("")
 		widget.updateTitle()
 	}
-	widget.persistHistory()
 	return count
 }

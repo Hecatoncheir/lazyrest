@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+### Fixed
+- Clearing history now registers its background persistence snapshot before exposing the empty in-memory state, preventing `WaitForHistory` from racing with a concurrent write.
+
 ## [v0.19.0] - 2026-08-27
 ### Added
 - Persistent history now defaults to metadata-only storage through `history: metadata`; `history: full` opts into restoring redacted request and response details.
