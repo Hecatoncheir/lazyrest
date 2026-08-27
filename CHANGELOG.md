@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [Unreleased]
+## [v0.19.1] - 2026-08-27
 ### Fixed
 - Clearing history now registers its background persistence snapshot before exposing the empty in-memory state, preventing `WaitForHistory` from racing with a concurrent write.
 
