@@ -3,6 +3,8 @@
 All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
+
+## [v0.20.0] - 2026-08-27
 ### Added
 - Seeded fuzz targets cover HTTP document splitting, headers, variables, response references, secret redaction, Hurl entries, dotenv values, and POSIX shell quoting; CI runs short mutations on every change and a deeper weekly fuzz job.
 - CI scans reachable Go dependencies with `govulncheck`, Dependabot monitors Go modules and GitHub Actions weekly, and every release archive includes a target-specific CycloneDX SBOM that is also published as a separate release asset.
