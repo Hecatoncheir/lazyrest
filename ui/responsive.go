@@ -86,6 +86,9 @@ func (application *Application) footerHints(width int, focused tview.Primitive) 
 			return join(hint(keymap.Open, "hint_select"), hint(keymap.Back, "hint_close"))
 		}
 		if overlay == OverlaySaveResponse {
+			if application.saveOverwritePath != "" {
+				return join(hint(keymap.Open, "hint_confirm"), hint(keymap.Back, "hint_cancel"))
+			}
 			return join(hint(keymap.Open, "hint_save"), hint(keymap.Back, "hint_close"))
 		}
 		return hint(keymap.Back, "hint_close")

@@ -55,3 +55,16 @@ func TestOverlayFooterHintsExposeCommitActions(t *testing.T) {
 		})
 	}
 }
+
+func TestSaveResponseOverwriteHintsRequestConfirmation(t *testing.T) {
+	application := BuildApplication(t.TempDir(), Config{})
+	application.openOverlay(OverlaySaveResponse)
+	application.saveOverwritePath = "/tmp/existing-response.txt"
+	hints := application.footerHints(120, nil)
+	if !strings.Contains(hints, "enter "+application.config.Locale.Text("hint_confirm")) {
+		t.Fatalf("overwrite footer hints %q do not expose confirmation", hints)
+	}
+	if !strings.Contains(hints, application.config.Keybindings.Describe(keymap.Back)+" "+application.config.Locale.Text("hint_cancel")) {
+		t.Fatalf("overwrite footer hints %q do not expose cancellation", hints)
+	}
+}

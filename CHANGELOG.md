@@ -8,6 +8,7 @@ All notable changes to this project will be documented in this file.
 - Empty History and Captured responses windows now explain how to populate them and hide the unavailable clear action.
 - Help and Diagnostics overlays now expose their toggle shortcuts in the contextual footer hints.
 - Theme, Environment, and Save Response overlays now expose their primary Enter action in the contextual footer hints.
+- Save Response now switches its footer hints to confirm/cancel when an existing file needs overwrite confirmation.
 
 ## [v0.24.0] - 2026-09-13
 
