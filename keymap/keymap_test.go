@@ -61,14 +61,14 @@ func TestBindingsSupportControlKeysFromNonLatinLayouts(t *testing.T) {
 
 func TestLoadMergesConfiguredAndDefaultBindings(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "config.yml")
-	if err := os.WriteFile(path, []byte("keybindings:\n  help: ['h', '?']\n"), 0o600); err != nil {
+	if err := os.WriteFile(path, []byte("keybindings:\n  help: ['x', '?']\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	bindings, err := Load(path)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !bindings.Matches(Help, tcell.NewEventKey(tcell.KeyRune, 'h', tcell.ModNone)) {
+	if !bindings.Matches(Help, tcell.NewEventKey(tcell.KeyRune, 'x', tcell.ModNone)) {
 		t.Fatal("configured help binding was not loaded")
 	}
 	if !bindings.Matches(Quit, tcell.NewEventKey(tcell.KeyRune, 'q', tcell.ModNone)) {
@@ -134,6 +134,8 @@ func TestDefaultResponseExportBindings(t *testing.T) {
 		{CopyResponse, 'Y'},
 		{CopyAsCurl, 'C'},
 		{RerunRequest, 'R'},
+		{ToggleHeaders, 'h'},
+		{ToggleRequest, 'i'},
 		{SaveResponse, 's'},
 		{SaveFullResponse, 'S'},
 	} {

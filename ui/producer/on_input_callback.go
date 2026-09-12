@@ -60,6 +60,12 @@ func onInputCallback(widget *Producer) func(event *tcell.EventKey) *tcell.EventK
 		case widget.keybindings.Matches(keymap.ToggleBody, event):
 			widget.toggleBodyView()
 			return nil
+		case widget.keybindings.Matches(keymap.ToggleHeaders, event):
+			widget.toggleHeaders()
+			return nil
+		case widget.keybindings.Matches(keymap.ToggleRequest, event):
+			widget.toggleRequestDetails()
+			return nil
 		case widget.keybindings.Matches(keymap.RerunRequest, event):
 			if widget.onRerunRequest != nil {
 				widget.onRerunRequest()
@@ -149,7 +155,21 @@ func (widget *Producer) updateTitle() {
 	if widget.bodyViewMode == BodyViewRaw {
 		mode = widget.locale.Text("raw")
 	}
-	title := widget.locale.Text("producer") + " [" + mode + "]"
+	title := widget.locale.Text("producer") + " [" + mode
+	if widget.showHeaders {
+		title += " H+"
+	} else {
+		title += " H−"
+	}
+	if widget.showRequest {
+		title += " R+"
+	} else {
+		title += " R−"
+	}
+	title += "]"
+	if widget.focused {
+		title = "▶ " + title
+	}
 	widget.historyDataMutex.RLock()
 	historyVisible := widget.historyVisible
 	historyIndex := widget.historyIndex

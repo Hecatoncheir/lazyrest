@@ -171,14 +171,14 @@ func TestRenderResult_UsesTheThemePalette(t *testing.T) {
 	text := widget.renderResult(suite, response, nil)
 	// The default theme is gruvbox: keys take its accent, strings its success
 	// colour, numbers its progress colour.
-	for _, want := range []string{`[#83a598]"name"`, `[#b8bb26]"Ada"`, `[#fabd2f]36`} {
+	for _, want := range []string{`[#8ec0c8]"name"`, `[#b8bb26]"Ada"`, `[#fabd2f]36`} {
 		if !strings.Contains(text, want) {
 			t.Errorf("missing %s in %q", want, text)
 		}
 	}
 
 	widget.bodyViewMode = BodyViewRaw
-	if raw := widget.renderResult(suite, response, nil); strings.Contains(raw, "[#83a598]\"name\"") {
+	if raw := widget.renderResult(suite, response, nil); strings.Contains(raw, "[#8ec0c8]\"name\"") {
 		t.Errorf("the raw view was highlighted: %q", raw)
 	}
 }

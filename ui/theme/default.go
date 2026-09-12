@@ -24,36 +24,36 @@ func NewDefault() Theme {
 
 	theme := Theme{
 		Background: color.Color("#1d2021").ToTerminal(),
-		Border:     color.Color("#a89984").ToTerminal(),
+		Border:     color.Color("#bdae93").ToTerminal(),
 		Tree: TreeTheme{
-			Title:           color.Color("#bdae93").ToTerminal(),
-			TitleFocus:      color.Color("#83a598").ToTerminal(),
+			Title:           color.Color("#d5c4a1").ToTerminal(),
+			TitleFocus:      color.Color("#8ec0c8").ToTerminal(),
 			Background:      color.Color("#504945").ToTerminal(),
 			BackgroundFocus: color.Color("#3c3836").ToTerminal(),
 			Border:          color.Color("#bdae93").ToTerminal(),
 			BorderFocus:     color.Color("#fbf1c7").ToTerminal(),
 			NodeDirectory: TreeNodeTheme{
-				Foreground: color.Color("#fabd2f").ToTerminal(),
+				Foreground: color.Color("#8ec0c8").ToTerminal(),
 			},
 			Node: TreeNodeTheme{
 				Foreground: color.Color("#fbf1c7").ToTerminal(),
 			},
 		},
 		Suites: SuitesTheme{
-			Title:                color.Color("#bdae93").ToTerminal(),
-			TitleFocus:           color.Color("#83a598").ToTerminal(),
+			Title:                color.Color("#d5c4a1").ToTerminal(),
+			TitleFocus:           color.Color("#8ec0c8").ToTerminal(),
 			Background:           color.Color("#504945").ToTerminal(),
 			BackgroundFocus:      color.Color("#3c3836").ToTerminal(),
 			Border:               color.Color("#bdae93").ToTerminal(),
 			BorderFocus:          color.Color("#fbf1c7").ToTerminal(),
 			SuiteBackground:      color.Color("#504945").ToTerminal(),
 			SuiteFocusBackground: color.Color("#fbf1c7").ToTerminal(),
-			SuiteForeground:      color.Color("#bdae93").ToTerminal(),
+			SuiteForeground:      color.Color("#d5c4a1").ToTerminal(),
 			SuiteFocusForeground: color.Color("#282828").ToTerminal(),
 		},
 		Suite: SuiteTheme{
-			Title:           color.Color("#bdae93").ToTerminal(),
-			TitleFocus:      color.Color("#83a598").ToTerminal(),
+			Title:           color.Color("#d5c4a1").ToTerminal(),
+			TitleFocus:      color.Color("#8ec0c8").ToTerminal(),
 			Foreground:      color.Color("#fbf1c7").ToTerminal(),
 			Background:      color.Color("#504945").ToTerminal(),
 			BackgroundFocus: color.Color("#3c3836").ToTerminal(),
@@ -61,8 +61,8 @@ func NewDefault() Theme {
 			BorderFocus:     color.Color("#fbf1c7").ToTerminal(),
 		},
 		Producer: ProducerTheme{
-			Title:           color.Color("#bdae93").ToTerminal(),
-			TitleFocus:      color.Color("#83a598").ToTerminal(),
+			Title:           color.Color("#d5c4a1").ToTerminal(),
+			TitleFocus:      color.Color("#8ec0c8").ToTerminal(),
 			Foreground:      color.Color("#fbf1c7").ToTerminal(),
 			Background:      color.Color("#504945").ToTerminal(),
 			BackgroundFocus: color.Color("#3c3836").ToTerminal(),
@@ -71,7 +71,7 @@ func NewDefault() Theme {
 		},
 		Footer: FooterTheme{
 			Background:      color.Color("#504945").ToTerminal(),
-			Foreground:      color.Color("#bdae93").ToTerminal(),
+			Foreground:      color.Color("#d5c4a1").ToTerminal(),
 			SuiteBackground: color.Color("#fabd2f").ToTerminal(),
 			SuiteForeground: color.Color("#3c3836").ToTerminal(),
 			SuiteSuccess: FooterIndicatorTheme{
@@ -79,12 +79,12 @@ func NewDefault() Theme {
 				Foreground: color.Color("#3c3836").ToTerminal(),
 			},
 			SuiteFailure: FooterIndicatorTheme{
-				Background: color.Color("#d65d0e").ToTerminal(),
-				Foreground: color.Color("#fbf1c7").ToTerminal(),
+				Background: color.Color("#fe8019").ToTerminal(),
+				Foreground: color.Color("#1d2021").ToTerminal(),
 			},
 			RootDirectoryPath: RootDirectoryPathTheme{
 				Background:      color.Color("#bdae93").ToTerminal(),
-				Foreground:      color.Color("#504945").ToTerminal(),
+				Foreground:      color.Color("#3c3836").ToTerminal(),
 				ArrowBackground: color.Color("#504945").ToTerminal(),
 				ArrowForeground: color.Color("#bdae93").ToTerminal(),
 			},
@@ -92,28 +92,28 @@ func NewDefault() Theme {
 				RootDirectoryArrowBackground: color.Color("#fbf1c7").ToTerminal(),
 				RootDirectoryArrowForeground: color.Color("#bdae93").ToTerminal(),
 				Background:                   color.Color("#fbf1c7").ToTerminal(),
-				Foreground:                   color.Color("#504945").ToTerminal(),
+				Foreground:                   color.Color("#282828").ToTerminal(),
 				ArrowBackground:              color.Color("#504945").ToTerminal(),
 				ArrowForeground:              color.Color("#fbf1c7").ToTerminal(),
 			},
 		},
 	}
 	theme.Syntax = syntax.Palette{
-		Key:         color.Color("#83a598").ToTerminal(),
+		Key:         color.Color("#8ec0c8").ToTerminal(),
 		String:      color.Color("#b8bb26").ToTerminal(),
 		Number:      color.Color("#fabd2f").ToTerminal(),
-		Literal:     color.Color("#d65d0e").ToTerminal(),
-		Keyword:     color.Color("#d65d0e").ToTerminal(),
+		Literal:     color.Color("#fe8019").ToTerminal(),
+		Keyword:     color.Color("#fe8019").ToTerminal(),
 		Variable:    color.Color("#fabd2f").ToTerminal(),
-		Punctuation: color.Color("#bdae93").ToTerminal(),
-		Comment:     color.Color("#bdae93").ToTerminal(),
+		Punctuation: color.Color("#d5c4a1").ToTerminal(),
+		Comment:     color.Color("#d5c4a1").ToTerminal(),
 	}
 	theme.Methods = syntax.MethodPalette{
 		Read:   color.Color("#b8bb26").ToTerminal(),
 		Create: color.Color("#fabd2f").ToTerminal(),
-		Update: color.Color("#83a598").ToTerminal(),
-		Delete: color.Color("#d65d0e").ToTerminal(),
-		Other:  color.Color("#bdae93").ToTerminal(),
+		Update: color.Color("#8ec0c8").ToTerminal(),
+		Delete: color.Color("#fe8019").ToTerminal(),
+		Other:  color.Color("#d5c4a1").ToTerminal(),
 	}
 	return theme
 }

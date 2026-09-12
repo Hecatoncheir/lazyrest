@@ -34,7 +34,7 @@ theme:
 	if !application.config.Keybindings.Matches(keymap.CommandPalette, tcell.NewEventKey(tcell.KeyRune, 'x', tcell.ModNone)) {
 		t.Fatal("keybindings were not reloaded")
 	}
-	if got := application.HttpFilesTree.Element.(*tview.TreeView).GetTitle(); got != "Файлы — загрузка" {
+	if got := application.HttpFilesTree.Element.(*tview.TreeView).GetTitle(); got != "▶ Файлы — загрузка" {
 		t.Fatalf("localized title was not applied: %q", got)
 	}
 	if application.theme.Tree.Background == theme.NewDefault().Tree.Background {

@@ -68,15 +68,7 @@ func (widget *Suites) applySelectionMarkup(current int) {
 func (widget *Suites) render() {
 	element := widget.Element.(*tview.List)
 	element.Clear()
-
-	title := widget.locale.Text("suites")
-	if widget.searchMode || widget.searchQuery != "" {
-		title += " /" + widget.searchQuery
-	}
-	if widget.diagnosticCount > 0 {
-		title += " — " + widget.locale.PluralDiagnostics(widget.diagnosticCount) + " [d]"
-	}
-	element.SetTitle(title)
+	widget.updateTitle()
 
 	query := strings.ToLower(widget.searchQuery)
 	widget.rows = widget.rows[:0]
@@ -108,4 +100,19 @@ func (widget *Suites) render() {
 		element.AddItem(widget.locale.Format("no_search_results", widget.searchQuery), "", 0, nil)
 	}
 	widget.applySelectionMarkup(element.GetCurrentItem())
+}
+
+func (widget *Suites) updateTitle() {
+	element := widget.Element.(*tview.List)
+	title := widget.locale.Text("suites")
+	if widget.focused {
+		title = "▶ " + title
+	}
+	if widget.searchMode || widget.searchQuery != "" {
+		title += " /" + widget.searchQuery
+	}
+	if widget.diagnosticCount > 0 {
+		title += " — " + widget.locale.PluralDiagnostics(widget.diagnosticCount) + " [d]"
+	}
+	element.SetTitle(title)
 }

@@ -53,6 +53,7 @@ type Application struct {
 	saveOverwritePath string
 	pendingViewKeys   []*tcell.EventKey
 	pendingViewFocus  tview.Primitive
+	overlayFrames     []*responsiveOverlay
 	startOnce         sync.Once
 
 	footerProgressMutex  sync.Mutex

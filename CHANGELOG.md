@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [v0.22.0] - 2026-09-13
+
+### Added
+- Producer can independently reveal response headers with `h` and resolved request details with `i`, while its title shows the current detail state.
+- Focused panes now include a visible `▶` marker so keyboard focus does not rely on colour alone.
+
+### Changed
+- Help, history, diagnostics, pickers, and save dialogs now shrink to remain usable in small terminals.
+- Built-in themes meet automated contrast targets for primary, muted, selected, status, breadcrumb, and focused-border colour pairs.
+
 ## [v0.21.0] - 2026-09-12
 
 ### Added

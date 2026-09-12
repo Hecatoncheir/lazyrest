@@ -399,6 +399,8 @@ keybindings:
   center_view: ["zz"]
   align_bottom: ["zb"]
   toggle_body: ["p"]
+  toggle_headers: ["h"]
+  toggle_request_details: ["i"]
   rerun_request: ["R"]
   copy_response_body: ["y"]
   copy_response: ["Y"]
@@ -412,6 +414,10 @@ keybindings:
   command_palette: [":", "ctrl+p"]
   reload_config: ["ctrl+r"]
 ```
+
+Producer opens with the response body first. Press `h` to show response
+headers and `i` to show the resolved request; the `H+/H−` and `R+/R−`
+indicators in its title show which details are visible.
 
 `ignore` names directories the file tree does not descend into, on top of the
 built-in list: `.git`, `.hg`, `.svn`, `.cache`, `.venv`, `.tox`, `node_modules`,

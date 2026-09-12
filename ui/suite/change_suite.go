@@ -20,8 +20,16 @@ func (widget *Suite) ChangeSuite(suite http.HttpSuite) {
 		SetWrap(true).
 		SetInputCapture(onInputCallback(widget))
 	applySuiteTheme(element, theme, element.HasFocus())
-	element.SetFocusFunc(func() { applySuiteTheme(element, widget.theme, true) })
-	element.SetBlurFunc(func() { applySuiteTheme(element, widget.theme, false) })
+	element.SetFocusFunc(func() {
+		widget.focused = true
+		applySuiteTheme(element, widget.theme, true)
+		widget.updateTitle()
+	})
+	element.SetBlurFunc(func() {
+		widget.focused = false
+		applySuiteTheme(element, widget.theme, false)
+		widget.updateTitle()
+	})
 }
 
 // render draws the request, colouring the body by the format it declares. The

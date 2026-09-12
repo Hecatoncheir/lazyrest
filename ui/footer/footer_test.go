@@ -201,8 +201,8 @@ func TestDefaultFooterIndicatorPalette(t *testing.T) {
 		{name: "default foreground", got: footerTheme.SuiteForeground, want: appcolor.Color("#3c3836").ToTerminal()},
 		{name: "success background", got: footerTheme.SuiteSuccess.Background, want: appcolor.Color("#b8bb26").ToTerminal()},
 		{name: "success foreground", got: footerTheme.SuiteSuccess.Foreground, want: appcolor.Color("#3c3836").ToTerminal()},
-		{name: "failure background", got: footerTheme.SuiteFailure.Background, want: appcolor.Color("#d65d0e").ToTerminal()},
-		{name: "failure foreground", got: footerTheme.SuiteFailure.Foreground, want: appcolor.Color("#fbf1c7").ToTerminal()},
+		{name: "failure background", got: footerTheme.SuiteFailure.Background, want: appcolor.Color("#fe8019").ToTerminal()},
+		{name: "failure foreground", got: footerTheme.SuiteFailure.Foreground, want: appcolor.Color("#1d2021").ToTerminal()},
 	}
 
 	for _, test := range tests {

@@ -47,7 +47,7 @@ func TestHistoryWindowSummariesSelectAndClearEntries(t *testing.T) {
 	}
 
 	title := widget.Element.(*tview.TextView).GetTitle()
-	if !widget.SelectHistory(0) || !strings.Contains(widget.currentText, "https://example.test/users") {
+	if !widget.SelectHistory(0) || !strings.Contains(widget.currentText, "secret body") {
 		t.Fatalf("history entry was not selected: title=%q text=%q", title, widget.currentText)
 	}
 	title = widget.Element.(*tview.TextView).GetTitle()

@@ -122,7 +122,10 @@ func (widget *Producer) renderEntry(entry HistoryEntry) string {
 }
 
 func (widget *Producer) renderResult(suite http.HttpSuite, response runner.Response, err error) string {
-	return renderExecutionResultWithLocale(suite, response, err, widget.bodyViewMode, widget.locale, widget.syntax)
+	return renderExecutionResultWithOptions(suite, response, err, widget.bodyViewMode, widget.locale, widget.syntax, renderOptions{
+		showHeaders: widget.showHeaders,
+		showRequest: widget.showRequest,
+	})
 }
 
 func (widget *Producer) setText(text string) {
@@ -142,6 +145,18 @@ func renderExecutionResultWithMode(suite http.HttpSuite, response runner.Respons
 }
 
 func renderExecutionResultWithLocale(suite http.HttpSuite, response runner.Response, err error, mode BodyViewMode, translator *locale.Translator, palette syntax.Palette) string {
+	return renderExecutionResultWithOptions(suite, response, err, mode, translator, palette, renderOptions{
+		showHeaders: true,
+		showRequest: true,
+	})
+}
+
+type renderOptions struct {
+	showHeaders bool
+	showRequest bool
+}
+
+func renderExecutionResultWithOptions(suite http.HttpSuite, response runner.Response, err error, mode BodyViewMode, translator *locale.Translator, palette syntax.Palette, options renderOptions) string {
 	if err != nil {
 		return "[red]" + translator.Text("response_error") + ":[-]\n" + tview.Escape(redactSecrets(err.Error(), suite.SecretValues))
 	}
@@ -172,30 +187,33 @@ func renderExecutionResultWithLocale(suite http.HttpSuite, response runner.Respo
 	if body != "" {
 		responseText.WriteString("\n" + syntax.Highlight(body, language, palette))
 	}
-	if len(response.Header) > 0 {
+	if options.showHeaders && len(response.Header) > 0 {
 		responseText.WriteString("\n\n[yellow]" + translator.Text("headers") + ":[-]\n")
 		responseText.WriteString(tview.Escape(renderHeaders(response.Header, suite.SecretValues)))
 	}
 
-	var request strings.Builder
-	request.WriteString("[yellow]" + translator.Text("request") + ":[-] ")
-	request.WriteString(tview.Escape(fmt.Sprintf("%s %s\n", suite.Method, redactSecrets(suite.Uri, suite.SecretValues))))
-	request.WriteString(tview.Escape(renderHeaders(suite.Header, suite.SecretValues)))
-	bodyLabel := "body"
-	if suite.BodyType == http.BodyTypeGraphQL {
-		bodyLabel = "query"
-	}
-	if suite.Body != "" {
-		request.WriteString("\n[yellow]" + translator.Text(bodyLabel) + ":[-]\n")
-		request.WriteString(syntax.Highlight(redactSecrets(suite.Body, suite.SecretValues), requestLanguage(suite, mode), palette))
-	}
-	if suite.GraphQLVariables != "" {
-		request.WriteString("\n\n[yellow]" + translator.Text("variables") + ":[-]\n")
-		request.WriteString(syntax.Highlight(redactSecrets(prettyJSON(suite.GraphQLVariables), suite.SecretValues), jsonLanguage(mode), palette))
-	}
+	if options.showRequest {
+		var request strings.Builder
+		request.WriteString("[yellow]" + translator.Text("request") + ":[-] ")
+		request.WriteString(tview.Escape(fmt.Sprintf("%s %s\n", suite.Method, redactSecrets(suite.Uri, suite.SecretValues))))
+		request.WriteString(tview.Escape(renderHeaders(suite.Header, suite.SecretValues)))
+		bodyLabel := "body"
+		if suite.BodyType == http.BodyTypeGraphQL {
+			bodyLabel = "query"
+		}
+		if suite.Body != "" {
+			request.WriteString("\n[yellow]" + translator.Text(bodyLabel) + ":[-]\n")
+			request.WriteString(syntax.Highlight(redactSecrets(suite.Body, suite.SecretValues), requestLanguage(suite, mode), palette))
+		}
+		if suite.GraphQLVariables != "" {
+			request.WriteString("\n\n[yellow]" + translator.Text("variables") + ":[-]\n")
+			request.WriteString(syntax.Highlight(redactSecrets(prettyJSON(suite.GraphQLVariables), suite.SecretValues), jsonLanguage(mode), palette))
+		}
 
-	separator := "\n" + strings.Repeat("─", 40) + "\n"
-	return responseText.String() + separator + request.String()
+		separator := "\n" + strings.Repeat("─", 40) + "\n"
+		responseText.WriteString(separator + request.String())
+	}
+	return responseText.String()
 }
 
 // responseSummary keeps the outcome scannable on one line. The response body

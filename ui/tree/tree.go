@@ -31,6 +31,7 @@ type Tree struct {
 	cancelReload         context.CancelFunc
 	keybindings          *keymap.Bindings
 	locale               *locale.Translator
+	focused              bool
 }
 
 func New() *Tree {
@@ -86,17 +87,21 @@ func (widget *Tree) Build(parameters Parameters) tview.Primitive {
 		SetTitleAlign(1)
 
 	box.SetFocusFunc(func() {
+		widget.focused = true
 		box.
 			SetTitleColor(theme.TitleFocus).
 			SetBackgroundColor(theme.BackgroundFocus).
 			SetBorderColor(theme.BorderFocus)
+		widget.updateTitle()
 	})
 
 	box.SetBlurFunc(func() {
+		widget.focused = false
 		box.
 			SetTitleColor(theme.Title).
 			SetBackgroundColor(theme.Background).
 			SetBorderColor(theme.Border)
+		widget.updateTitle()
 	})
 
 	element := tview.NewTreeView()

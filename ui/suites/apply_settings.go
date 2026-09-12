@@ -15,9 +15,18 @@ func (widget *Suites) ApplySettings(uiTheme theme.Theme, translator *locale.Tran
 	widget.keybindings = bindings
 	element := widget.Element.(*tview.List)
 	box := element.Box
-	applySuitesBoxTheme(box, widget.theme, element.HasFocus())
-	box.SetFocusFunc(func() { applySuitesBoxTheme(box, widget.theme, true) })
-	box.SetBlurFunc(func() { applySuitesBoxTheme(box, widget.theme, false) })
+	widget.focused = element.HasFocus()
+	applySuitesBoxTheme(box, widget.theme, widget.focused)
+	box.SetFocusFunc(func() {
+		widget.focused = true
+		applySuitesBoxTheme(box, widget.theme, true)
+		widget.updateTitle()
+	})
+	box.SetBlurFunc(func() {
+		widget.focused = false
+		applySuitesBoxTheme(box, widget.theme, false)
+		widget.updateTitle()
+	})
 	widget.render()
 }
 

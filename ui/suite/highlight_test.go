@@ -25,7 +25,7 @@ func TestRenderHighlightsTheBody(t *testing.T) {
 	if !strings.Contains(text, "(json):\n") {
 		t.Errorf("the body does not start on its own line: %q", text)
 	}
-	for _, want := range []string{`[#83a598]"name"`, `[#b8bb26]"Ada"`, `[#fabd2f]36`} {
+	for _, want := range []string{`[#8ec0c8]"name"`, `[#b8bb26]"Ada"`, `[#fabd2f]36`} {
 		if !strings.Contains(text, want) {
 			t.Errorf("missing %s in %q", want, text)
 		}

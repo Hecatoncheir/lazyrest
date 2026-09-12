@@ -13,10 +13,19 @@ func (widget *Suite) ApplySettings(uiTheme theme.Theme, translator *locale.Trans
 	widget.locale = translator
 	widget.keybindings = bindings
 	element := widget.Element.(*tview.TextView)
-	applySuiteTheme(element, widget.theme, element.HasFocus())
-	element.SetFocusFunc(func() { applySuiteTheme(element, widget.theme, true) })
-	element.SetBlurFunc(func() { applySuiteTheme(element, widget.theme, false) })
-	element.SetTitle(widget.locale.Text("suite"))
+	widget.focused = element.HasFocus()
+	applySuiteTheme(element, widget.theme, widget.focused)
+	element.SetFocusFunc(func() {
+		widget.focused = true
+		applySuiteTheme(element, widget.theme, true)
+		widget.updateTitle()
+	})
+	element.SetBlurFunc(func() {
+		widget.focused = false
+		applySuiteTheme(element, widget.theme, false)
+		widget.updateTitle()
+	})
+	widget.updateTitle()
 	if widget.suite.Name != "" || widget.suite.Uri != "" {
 		widget.ChangeSuite(widget.suite)
 	}

@@ -547,9 +547,10 @@ func TestTUIHistoryWindowSelectsAndClearsProjectHistory(t *testing.T) {
 	application.Element.QueueUpdateDraw(func() { application.History.SetCurrentItem(1) })
 	screen.InjectKey(tcell.KeyRune, 'l', tcell.ModNone)
 	waitFor(t, "older history selection", func() bool {
+		request, requestAvailable := application.Producer.CurrentRequest()
 		return application.Model.CurrentOverlay() == OverlayNone &&
 			application.Element.GetFocus() == application.Producer.Element &&
-			strings.Contains(application.Producer.Element.(*tview.TextView).GetText(false), "/older")
+			requestAvailable && strings.HasSuffix(request.Uri, "/older")
 	})
 	screen.InjectKey(tcell.KeyRune, 'R', tcell.ModNone)
 	waitFor(t, "older history rerun", func() bool {

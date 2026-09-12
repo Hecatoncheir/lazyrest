@@ -1,11 +1,14 @@
 package producer
 
 import (
+	nethttp "net/http"
 	"strings"
 	"testing"
 
 	"github.com/Hecatoncheir/lazyrest/keymap"
 	"github.com/Hecatoncheir/lazyrest/locale"
+	parserhttp "github.com/Hecatoncheir/lazyrest/parser/http"
+	"github.com/Hecatoncheir/lazyrest/runner"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 )
@@ -63,6 +66,28 @@ func TestProducerRequestActionsUseConfiguredBindings(t *testing.T) {
 	handler(tcell.NewEventKey(tcell.KeyRune, 'C', tcell.ModNone))
 	if reruns != 1 || curlCopies != 1 {
 		t.Fatalf("unexpected request actions: reruns=%d curl copies=%d", reruns, curlCopies)
+	}
+}
+
+func TestProducerDetailActionsToggleCollapsedSections(t *testing.T) {
+	widget := buildSearchTestProducer()
+	suite := parserhttp.HttpSuite{Method: "GET", Uri: "https://example.test", Header: nethttp.Header{"Accept": {"application/json"}}}
+	response := runner.Response{Code: "200 OK", Body: `{"ok":true}`, Header: nethttp.Header{"Content-Type": {"application/json"}}}
+
+	collapsed := widget.renderResult(suite, response, nil)
+	if strings.Contains(collapsed, "Headers:") || strings.Contains(collapsed, "Request:") {
+		t.Fatalf("secondary details should start collapsed:\n%s", collapsed)
+	}
+
+	handler := onInputCallback(widget)
+	handler(tcell.NewEventKey(tcell.KeyRune, 'h', tcell.ModNone))
+	handler(tcell.NewEventKey(tcell.KeyRune, 'i', tcell.ModNone))
+	expanded := widget.renderResult(suite, response, nil)
+	if !strings.Contains(expanded, "Headers:") || !strings.Contains(expanded, "Request:") {
+		t.Fatalf("detail actions did not reveal both sections:\n%s", expanded)
+	}
+	if title := widget.Element.(*tview.TextView).GetTitle(); !strings.Contains(title, "H+ R+") {
+		t.Fatalf("expanded detail state is missing from title %q", title)
 	}
 }
 

@@ -13,11 +13,14 @@ func (application *Application) updateResponsiveUI(screen tcell.Screen) {
 	if screen == nil || application.Workspace == nil || application.Footer == nil {
 		return
 	}
-	width, _ := screen.Size()
+	width, height := screen.Size()
 	focused := application.focusedMainPane()
 	application.Workspace.Resize(width, focused)
 	application.Footer.Resize(width)
 	application.Footer.UpdateHints(application.footerHints(width, focused))
+	for _, overlay := range application.overlayFrames {
+		overlay.Resize(width, height)
+	}
 }
 
 func (application *Application) focusedMainPane() tview.Primitive {
@@ -66,7 +69,10 @@ func (application *Application) footerHints(width int, focused tview.Primitive) 
 	case application.Suite.Element:
 		contextual = join(hint(keymap.Run, "hint_run"), hint(keymap.Back, "hint_back"))
 	case application.Producer.Element:
-		contextual = join(hint(keymap.ToggleBody, "hint_view"), hint(keymap.CopyResponseBody, "hint_copy"), hint(keymap.Back, "hint_back"))
+		contextual = join(hint(keymap.ToggleBody, "hint_view"), hint(keymap.ToggleHeaders, "hint_headers"))
+		if width >= 80 {
+			contextual = join(contextual, hint(keymap.ToggleRequest, "hint_request"))
+		}
 	default:
 		contextual = hint(keymap.Help, "hint_help")
 	}

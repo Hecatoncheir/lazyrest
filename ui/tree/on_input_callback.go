@@ -88,6 +88,9 @@ func (widget *Tree) updateTitle() {
 		return
 	}
 	title := widget.locale.Text("files")
+	if widget.focused {
+		title = "▶ " + title
+	}
 	if widget.loading {
 		title += " — " + widget.locale.Text("loading")
 	} else if widget.reloading {

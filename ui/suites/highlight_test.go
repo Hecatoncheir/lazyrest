@@ -37,7 +37,7 @@ func TestRenderHighlightsTheBodyPreview(t *testing.T) {
 
 	// The default theme is gruvbox: keys take its accent, strings its success
 	// colour, numbers its progress colour.
-	for _, want := range []string{`[#83a598]"name"`, `[#b8bb26]"Ada"`, `[#fabd2f]36`} {
+	for _, want := range []string{`[#8ec0c8]"name"`, `[#b8bb26]"Ada"`, `[#fabd2f]36`} {
 		if !strings.Contains(secondary, want) {
 			t.Errorf("missing %s in %q", want, secondary)
 		}
@@ -110,9 +110,9 @@ func TestRenderColoursTheMethod(t *testing.T) {
 	}{
 		{method: "GET", want: "[#b8bb26]GET[-]"},
 		{method: "POST", want: "[#fabd2f]POST[-]"},
-		{method: "PATCH", want: "[#83a598]PATCH[-]"},
-		{method: "DELETE", want: "[#d65d0e]DELETE[-]"},
-		{method: "HURL", want: "[#bdae93]HURL[-]"},
+		{method: "PATCH", want: "[#8ec0c8]PATCH[-]"},
+		{method: "DELETE", want: "[#fe8019]DELETE[-]"},
+		{method: "HURL", want: "[#d5c4a1]HURL[-]"},
 	}
 
 	for _, testCase := range cases {

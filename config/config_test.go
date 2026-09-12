@@ -106,7 +106,7 @@ func TestLoadFilesMergesLayersInPriorityOrder(t *testing.T) {
 	files := map[string]string{
 		user:     "language: ru\ntheme:\n  accent: '#111111'\n",
 		project:  "languages:\n  ru:\n    files: Проект\ntheme:\n  accent: '#222222'\n",
-		explicit: "language: es\nkeybindings:\n  help: ['h']\n",
+		explicit: "language: es\nkeybindings:\n  help: ['x']\n",
 	}
 	for path, contents := range files {
 		if err := os.WriteFile(path, []byte(contents), 0o600); err != nil {
@@ -120,7 +120,7 @@ func TestLoadFilesMergesLayersInPriorityOrder(t *testing.T) {
 	if settings.Locale.Language() != "es" || settings.Document.Theme.Accent != "#222222" {
 		t.Fatalf("layers were not merged in order: %+v", settings.Document)
 	}
-	if !settings.Keybindings.Matches(keymap.Help, tcell.NewEventKey(tcell.KeyRune, 'h', tcell.ModNone)) {
+	if !settings.Keybindings.Matches(keymap.Help, tcell.NewEventKey(tcell.KeyRune, 'x', tcell.ModNone)) {
 		t.Fatal("explicit keybinding did not win")
 	}
 }

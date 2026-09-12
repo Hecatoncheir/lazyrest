@@ -14,9 +14,18 @@ func (widget *Tree) ApplySettings(uiTheme theme.Theme, translator *locale.Transl
 	widget.keybindings = bindings
 	element := widget.Element.(*tview.TreeView)
 	box := element.Box
-	applyTreeBoxTheme(box, widget.theme, element.HasFocus())
-	box.SetFocusFunc(func() { applyTreeBoxTheme(box, widget.theme, true) })
-	box.SetBlurFunc(func() { applyTreeBoxTheme(box, widget.theme, false) })
+	widget.focused = element.HasFocus()
+	applyTreeBoxTheme(box, widget.theme, widget.focused)
+	box.SetFocusFunc(func() {
+		widget.focused = true
+		applyTreeBoxTheme(box, widget.theme, true)
+		widget.updateTitle()
+	})
+	box.SetBlurFunc(func() {
+		widget.focused = false
+		applyTreeBoxTheme(box, widget.theme, false)
+		widget.updateTitle()
+	})
 	applyNodeTheme(element.GetRoot(), widget.theme)
 	widget.updateTitle()
 }

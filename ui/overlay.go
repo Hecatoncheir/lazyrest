@@ -23,6 +23,7 @@ const (
 )
 
 func (application *Application) buildOverlays() {
+	application.overlayFrames = nil
 	translator := application.config.Locale
 	application.Diagnostics = application.newOverlayView(translator.Text("diagnostics") + " — d/Esc " + translator.Text("close"))
 	application.Help = application.newOverlayView(translator.Text("help") + " — ?/Esc " + translator.Text("close"))
@@ -33,15 +34,14 @@ func (application *Application) buildOverlays() {
 	application.buildCommandPalette()
 	application.buildSaveResponseInput()
 
-	application.Pages.
-		AddPage(diagnosticsPage, centered(application.Diagnostics, 84, 24), true, false).
-		AddPage(helpPage, centered(application.Help, 72, 25), true, false).
-		AddPage(capturedPage, centered(application.Captured, 84, 24), true, false).
-		AddPage(historyPage, centered(application.History, 92, 24), true, false)
-	application.Pages.AddPage(commandPalettePage, centered(application.CommandPalette, 58, 19), true, false)
-	application.Pages.AddPage(themePickerPage, centered(application.ThemePicker, 58, 14), true, false)
-	application.Pages.AddPage(environmentPickerPage, centered(application.EnvironmentPicker, 64, 16), true, false)
-	application.Pages.AddPage(saveResponsePage, centered(application.SaveResponse, 92, 3), true, false)
+	application.addOverlayPage(diagnosticsPage, application.Diagnostics, 84, 24)
+	application.addOverlayPage(helpPage, application.Help, 72, 25)
+	application.addOverlayPage(capturedPage, application.Captured, 84, 24)
+	application.addOverlayPage(historyPage, application.History, 92, 24)
+	application.addOverlayPage(commandPalettePage, application.CommandPalette, 58, 19)
+	application.addOverlayPage(themePickerPage, application.ThemePicker, 58, 14)
+	application.addOverlayPage(environmentPickerPage, application.EnvironmentPicker, 64, 16)
+	application.addOverlayPage(saveResponsePage, application.SaveResponse, 92, 3)
 	application.refreshDiagnostics()
 }
 
@@ -59,16 +59,10 @@ func (application *Application) newOverlayView(title string) *tview.TextView {
 	return view
 }
 
-func centered(primitive tview.Primitive, width, height int) tview.Primitive {
-	columns := tview.NewFlex().
-		AddItem(nil, 0, 1, false).
-		AddItem(primitive, width, 0, true).
-		AddItem(nil, 0, 1, false)
-	return tview.NewFlex().
-		SetDirection(tview.FlexRow).
-		AddItem(nil, 0, 1, false).
-		AddItem(columns, height, 0, true).
-		AddItem(nil, 0, 1, false)
+func (application *Application) addOverlayPage(name string, primitive tview.Primitive, width, height int) {
+	frame := newResponsiveOverlay(primitive, width, height)
+	application.overlayFrames = append(application.overlayFrames, frame)
+	application.Pages.AddPage(name, frame.Element, true, false)
 }
 
 func (application *Application) openOverlay(overlay Overlay) {
@@ -330,6 +324,8 @@ func helpText(bindings *keymap.Bindings, translator *locale.Translator) string {
 		line(keymap.SearchNext, translator.Text("next_match")),
 		line(keymap.SearchPrevious, translator.Text("previous_match")),
 		line(keymap.ToggleBody, translator.Text("toggle_body")),
+		line(keymap.ToggleHeaders, translator.Text("toggle_headers")),
+		line(keymap.ToggleRequest, translator.Text("toggle_request_details")),
 		line(keymap.RerunRequest, translator.Text("rerun_request")),
 		line(keymap.CopyResponseBody, translator.Text("copy_response_body")),
 		line(keymap.CopyResponse, translator.Text("copy_response")),

@@ -32,6 +32,23 @@ func (widget *Producer) toggleBodyView() {
 	} else {
 		widget.bodyViewMode = BodyViewPretty
 	}
+	widget.refreshVisibleResult()
+	widget.updateTitle()
+}
+
+func (widget *Producer) toggleHeaders() {
+	widget.showHeaders = !widget.showHeaders
+	widget.refreshVisibleResult()
+	widget.updateTitle()
+}
+
+func (widget *Producer) toggleRequestDetails() {
+	widget.showRequest = !widget.showRequest
+	widget.refreshVisibleResult()
+	widget.updateTitle()
+}
+
+func (widget *Producer) refreshVisibleResult() {
 	entry, available := widget.currentHistoryEntry()
 	if !widget.IsRunning() && available {
 		widget.historyDataMutex.RLock()
@@ -41,7 +58,6 @@ func (widget *Producer) toggleBodyView() {
 			widget.setText(widget.renderEntry(entry))
 		}
 	}
-	widget.updateTitle()
 }
 
 // formatResponseBody returns the body as it should be displayed together with

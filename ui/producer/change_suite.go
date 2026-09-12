@@ -115,7 +115,14 @@ func (widget *Producer) ChangeSuite(suite http.HttpSuite) {
 
 	// Set focus so the user sees it working
 	element.SetFocusFunc(func() {
+		widget.focused = true
 		widget.applyTheme(element, true)
+		widget.updateTitle()
+	})
+	element.SetBlurFunc(func() {
+		widget.focused = false
+		widget.applyTheme(element, false)
+		widget.updateTitle()
 	})
 
 	animationDone := make(chan struct{})

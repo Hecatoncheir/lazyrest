@@ -43,6 +43,7 @@ type Suites struct {
 	cancelLoad            context.CancelFunc
 	keybindings           *keymap.Bindings
 	locale                *locale.Translator
+	focused               bool
 }
 
 func (widget *Suites) Build(parameters Parameters) tview.Primitive {
@@ -79,17 +80,21 @@ func (widget *Suites) Build(parameters Parameters) tview.Primitive {
 		SetInputCapture(onInputCallback(widget))
 
 	box.SetFocusFunc(func() {
+		widget.focused = true
 		box.
 			SetTitleColor(theme.TitleFocus).
 			SetBackgroundColor(theme.BackgroundFocus).
 			SetBorderColor(theme.BorderFocus)
+		widget.updateTitle()
 	})
 
 	box.SetBlurFunc(func() {
+		widget.focused = false
 		box.
 			SetTitleColor(theme.Title).
 			SetBackgroundColor(theme.Background).
 			SetBorderColor(theme.Border)
+		widget.updateTitle()
 	})
 
 	element.Box = box

@@ -23,6 +23,7 @@ type Suite struct {
 	keybindings      *keymap.Bindings
 	locale           *locale.Translator
 	syntax           syntax.Palette
+	focused          bool
 }
 
 func (widget *Suite) Build(parameters Parameters) tview.Primitive {
@@ -57,9 +58,25 @@ func (widget *Suite) Build(parameters Parameters) tview.Primitive {
 
 	element.Box = box
 	applySuiteTheme(element, widget.theme, element.HasFocus())
-	element.SetFocusFunc(func() { applySuiteTheme(element, widget.theme, true) })
-	element.SetBlurFunc(func() { applySuiteTheme(element, widget.theme, false) })
+	element.SetFocusFunc(func() {
+		widget.focused = true
+		applySuiteTheme(element, widget.theme, true)
+		widget.updateTitle()
+	})
+	element.SetBlurFunc(func() {
+		widget.focused = false
+		applySuiteTheme(element, widget.theme, false)
+		widget.updateTitle()
+	})
 
 	widget.Element = element
 	return element
+}
+
+func (widget *Suite) updateTitle() {
+	title := widget.locale.Text("suite")
+	if widget.focused {
+		title = "▶ " + title
+	}
+	widget.Element.(*tview.TextView).SetTitle(title)
 }

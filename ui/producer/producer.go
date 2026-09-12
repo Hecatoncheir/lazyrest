@@ -55,6 +55,9 @@ type Producer struct {
 	runnerConfig       runner.Config
 	runnerConfigMutex  sync.RWMutex
 	bodyViewMode       BodyViewMode
+	showHeaders        bool
+	showRequest        bool
+	focused            bool
 	keybindings        *keymap.Bindings
 	locale             *locale.Translator
 	historyPath        string
@@ -178,8 +181,16 @@ func (widget *Producer) Build(parameters Parameters) tview.Primitive {
 		SetInputCapture(onInputCallback(widget))
 
 	element.Box = box
-	element.SetFocusFunc(func() { widget.applyTheme(element, true) })
-	element.SetBlurFunc(func() { widget.applyTheme(element, false) })
+	element.SetFocusFunc(func() {
+		widget.focused = true
+		widget.applyTheme(element, true)
+		widget.updateTitle()
+	})
+	element.SetBlurFunc(func() {
+		widget.focused = false
+		widget.applyTheme(element, false)
+		widget.updateTitle()
+	})
 
 	widget.Element = element
 	widget.updateTitle()

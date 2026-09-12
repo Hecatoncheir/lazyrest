@@ -1,11 +1,13 @@
 package theme
 
 import (
+	"math"
 	"reflect"
 	"testing"
 
 	appcolor "github.com/Hecatoncheir/lazyrest/color"
 	"github.com/gdamore/tcell/v2"
+	"github.com/lucasb-eyer/go-colorful"
 )
 
 func TestFromConfigOverridesSemanticColors(t *testing.T) {
@@ -34,6 +36,71 @@ func TestBuiltInPresets(t *testing.T) {
 			t.Fatalf("preset %s failed: %v", name, err)
 		}
 	}
+}
+
+func TestDefaultThemeMatchesGruvboxPreset(t *testing.T) {
+	configured, err := FromConfig(DefaultConfig())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if defaults := NewDefault(); !reflect.DeepEqual(configured, defaults) {
+		t.Fatal("default theme has drifted from the gruvbox preset")
+	}
+}
+
+func TestBuiltInPresetsMeetContrastTargets(t *testing.T) {
+	for name, preset := range presets {
+		textPairs := []struct {
+			role       string
+			foreground string
+			background string
+		}{
+			{role: "foreground", foreground: preset.Foreground, background: preset.PanelBackground},
+			{role: "muted", foreground: preset.Muted, background: preset.PanelBackground},
+			{role: "accent", foreground: preset.Accent, background: preset.PanelFocus},
+			{role: "selection", foreground: preset.SelectionForeground, background: preset.SelectionBackground},
+			{role: "progress", foreground: preset.ProgressForeground, background: preset.Progress},
+			{role: "success", foreground: preset.SuccessForeground, background: preset.Success},
+			{role: "failure", foreground: preset.FailureForeground, background: preset.Failure},
+			{role: "breadcrumb", foreground: preset.BreadcrumbForeground, background: preset.Breadcrumb},
+		}
+		for _, pair := range textPairs {
+			if ratio := contrastRatio(t, pair.foreground, pair.background); ratio < 4.5 {
+				t.Errorf("preset %s %s contrast %.2f, want at least 4.5", name, pair.role, ratio)
+			}
+		}
+		if ratio := contrastRatio(t, preset.BorderFocus, preset.PanelFocus); ratio < 3 {
+			t.Errorf("preset %s focus border contrast %.2f, want at least 3", name, ratio)
+		}
+	}
+}
+
+func contrastRatio(t *testing.T, foreground, background string) float64 {
+	t.Helper()
+	foregroundColor, err := colorful.Hex(foreground)
+	if err != nil {
+		t.Fatal(err)
+	}
+	backgroundColor, err := colorful.Hex(background)
+	if err != nil {
+		t.Fatal(err)
+	}
+	foregroundLuminance := relativeLuminance(foregroundColor)
+	backgroundLuminance := relativeLuminance(backgroundColor)
+	if foregroundLuminance < backgroundLuminance {
+		foregroundLuminance, backgroundLuminance = backgroundLuminance, foregroundLuminance
+	}
+	return (foregroundLuminance + 0.05) / (backgroundLuminance + 0.05)
+}
+
+func relativeLuminance(value colorful.Color) float64 {
+	linear := func(component float64) float64 {
+		if component <= 0.04045 {
+			return component / 12.92
+		}
+		return math.Pow((component+0.055)/1.055, 2.4)
+	}
+	return 0.2126*linear(value.R) + 0.7152*linear(value.G) + 0.0722*linear(value.B)
 }
 
 func TestEmbeddedPresetsDefineEveryColor(t *testing.T) {
@@ -87,7 +154,7 @@ func TestSyntaxColorsFollowTheSemanticPalette(t *testing.T) {
 		{role: "key", got: configured.Syntax.Key, want: "#8be9fd"},
 		{role: "number", got: configured.Syntax.Number, want: "#f1fa8c"},
 		{role: "literal", got: configured.Syntax.Literal, want: "#ff5555"},
-		{role: "punctuation", got: configured.Syntax.Punctuation, want: "#6272a4"},
+		{role: "punctuation", got: configured.Syntax.Punctuation, want: "#c0c4d6"},
 	}
 	for _, testCase := range cases {
 		if want := appcolor.Color(testCase.want).ToTerminal(); testCase.got != want {

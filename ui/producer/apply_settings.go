@@ -13,9 +13,18 @@ func (widget *Producer) ApplySettings(uiTheme theme.Theme, translator *locale.Tr
 	widget.locale = translator
 	widget.keybindings = bindings
 	element := widget.Element.(*tview.TextView)
-	widget.applyTheme(element, element.HasFocus())
-	element.SetFocusFunc(func() { widget.applyTheme(element, true) })
-	element.SetBlurFunc(func() { widget.applyTheme(element, false) })
+	widget.focused = element.HasFocus()
+	widget.applyTheme(element, widget.focused)
+	element.SetFocusFunc(func() {
+		widget.focused = true
+		widget.applyTheme(element, true)
+		widget.updateTitle()
+	})
+	element.SetBlurFunc(func() {
+		widget.focused = false
+		widget.applyTheme(element, false)
+		widget.updateTitle()
+	})
 	if entry, ok := widget.currentHistoryEntry(); !widget.IsRunning() && ok {
 		widget.setText(widget.renderEntry(entry))
 	}
