@@ -39,6 +39,12 @@ func (application *Application) refreshCapturedResponses() {
 			len(captures),
 			translator.Format("confirm_clear_captured", application.config.Keybindings.Describe(keymap.ClearCaptured), len(captures), application.config.Keybindings.Describe(keymap.Back)),
 		))
+	} else if len(captures) == 0 {
+		application.Captured.SetTitle(fmt.Sprintf(
+			"%s (0) — q/Esc %s",
+			translator.Text("captured_responses"),
+			translator.Text("close"),
+		))
 	} else {
 		application.Captured.SetTitle(fmt.Sprintf(
 			"%s (%d) — %s %s · q/Esc %s",

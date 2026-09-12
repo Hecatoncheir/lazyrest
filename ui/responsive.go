@@ -56,11 +56,17 @@ func (application *Application) footerHints(width int, focused tview.Primitive) 
 			if application.confirmHistoryClear {
 				return join(hint(keymap.ClearHistory, "hint_confirm"), hint(keymap.Back, "hint_cancel"))
 			}
+			if len(application.Producer.HistorySummaries()) == 0 {
+				return hint(keymap.Back, "hint_close")
+			}
 			return join(hint(keymap.ClearHistory, "hint_clear"), hint(keymap.Back, "hint_close"))
 		}
 		if overlay == OverlayCaptured {
 			if application.confirmCapturedClear {
 				return join(hint(keymap.ClearCaptured, "hint_confirm"), hint(keymap.Back, "hint_cancel"))
+			}
+			if len(application.Producer.CapturedResponses()) == 0 {
+				return hint(keymap.Back, "hint_close")
 			}
 			return join(hint(keymap.ClearCaptured, "hint_clear"), hint(keymap.Back, "hint_close"))
 		}

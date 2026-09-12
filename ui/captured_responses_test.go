@@ -56,4 +56,10 @@ func TestCommandPaletteOpensCapturedResponsesOverlay(t *testing.T) {
 	if !strings.Contains(application.Captured.GetText(false), application.config.Locale.Text("no_captured_responses")) {
 		t.Fatalf("unexpected empty captured responses view: %q", application.Captured.GetText(false))
 	}
+	if strings.Contains(application.Captured.GetTitle(), application.config.Locale.Text("clear_captured_responses")) {
+		t.Fatalf("empty captured responses title advertises an unavailable clear action: %q", application.Captured.GetTitle())
+	}
+	if strings.Contains(application.footerHints(120, application.Captured), application.config.Locale.Text("hint_clear")) {
+		t.Fatalf("empty captured responses footer advertises an unavailable clear action: %q", application.footerHints(120, application.Captured))
+	}
 }

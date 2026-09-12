@@ -36,6 +36,12 @@ func TestCommandPaletteOpensEmptyHistoryWindow(t *testing.T) {
 	if main != application.config.Locale.Text("no_history_entries") {
 		t.Fatalf("unexpected empty history item: %q", main)
 	}
+	if strings.Contains(application.History.GetTitle(), application.config.Locale.Text("clear_history")) {
+		t.Fatalf("empty history title advertises an unavailable clear action: %q", application.History.GetTitle())
+	}
+	if strings.Contains(application.footerHints(120, application.History), application.config.Locale.Text("hint_clear")) {
+		t.Fatalf("empty history footer advertises an unavailable clear action: %q", application.footerHints(120, application.History))
+	}
 }
 
 func TestHistoryEntryRenderingUsesSafeMetadata(t *testing.T) {

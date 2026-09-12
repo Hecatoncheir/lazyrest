@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Changed
+- Empty History and Captured responses windows now explain how to populate them and hide the unavailable clear action.
+
 ## [v0.24.0] - 2026-09-13
 
 ### Changed

@@ -57,6 +57,12 @@ func (application *Application) refreshHistory() {
 			len(summaries),
 			translator.Format("confirm_clear_history", application.config.Keybindings.Describe(keymap.ClearHistory), len(summaries), application.config.Keybindings.Describe(keymap.Back)),
 		))
+	} else if len(summaries) == 0 {
+		history.SetTitle(fmt.Sprintf(
+			"%s (0) — q/Esc %s",
+			translator.Text("history_window"),
+			translator.Text("close"),
+		))
 	} else {
 		history.SetTitle(fmt.Sprintf(
 			"%s (%d) — %s %s · Enter %s · q/Esc %s",
