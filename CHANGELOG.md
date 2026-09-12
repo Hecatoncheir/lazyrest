@@ -9,6 +9,9 @@ All notable changes to this project will be documented in this file.
 - Help and Diagnostics overlays now expose their toggle shortcuts in the contextual footer hints.
 - Theme, Environment, and Save Response overlays now expose their primary Enter action in the contextual footer hints.
 - Save Response now switches its footer hints to confirm/cancel when an existing file needs overwrite confirmation.
+- Files and Suites search titles now show the current match and total, such as `[2/7]`.
+- Added responsive screenshot regression coverage for 60, 80, 120, and 160-column terminals.
+- Added a first-run footer hint for Help and the command palette until the first request starts.
 
 ## [v0.24.0] - 2026-09-13
 

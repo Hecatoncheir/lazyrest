@@ -99,7 +99,11 @@ func (widget *Tree) updateTitle() {
 	if widget.searchMode || widget.searchQuery != "" {
 		title += " /" + widget.searchQuery
 		if widget.searchQuery != "" {
-			title += fmt.Sprintf(" [%d]", len(widget.searchMatches))
+			current := 0
+			if len(widget.searchMatches) > 0 {
+				current = widget.searchIndex + 1
+			}
+			title += fmt.Sprintf(" [%d/%d]", current, len(widget.searchMatches))
 		}
 	}
 	element.SetTitle(title)

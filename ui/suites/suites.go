@@ -70,6 +70,7 @@ func (widget *Suites) Build(parameters Parameters) tview.Primitive {
 	element.SetUseStyleTags(true, true)
 	element.SetChangedFunc(func(index int, _ string, _ string, _ rune) {
 		widget.applySelectionMarkup(index)
+		widget.updateTitle()
 	})
 
 	box := tview.NewBox().

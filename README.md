@@ -539,7 +539,7 @@ the response pane, and report when the exported body was truncated.
 | Suite | `Ctrl+l` | Producer |
 | Producer | `Ctrl+h` | Suite |
 
-- `/`: search in the focused Files, Suites, or Producer area; `Enter` finishes entering the query. In Files and Producer, `n` / `N` move cyclically through matches; Producer shows the current and total match count in its title.
+- `/`: search in the focused Files, Suites, or Producer area; `Enter` finishes entering the query. Searchable panes show the current and total match count in their title, such as `[2/7]`; in Files and Producer, `n` / `N` move cyclically through matches.
 - `r`: reload the file tree in the background while Files is focused.
 - `p`: toggle Pretty/Raw response bodies while Producer is focused. Pretty formats and highlights JSON, XML, and GraphQL; Raw shows exactly what came over the wire.
 - `R`: repeat the request currently shown in Producer; current-session History selections are supported.

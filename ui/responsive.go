@@ -96,6 +96,10 @@ func (application *Application) footerHints(width int, focused tview.Primitive) 
 	if application.HttpFilesTree.IsSearching() || application.Suites.IsSearching() || application.Producer.IsSearching() {
 		return hint(keymap.SearchFinish, "hint_finish")
 	}
+	onboarding := application.Model != nil && func() bool {
+		state := application.Model.Snapshot()
+		return state.Request.Phase == PhaseIdle && state.Request.Outcome == OutcomeNone
+	}()
 
 	var contextual string
 	switch focused {
@@ -116,7 +120,7 @@ func (application *Application) footerHints(width int, focused tview.Primitive) 
 	default:
 		contextual = hint(keymap.Help, "hint_help")
 	}
-	if width >= 120 {
+	if width >= 120 || (onboarding && width >= 80) {
 		contextual = join(contextual, hint(keymap.Help, "hint_help"), hint(keymap.CommandPalette, "hint_commands"))
 	}
 	return contextual

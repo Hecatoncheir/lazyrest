@@ -5,6 +5,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/Hecatoncheir/lazyrest/finder"
@@ -97,6 +98,23 @@ func TestCollectMatchingNodes(t *testing.T) {
 	}
 	if !directory.IsExpanded() || !root.IsExpanded() {
 		t.Fatal("parents of the match were not expanded")
+	}
+}
+
+func TestSearchTitleShowsCurrentPositionAndTotal(t *testing.T) {
+	widget := New()
+	widget.Build(newMockParams(t.TempDir()))
+	widget.searchMode = true
+	widget.searchQuery = "http"
+	widget.searchMatches = []*tview.TreeNode{
+		tview.NewTreeNode("one.http").SetReference(finder.File{Name: "one.http"}),
+		tview.NewTreeNode("two.http").SetReference(finder.File{Name: "two.http"}),
+	}
+	widget.searchIndex = 1
+	widget.updateTitle()
+
+	if title := widget.Element.(*tview.TreeView).GetTitle(); !strings.Contains(title, "/http [2/2]") {
+		t.Fatalf("search title %q does not show current position and total", title)
 	}
 }
 

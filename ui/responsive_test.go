@@ -68,3 +68,21 @@ func TestSaveResponseOverwriteHintsRequestConfirmation(t *testing.T) {
 		t.Fatalf("overwrite footer hints %q do not expose cancellation", hints)
 	}
 }
+
+func TestFooterShowsOnboardingHintsBeforeFirstRequest(t *testing.T) {
+	application := BuildApplication(t.TempDir(), Config{})
+	for _, width := range []int{80, 120, 160} {
+		hints := application.footerHints(width, application.Suites.Element)
+		if !strings.Contains(hints, "? "+application.config.Locale.Text("hint_help")) || !strings.Contains(hints, ": "+application.config.Locale.Text("hint_commands")) {
+			t.Fatalf("width %d footer hints %q omit onboarding actions", width, hints)
+		}
+	}
+
+	application.Model.update(func(state *State) {
+		state.Request = TaskState{Phase: PhaseLoading}
+	})
+	hints := application.footerHints(80, application.Suites.Element)
+	if strings.Contains(hints, application.config.Locale.Text("hint_commands")) {
+		t.Fatalf("post-startup footer hints %q still show onboarding commands", hints)
+	}
+}

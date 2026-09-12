@@ -24,6 +24,24 @@ func TestRenderFiltersSuites(t *testing.T) {
 	}
 }
 
+func TestRenderShowsSearchPositionAndTotal(t *testing.T) {
+	widget := New()
+	widget.Build(Parameters{Theme: theme.NewDefault(), OnEscapeCallback: func() {}, OnSuiteSelectCallbackType: func(http.HttpSuite) {}})
+	widget.suites = []http.HttpSuite{
+		{Name: "List users", Method: "GET", Uri: "/users"},
+		{Name: "Create user", Method: "POST", Uri: "/users"},
+		{Name: "List projects", Method: "GET", Uri: "/projects"},
+	}
+	widget.searchQuery = "user"
+	widget.render()
+	element := widget.Element.(*tview.List)
+	element.SetCurrentItem(1)
+
+	if title := element.GetTitle(); !strings.Contains(title, "/user [1/2]") {
+		t.Fatalf("search title %q does not show current position and total", title)
+	}
+}
+
 func TestRenderExplainsEmptySearchResults(t *testing.T) {
 	widget := New()
 	widget.Build(Parameters{Theme: theme.NewDefault(), OnEscapeCallback: func() {}, OnSuiteSelectCallbackType: func(http.HttpSuite) {}})

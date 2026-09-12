@@ -1,6 +1,7 @@
 package suites
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/Hecatoncheir/lazyrest/parser/http"
@@ -68,7 +69,6 @@ func (widget *Suites) applySelectionMarkup(current int) {
 func (widget *Suites) render() {
 	element := widget.Element.(*tview.List)
 	element.Clear()
-	widget.updateTitle()
 
 	query := strings.ToLower(widget.searchQuery)
 	widget.rows = widget.rows[:0]
@@ -100,6 +100,7 @@ func (widget *Suites) render() {
 		element.AddItem(widget.locale.Format("no_search_results", widget.searchQuery), "", 0, nil)
 	}
 	widget.applySelectionMarkup(element.GetCurrentItem())
+	widget.updateTitle()
 }
 
 func (widget *Suites) updateTitle() {
@@ -110,6 +111,13 @@ func (widget *Suites) updateTitle() {
 	}
 	if widget.searchMode || widget.searchQuery != "" {
 		title += " /" + widget.searchQuery
+		if widget.searchQuery != "" {
+			current := 0
+			if len(widget.rows) > 0 {
+				current = element.GetCurrentItem() + 1
+			}
+			title += fmt.Sprintf(" [%d/%d]", current, len(widget.rows))
+		}
 	}
 	if widget.diagnosticCount > 0 {
 		title += " — " + widget.locale.PluralDiagnostics(widget.diagnosticCount) + " [d]"
