@@ -33,8 +33,16 @@ func TestCommandPaletteOpensEnvironmentPicker(t *testing.T) {
 		name, _ := application.EnvironmentPicker.GetItemText(item)
 		items[name] = true
 	}
-	if !items[application.config.Locale.Text("base_environment")] || !items["staging"] {
+	if !items["✓ "+application.config.Locale.Text("base_environment")] || !items["staging"] {
 		t.Fatalf("environment picker has unexpected items: %v", items)
+	}
+
+	application.Model.update(func(state *State) { state.EnvironmentName = "staging" })
+	application.refreshEnvironmentPicker()
+	base, _ := application.EnvironmentPicker.GetItemText(0)
+	staging, _ := application.EnvironmentPicker.GetItemText(1)
+	if base != application.config.Locale.Text("base_environment") || staging != "✓ staging" || application.EnvironmentPicker.GetCurrentItem() != 1 {
+		t.Fatalf("active environment is not explicit: base=%q staging=%q selected=%d", base, staging, application.EnvironmentPicker.GetCurrentItem())
 	}
 }
 

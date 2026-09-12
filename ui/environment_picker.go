@@ -37,9 +37,18 @@ func (application *Application) refreshEnvironmentPicker() {
 	}
 	current := application.Model.Snapshot().EnvironmentName
 	selected := 0
+	baseLabel := translator.Text("base_environment")
+	if current == "" {
+		baseLabel = "✓ " + baseLabel
+	}
+	picker.SetItemText(0, baseLabel, "")
 	for _, profile := range names {
 		name := profile
-		picker.AddItem(name, "", 0, func() { application.selectEnvironment(name) })
+		label := name
+		if name == current {
+			label = "✓ " + label
+		}
+		picker.AddItem(label, "", 0, func() { application.selectEnvironment(name) })
 		if name == current {
 			selected = picker.GetItemCount() - 1
 		}

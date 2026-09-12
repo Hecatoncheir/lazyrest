@@ -51,6 +51,12 @@ func (application *Application) footerHints(width int, focused tview.Primitive) 
 	join := func(items ...string) string { return strings.Join(items, " · ") }
 
 	if application.Model != nil && application.Model.CurrentOverlay() != OverlayNone {
+		if application.Model.CurrentOverlay() == OverlayCommandPalette {
+			if application.commandSearchMode || application.commandQuery != "" {
+				return join(hint(keymap.Open, "hint_select"), hint(keymap.Back, "hint_clear"))
+			}
+			return join(hint(keymap.Search, "hint_filter"), hint(keymap.Open, "hint_select"), hint(keymap.Back, "hint_close"))
+		}
 		return hint(keymap.Back, "hint_close")
 	}
 	if application.HttpFilesTree.IsSearching() || application.Suites.IsSearching() || application.Producer.IsSearching() {

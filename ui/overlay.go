@@ -97,9 +97,11 @@ func (application *Application) openOverlay(overlay Overlay) {
 		page = historyPage
 		focus = application.History
 	case OverlayCommandPalette:
+		application.resetCommandPaletteSearch()
 		page = commandPalettePage
 		focus = application.CommandPalette
 	case OverlayThemePicker:
+		application.refreshThemePicker()
 		page = themePickerPage
 		focus = application.ThemePicker
 	case OverlayEnvironmentPicker:
@@ -303,6 +305,7 @@ func helpText(bindings *keymap.Bindings, translator *locale.Translator) string {
 		line(keymap.CenterView, translator.Text("center_view")),
 		line(keymap.AlignBottom, translator.Text("align_bottom")),
 		line(keymap.CommandPalette, translator.Text("command_palette")),
+		line(keymap.Search, translator.Text("filter_commands")),
 		line(keymap.ReloadConfig, translator.Text("reload_config")),
 		"",
 		translator.Text("files_help"),

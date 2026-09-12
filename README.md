@@ -551,6 +551,7 @@ the response pane, and report when the exported body was truncated.
 - `d`: open parser, startup, and file-discovery diagnostics; press `d`, `q`, or `Esc` to close.
 - `?`: open the built-in keyboard reference; press `?`, `q`, or `Esc` to close.
 - `:` or `Ctrl+p`: open the command palette.
+- `/` in the command palette: filter commands as you type; `Esc` clears the filter before closing the palette.
 - `Ctrl+r`: reload `~/.config/lazyrest/config.yml` without restarting.
 - `q`: close the active window; quit lazyrest when no window is open.
 - `Ctrl+C`: quit from anywhere.

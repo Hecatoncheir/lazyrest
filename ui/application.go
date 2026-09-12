@@ -54,6 +54,10 @@ type Application struct {
 	pendingViewKeys   []*tcell.EventKey
 	pendingViewFocus  tview.Primitive
 	overlayFrames     []*responsiveOverlay
+	commandItems      []commandEntry
+	commandQuery      string
+	commandSearchMode bool
+	commandMatches    int
 	startOnce         sync.Once
 
 	footerProgressMutex  sync.Mutex

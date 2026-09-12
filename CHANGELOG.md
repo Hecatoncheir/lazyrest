@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [v0.23.0] - 2026-09-13
+
+### Added
+- The command palette supports live filtering with `/`, match counts, and a guided no-results state; `Esc` clears an active filter before closing the palette.
+- Theme and environment pickers mark the active choice explicitly instead of relying on cursor position alone.
+
 ## [v0.22.0] - 2026-09-13
 
 ### Added
