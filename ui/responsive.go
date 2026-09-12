@@ -76,6 +76,12 @@ func (application *Application) footerHints(width int, focused tview.Primitive) 
 			}
 			return join(hint(keymap.Search, "hint_filter"), hint(keymap.Open, "hint_select"), hint(keymap.Back, "hint_close"))
 		}
+		if overlay == OverlayHelp {
+			return join(hint(keymap.Help, "hint_toggle"), hint(keymap.Back, "hint_close"))
+		}
+		if overlay == OverlayDiagnostics {
+			return join(hint(keymap.Diagnostics, "hint_toggle"), hint(keymap.Back, "hint_close"))
+		}
 		return hint(keymap.Back, "hint_close")
 	}
 	if application.HttpFilesTree.IsSearching() || application.Suites.IsSearching() || application.Producer.IsSearching() {
