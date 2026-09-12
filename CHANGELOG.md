@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [v0.25.0] - 2026-09-13
+
 ### Changed
 - Empty History and Captured responses windows now explain how to populate them and hide the unavailable clear action.
 - Help and Diagnostics overlays now expose their toggle shortcuts in the contextual footer hints.
