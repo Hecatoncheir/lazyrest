@@ -1,4 +1,12 @@
-# lazyrest
+<p align="center">
+  <a href="https://hecatoncheir.github.io/lazyrest/">
+    <img src="site/assets/lazyrest-icon.svg" width="128" height="128" alt="lazyrest app icon">
+  </a>
+</p>
+
+<h1 align="center">lazyrest</h1>
+
+<p align="center">REST at your fingertips.</p>
 
 [![CI](https://github.com/Hecatoncheir/lazyrest/actions/workflows/go-test.yml/badge.svg)](https://github.com/Hecatoncheir/lazyrest/actions/workflows/go-test.yml)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)

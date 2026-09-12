@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630">
+  <defs>
+    <pattern id="dots" width="22" height="22" patternUnits="userSpaceOnUse"><circle cx="4" cy="4" r="2.5" fill="#545555"/></pattern>
+    <filter id="shadow"><feDropShadow dx="0" dy="16" stdDeviation="14" flood-opacity=".18"/></filter>
+  </defs>
+  <rect width="1200" height="630" fill="#f7f3e8"/>
+  <rect x="54" y="54" width="1092" height="522" rx="42" fill="#fffdf7" stroke="#c9c2b5" stroke-width="3"/>
+  <g transform="translate(95 105)" filter="url(#shadow)">
+    <rect width="350" height="420" rx="44" fill="#eeebe3" stroke="#aaa49a" stroke-width="3"/>
+    <rect x="32" y="42" width="286" height="145" rx="18" fill="#1d2020"/>
+    <path d="M68 87h60l-19 19 19 19H68" fill="none" stroke="#f36b36" stroke-width="15" stroke-linecap="round" stroke-linejoin="round"/>
+    <rect x="151" y="99" width="102" height="13" rx="6" fill="#f7f3e8"/>
+    <rect x="32" y="220" width="112" height="86" fill="url(#dots)"/>
+    <rect x="176" y="220" width="142" height="142" rx="22" fill="#f36b36" stroke="#c9441d" stroke-width="3"/>
+    <path d="m228 258 48 33-48 33z" fill="#fffdf7"/>
+  </g>
+  <g transform="translate(510 170)">
+    <text x="0" y="78" font-family="Nunito, Arial, sans-serif" font-weight="800" font-size="92" fill="#242525">lazyrest</text>
+    <text x="0" y="144" font-family="Nunito Sans, Arial, sans-serif" font-weight="700" font-size="38" fill="#c9441d">REST at your fingertips.</text>
+    <text x="0" y="218" font-family="JetBrains Mono, monospace" font-size="21" fill="#6d6a63">HTTP  /  HURL  /  GRAPHQL</text>
+    <rect x="0" y="260" width="430" height="2" fill="#c9c2b5"/>
+    <text x="0" y="310" font-family="Nunito Sans, Arial, sans-serif" font-size="24" fill="#454544">A focused API client for your terminal.</text>
+  </g>
+</svg>

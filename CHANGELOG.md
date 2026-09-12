@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+- A warm, responsive GitHub Pages landing page presents lazyrest's core workflow, installation command, and terminal interface, with a new application icon shared by the site and README.
+
 ## [v0.20.0] - 2026-08-27
 ### Added
 - Seeded fuzz targets cover HTTP document splitting, headers, variables, response references, secret redaction, Hurl entries, dotenv values, and POSIX shell quoting; CI runs short mutations on every change and a deeper weekly fuzz job.
