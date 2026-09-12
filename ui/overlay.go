@@ -66,6 +66,7 @@ func (application *Application) addOverlayPage(name string, primitive tview.Prim
 }
 
 func (application *Application) openOverlay(overlay Overlay) {
+	application.resetClearConfirmations()
 	if application.Model.CurrentOverlay() == OverlayNone {
 		application.previousFocus = application.Element.GetFocus()
 	}
@@ -124,6 +125,7 @@ func (application *Application) openOverlay(overlay Overlay) {
 }
 
 func (application *Application) closeOverlay() {
+	application.resetClearConfirmations()
 	wasSaveResponse := application.Model.CurrentOverlay() == OverlaySaveResponse
 	application.Pages.HidePage(diagnosticsPage)
 	application.Pages.HidePage(helpPage)

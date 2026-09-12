@@ -17,7 +17,7 @@ func (application *Application) buildHistoryOverlay() {
 	history.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		switch {
 		case application.config.Keybindings.Matches(keymap.ClearHistory, event):
-			application.clearHistory()
+			application.requestHistoryClear()
 			return nil
 		case application.config.Keybindings.Matches(keymap.Open, event):
 			return tcell.NewEventKey(tcell.KeyEnter, 0, tcell.ModNone)
@@ -50,15 +50,24 @@ func (application *Application) refreshHistory() {
 			func() { application.selectHistory(entryIndex) },
 		)
 	}
-	history.SetTitle(fmt.Sprintf(
-		"%s (%d) — %s %s · Enter %s · q/Esc %s",
-		translator.Text("history_window"),
-		len(summaries),
-		application.config.Keybindings.Describe(keymap.ClearHistory),
-		translator.Text("clear_history"),
-		translator.Text("open_history_entry"),
-		translator.Text("close"),
-	))
+	if application.confirmHistoryClear && len(summaries) > 0 {
+		history.SetTitle(fmt.Sprintf(
+			"%s (%d) — %s",
+			translator.Text("history_window"),
+			len(summaries),
+			translator.Format("confirm_clear_history", application.config.Keybindings.Describe(keymap.ClearHistory), len(summaries), application.config.Keybindings.Describe(keymap.Back)),
+		))
+	} else {
+		history.SetTitle(fmt.Sprintf(
+			"%s (%d) — %s %s · Enter %s · q/Esc %s",
+			translator.Text("history_window"),
+			len(summaries),
+			application.config.Keybindings.Describe(keymap.ClearHistory),
+			translator.Text("clear_history"),
+			translator.Text("open_history_entry"),
+			translator.Text("close"),
+		))
+	}
 }
 
 func historyEntryTitle(summary producer.HistorySummary, unnamed string) string {
@@ -99,6 +108,7 @@ func (application *Application) selectHistory(index int) {
 }
 
 func (application *Application) clearHistory() {
+	application.confirmHistoryClear = false
 	count := application.Producer.ClearHistory()
 	application.refreshHistory()
 	application.Footer.UpdateStatus(application.config.Locale.Format("history_cleared", count))

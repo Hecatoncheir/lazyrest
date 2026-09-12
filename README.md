@@ -482,16 +482,17 @@ history that remains available in memory.
 Choose **History** from the command palette to see the project's entries newest
 first, with request name, source file, timestamp, status, and duration but no
 body or header values. Press `Enter` or `l` to open an entry in Producer. Press
-`c` to clear both the in-memory list and the project's persisted entries.
+`c` twice to clear both the in-memory list and the project's persisted entries;
+`Esc` cancels after the first press.
 
 ## Captured responses
 
 Named request responses kept for `{{name.response.*}}` references can be inspected
 through **Captured responses** in the command palette. The window lists the source
 file, request name, status, header count, and body size without exposing captured
-body or header values. Press `c` in the window to clear the current session's
-captured responses; subsequent references remain unresolved until those named
-requests are run again.
+body or header values. Press `c` twice in the window to clear the current
+session's captured responses; `Esc` cancels after the first press. Subsequent
+references remain unresolved until those named requests are run again.
 
 ## Exporting responses
 
@@ -547,7 +548,7 @@ the response pane, and report when the exported body was truncated.
 - `s` / `S`: save the unformatted current response body / complete response while Producer is focused.
 - `n` / `N`: next/previous match in the focused Files or Producer area.
 - `[` / `]`: previous/next response history entry.
-- **History** in the command palette: inspect the project's saved runs; use `j` / `k`, open one with `Enter` / `l`, or clear all entries with `c`.
+- **History** in the command palette: inspect the project's saved runs; use `j` / `k`, open one with `Enter` / `l`, or press `c` twice to clear all entries.
 - `d`: open parser, startup, and file-discovery diagnostics; press `d`, `q`, or `Esc` to close.
 - `?`: open the built-in keyboard reference; press `?`, `q`, or `Esc` to close.
 - `:` or `Ctrl+p`: open the command palette.

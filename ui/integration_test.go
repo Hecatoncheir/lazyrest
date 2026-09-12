@@ -489,6 +489,18 @@ func TestTUICapturedResponsesWindowShowsSafeSummariesAndClearsSession(t *testing
 	}
 
 	screen.InjectKey(tcell.KeyRune, 'c', tcell.ModNone)
+	waitFor(t, "captured responses clear confirmation", func() bool {
+		return strings.Contains(readUIString(application, func() string { return application.Captured.GetTitle() }), "Press ") && len(application.Producer.CapturedResponses()) == 1
+	})
+	screen.InjectKey(tcell.KeyEscape, 0, tcell.ModNone)
+	waitFor(t, "captured responses clear cancellation", func() bool {
+		return !strings.Contains(readUIString(application, func() string { return application.Captured.GetTitle() }), "Press ") && application.Model.CurrentOverlay() == OverlayCaptured && len(application.Producer.CapturedResponses()) == 1
+	})
+	screen.InjectKey(tcell.KeyRune, 'c', tcell.ModNone)
+	waitFor(t, "captured responses second confirmation", func() bool {
+		return strings.Contains(readUIString(application, func() string { return application.Captured.GetTitle() }), "Press ")
+	})
+	screen.InjectKey(tcell.KeyRune, 'c', tcell.ModNone)
 	waitFor(t, "captured responses clear", func() bool {
 		return len(application.Producer.CapturedResponses()) == 0
 	})
@@ -561,6 +573,18 @@ func TestTUIHistoryWindowSelectsAndClearsProjectHistory(t *testing.T) {
 	application.Element.QueueUpdateDraw(func() { application.openOverlay(OverlayHistory) })
 	waitFor(t, "reopened history window", func() bool { return application.Model.CurrentOverlay() == OverlayHistory })
 	screen.InjectKey(tcell.KeyRune, 'c', tcell.ModNone)
+	waitFor(t, "history clear confirmation", func() bool {
+		return strings.Contains(readUIString(application, func() string { return application.History.GetTitle() }), "Press ") && len(application.Producer.HistorySummaries()) == 3
+	})
+	screen.InjectKey(tcell.KeyEscape, 0, tcell.ModNone)
+	waitFor(t, "history clear cancellation", func() bool {
+		return !strings.Contains(readUIString(application, func() string { return application.History.GetTitle() }), "Press ") && application.Model.CurrentOverlay() == OverlayHistory && len(application.Producer.HistorySummaries()) == 3
+	})
+	screen.InjectKey(tcell.KeyRune, 'c', tcell.ModNone)
+	waitFor(t, "history second confirmation", func() bool {
+		return strings.Contains(readUIString(application, func() string { return application.History.GetTitle() }), "Press ")
+	})
+	screen.InjectKey(tcell.KeyRune, 'c', tcell.ModNone)
 	waitFor(t, "cleared project history", func() bool { return len(application.Producer.HistorySummaries()) == 0 })
 	application.Producer.WaitForHistory()
 	contents, err := os.ReadFile(historyPath)
@@ -629,6 +653,21 @@ func waitFor(t *testing.T, description string, condition func() bool) {
 		time.Sleep(5 * time.Millisecond)
 	}
 	t.Fatalf("timed out waiting for %s", description)
+}
+
+func readUIString(application *Application, read func() string) string {
+	done := make(chan struct{})
+	var value string
+	application.Element.QueueUpdate(func() {
+		value = read()
+		close(done)
+	})
+	select {
+	case <-done:
+		return value
+	case <-time.After(time.Second):
+		return ""
+	}
 }
 
 func waitForScreenText(t *testing.T, application *Application, screen tcell.SimulationScreen, expected string) {

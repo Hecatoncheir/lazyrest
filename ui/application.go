@@ -42,23 +42,25 @@ type Application struct {
 	EnvironmentPicker *tview.List
 	SaveResponse      *tview.InputField
 
-	config            Config
-	theme             theme.Theme
-	loadEnvironment   func(string, environment.Config) (environment.Environment, error)
-	scanFiles         func(context.Context) tree.ScanResult
-	previousFocus     tview.Primitive
-	screen            tcell.Screen
-	pendingExport     *producer.ResponseExport
-	saveFullResponse  bool
-	saveOverwritePath string
-	pendingViewKeys   []*tcell.EventKey
-	pendingViewFocus  tview.Primitive
-	overlayFrames     []*responsiveOverlay
-	commandItems      []commandEntry
-	commandQuery      string
-	commandSearchMode bool
-	commandMatches    int
-	startOnce         sync.Once
+	config               Config
+	theme                theme.Theme
+	loadEnvironment      func(string, environment.Config) (environment.Environment, error)
+	scanFiles            func(context.Context) tree.ScanResult
+	previousFocus        tview.Primitive
+	screen               tcell.Screen
+	pendingExport        *producer.ResponseExport
+	saveFullResponse     bool
+	saveOverwritePath    string
+	pendingViewKeys      []*tcell.EventKey
+	pendingViewFocus     tview.Primitive
+	overlayFrames        []*responsiveOverlay
+	commandItems         []commandEntry
+	commandQuery         string
+	commandSearchMode    bool
+	commandMatches       int
+	confirmHistoryClear  bool
+	confirmCapturedClear bool
+	startOnce            sync.Once
 
 	footerProgressMutex  sync.Mutex
 	footerProgressCancel context.CancelFunc

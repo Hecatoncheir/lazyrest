@@ -18,6 +18,9 @@ func onInputCallback(application *Application) onInputCallbackType {
 		if application.Model != nil {
 			overlay := application.Model.CurrentOverlay()
 			if overlay != OverlayNone {
+				if application.handleClearConfirmation(overlay, event) {
+					return nil
+				}
 				if overlay == OverlayCommandPalette && application.handleCommandPaletteInput(event) {
 					return nil
 				}

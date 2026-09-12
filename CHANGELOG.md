@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Changed
+- Clearing persistent history or session captures now requires a second `c` confirmation; `Esc` cancels the pending destructive action.
+
 ## [v0.23.0] - 2026-09-13
 
 ### Added

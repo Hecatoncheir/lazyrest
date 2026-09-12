@@ -16,7 +16,7 @@ func (application *Application) buildCapturedResponsesOverlay() {
 	application.Captured = application.newOverlayView("")
 	application.Captured.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		if application.config.Keybindings.Matches(keymap.ClearCaptured, event) {
-			application.clearCapturedResponses()
+			application.requestCapturedClear()
 			return nil
 		}
 		return event
@@ -32,20 +32,30 @@ func (application *Application) refreshCapturedResponses() {
 	translator := application.config.Locale
 	application.Captured.SetText(renderCapturedResponses(captures, application.Model.Snapshot().RootDirectoryPath, translator))
 	application.Captured.ScrollToBeginning()
-	application.Captured.SetTitle(fmt.Sprintf(
-		"%s (%d) — %s %s · q/Esc %s",
-		translator.Text("captured_responses"),
-		len(captures),
-		application.config.Keybindings.Describe(keymap.ClearCaptured),
-		translator.Text("clear_captured_responses"),
-		translator.Text("close"),
-	))
+	if application.confirmCapturedClear && len(captures) > 0 {
+		application.Captured.SetTitle(fmt.Sprintf(
+			"%s (%d) — %s",
+			translator.Text("captured_responses"),
+			len(captures),
+			translator.Format("confirm_clear_captured", application.config.Keybindings.Describe(keymap.ClearCaptured), len(captures), application.config.Keybindings.Describe(keymap.Back)),
+		))
+	} else {
+		application.Captured.SetTitle(fmt.Sprintf(
+			"%s (%d) — %s %s · q/Esc %s",
+			translator.Text("captured_responses"),
+			len(captures),
+			application.config.Keybindings.Describe(keymap.ClearCaptured),
+			translator.Text("clear_captured_responses"),
+			translator.Text("close"),
+		))
+	}
 }
 
 func (application *Application) clearCapturedResponses() {
 	if application.Producer == nil {
 		return
 	}
+	application.confirmCapturedClear = false
 	count := application.Producer.ClearCapturedResponses()
 	application.refreshCapturedResponses()
 	if application.Footer != nil {

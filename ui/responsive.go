@@ -51,7 +51,20 @@ func (application *Application) footerHints(width int, focused tview.Primitive) 
 	join := func(items ...string) string { return strings.Join(items, " · ") }
 
 	if application.Model != nil && application.Model.CurrentOverlay() != OverlayNone {
-		if application.Model.CurrentOverlay() == OverlayCommandPalette {
+		overlay := application.Model.CurrentOverlay()
+		if overlay == OverlayHistory {
+			if application.confirmHistoryClear {
+				return join(hint(keymap.ClearHistory, "hint_confirm"), hint(keymap.Back, "hint_cancel"))
+			}
+			return join(hint(keymap.ClearHistory, "hint_clear"), hint(keymap.Back, "hint_close"))
+		}
+		if overlay == OverlayCaptured {
+			if application.confirmCapturedClear {
+				return join(hint(keymap.ClearCaptured, "hint_confirm"), hint(keymap.Back, "hint_cancel"))
+			}
+			return join(hint(keymap.ClearCaptured, "hint_clear"), hint(keymap.Back, "hint_close"))
+		}
+		if overlay == OverlayCommandPalette {
 			if application.commandSearchMode || application.commandQuery != "" {
 				return join(hint(keymap.Open, "hint_select"), hint(keymap.Back, "hint_clear"))
 			}
