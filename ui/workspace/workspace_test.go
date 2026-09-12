@@ -66,3 +66,28 @@ func TestApplySettingsRepaintsTheInnerColumnToo(t *testing.T) {
 		t.Errorf("the inner column kept the old background: %v", got)
 	}
 }
+
+func TestResizeAdaptsVisiblePanesToTerminalWidthAndFocus(t *testing.T) {
+	widget := build(t, theme.NewDefault())
+	box := widget.Element.(*tview.Flex)
+
+	widget.Resize(wideLayoutWidth, widget.treeElement)
+	if got := box.GetItemCount(); got != 3 {
+		t.Fatalf("wide layout has %d panes, want 3", got)
+	}
+
+	widget.Resize(wideLayoutWidth-1, widget.treeElement)
+	if got := box.GetItemCount(); got != 2 || box.GetItem(0) != widget.treeElement || box.GetItem(1) != widget.suitesArea {
+		t.Fatalf("medium file layout did not keep files and requests")
+	}
+
+	widget.Resize(wideLayoutWidth-1, widget.producerElement)
+	if got := box.GetItemCount(); got != 2 || box.GetItem(0) != widget.suitesArea || box.GetItem(1) != widget.producerElement {
+		t.Fatalf("medium response layout did not keep requests and response")
+	}
+
+	widget.Resize(compactLayoutWidth-1, widget.producerElement)
+	if got := box.GetItemCount(); got != 1 || box.GetItem(0) != widget.producerElement {
+		t.Fatalf("compact layout did not isolate the active response pane")
+	}
+}

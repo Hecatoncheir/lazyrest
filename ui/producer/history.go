@@ -4,6 +4,7 @@ import (
 	"fmt"
 	nethttp "net/http"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 
@@ -12,7 +13,6 @@ import (
 	"github.com/Hecatoncheir/lazyrest/runner"
 	"github.com/Hecatoncheir/lazyrest/ui/syntax"
 
-	"github.com/hako/durafmt"
 	"github.com/rivo/tview"
 )
 
@@ -146,10 +146,40 @@ func renderExecutionResultWithLocale(suite http.HttpSuite, response runner.Respo
 		return "[red]" + translator.Text("response_error") + ":[-]\n" + tview.Escape(redactSecrets(err.Error(), suite.SecretValues))
 	}
 
-	var request strings.Builder
-	request.WriteString("[yellow]" + translator.Text("request") + ":[-]\n")
-	request.WriteString(tview.Escape(fmt.Sprintf("%s %s\n", suite.Method, redactSecrets(suite.Uri, suite.SecretValues))))
+	responseColor := "white"
+	switch {
+	case len(response.GraphQLErrors) > 0:
+		// GraphQL answers with 200 even when the operation failed.
+		responseColor = "red"
+	case strings.HasPrefix(response.Code, "2"):
+		responseColor = "green"
+	case strings.HasPrefix(response.Code, "3"):
+		responseColor = "yellow"
+	case strings.HasPrefix(response.Code, "4"), strings.HasPrefix(response.Code, "5"), response.Code == "FAILED":
+		responseColor = "red"
+	}
 
+	var responseText strings.Builder
+	fmt.Fprintf(&responseText, "[%s]%s:[-] %s", responseColor, translator.Text("response"), tview.Escape(responseSummary(response, translator)))
+	if len(response.GraphQLErrors) > 0 {
+		responseText.WriteString("\n\n[red]" + translator.Text("graphql_errors") + ":[-]\n")
+		for _, message := range response.GraphQLErrors {
+			responseText.WriteString(tview.Escape("- " + redactSecrets(message, suite.SecretValues) + "\n"))
+		}
+	}
+	formatted, language := formatResponseBody(response, mode)
+	body := redactSecrets(formatted, suite.SecretValues)
+	if body != "" {
+		responseText.WriteString("\n" + syntax.Highlight(body, language, palette))
+	}
+	if len(response.Header) > 0 {
+		responseText.WriteString("\n\n[yellow]" + translator.Text("headers") + ":[-]\n")
+		responseText.WriteString(tview.Escape(renderHeaders(response.Header, suite.SecretValues)))
+	}
+
+	var request strings.Builder
+	request.WriteString("[yellow]" + translator.Text("request") + ":[-] ")
+	request.WriteString(tview.Escape(fmt.Sprintf("%s %s\n", suite.Method, redactSecrets(suite.Uri, suite.SecretValues))))
 	request.WriteString(tview.Escape(renderHeaders(suite.Header, suite.SecretValues)))
 	bodyLabel := "body"
 	if suite.BodyType == http.BodyTypeGraphQL {
@@ -164,60 +194,32 @@ func renderExecutionResultWithLocale(suite http.HttpSuite, response runner.Respo
 		request.WriteString(syntax.Highlight(redactSecrets(prettyJSON(suite.GraphQLVariables), suite.SecretValues), jsonLanguage(mode), palette))
 	}
 
-	responseColor := "white"
-	switch {
-	case len(response.GraphQLErrors) > 0:
-		// GraphQL answers with 200 even when the operation failed.
-		responseColor = "red"
-	case strings.HasPrefix(response.Code, "2"):
-		responseColor = "green"
-	case strings.HasPrefix(response.Code, "3"):
-		responseColor = "yellow"
-	case strings.HasPrefix(response.Code, "4"), strings.HasPrefix(response.Code, "5"), response.Code == "FAILED":
-		responseColor = "red"
-	}
-
 	separator := "\n" + strings.Repeat("─", 40) + "\n"
-	var responseDetails strings.Builder
-	responseDetails.WriteString(responseSummary(response, translator))
-	if response.Protocol != "" {
-		responseDetails.WriteString(translator.Text("protocol") + ": " + response.Protocol + "\n")
-	}
-	if len(response.GraphQLErrors) > 0 {
-		responseDetails.WriteString("\n" + translator.Text("graphql_errors") + ":\n")
-		for _, message := range response.GraphQLErrors {
-			responseDetails.WriteString("- " + redactSecrets(message, suite.SecretValues) + "\n")
-		}
-	}
-	if len(response.Header) > 0 {
-		responseDetails.WriteString("\n" + translator.Text("headers") + ":\n")
-		responseDetails.WriteString(renderHeaders(response.Header, suite.SecretValues))
-	}
-	formatted, language := formatResponseBody(response, mode)
-	body := redactSecrets(formatted, suite.SecretValues)
-	responseText := fmt.Sprintf("[%s]%s:[-]\n%s\n%s",
-		responseColor,
-		translator.Text("response"),
-		tview.Escape(responseDetails.String()),
-		syntax.Highlight(body, language, palette),
-	)
-	return request.String() + separator + responseText
+	return responseText.String() + separator + request.String()
 }
 
-// responseSummary states what came back, in the language of the interface.
+// responseSummary keeps the outcome scannable on one line. The response body
+// follows it immediately; secondary request and header details come later.
 func responseSummary(response runner.Response, translator *locale.Translator) string {
-	var summary strings.Builder
-	fmt.Fprintf(&summary, "%s: %s\n", translator.Text("response_code"), response.Code)
-	fmt.Fprintf(&summary, "%s: %dms (%s)\n",
-		translator.Text("response_time"),
-		response.Time.Milliseconds(),
-		durafmt.Parse(response.Time).String(),
-	)
-	fmt.Fprintf(&summary, "%s: %d\n", translator.Text("content_length"), response.ContentLength)
-	if response.Truncated {
-		summary.WriteString(translator.Text("body_truncated") + "\n")
+	status := strings.TrimSpace(response.Code)
+	if status == "" && response.StatusCode != 0 {
+		status = strconv.Itoa(response.StatusCode)
 	}
-	return summary.String()
+	if status == "" {
+		status = translator.Text("unknown_status")
+	}
+	parts := []string{
+		status,
+		fmt.Sprintf("%dms", response.Time.Milliseconds()),
+		translator.Format("bytes", response.ContentLength),
+	}
+	if response.Protocol != "" {
+		parts = append(parts, response.Protocol)
+	}
+	if response.Truncated {
+		parts = append(parts, translator.Text("body_truncated"))
+	}
+	return strings.Join(parts, " · ")
 }
 
 func renderHeaders(headers nethttp.Header, secretValues []string) string {

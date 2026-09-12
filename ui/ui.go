@@ -47,6 +47,7 @@ func BuildApplication(rootDirectoryPath string, config Config) *Application {
 	applicationElement := applicationWidget.Build()
 	applicationElement.SetBeforeDrawFunc(func(screen tcell.Screen) bool {
 		applicationWidget.screen = screen
+		applicationWidget.updateResponsiveUI(screen)
 		return false
 	})
 	applicationWidget.Model = NewModel(rootDirectoryPath, environmentName)

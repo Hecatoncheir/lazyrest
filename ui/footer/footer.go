@@ -16,9 +16,12 @@ type Footer struct {
 	environmentElement   *tview.TextView
 	statusElement        *tview.TextView
 	progressElement      *tview.TextView
+	hintElement          *tview.TextView
 	selectedFile         *finder.File
 	suiteName            string
 	status               string
+	hints                string
+	width                int
 	indicatorState       IndicatorState
 }
 
@@ -78,6 +81,22 @@ func (widget *Footer) UpdateEnvironment(name string) {
 
 func (widget *Footer) UpdateStatus(status string) {
 	widget.status = status
+	widget.render()
+}
+
+func (widget *Footer) UpdateHints(hints string) {
+	if widget.hints == hints {
+		return
+	}
+	widget.hints = hints
+	widget.render()
+}
+
+func (widget *Footer) Resize(width int) {
+	if widget.width == width {
+		return
+	}
+	widget.width = width
 	widget.render()
 }
 

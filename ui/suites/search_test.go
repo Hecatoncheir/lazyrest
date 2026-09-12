@@ -24,6 +24,23 @@ func TestRenderFiltersSuites(t *testing.T) {
 	}
 }
 
+func TestRenderExplainsEmptySearchResults(t *testing.T) {
+	widget := New()
+	widget.Build(Parameters{Theme: theme.NewDefault(), OnEscapeCallback: func() {}, OnSuiteSelectCallbackType: func(http.HttpSuite) {}})
+	widget.suites = []http.HttpSuite{{Name: "List users", Method: "GET", Uri: "/users"}}
+	widget.searchQuery = "missing"
+	widget.render()
+
+	list := widget.Element.(*tview.List)
+	if count := list.GetItemCount(); count != 1 {
+		t.Fatalf("empty search should render one explanatory row, got %d", count)
+	}
+	main, _ := list.GetItemText(0)
+	if !strings.Contains(main, "No matches") || !strings.Contains(main, "missing") {
+		t.Fatalf("unexpected empty-search message: %q", main)
+	}
+}
+
 func TestRenderRedactsEnvironmentSecrets(t *testing.T) {
 	widget := New()
 	widget.Build(Parameters{Theme: theme.NewDefault(), OnEscapeCallback: func() {}, OnSuiteSelectCallbackType: func(http.HttpSuite) {}})

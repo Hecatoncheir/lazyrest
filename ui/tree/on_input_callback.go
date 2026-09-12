@@ -1,6 +1,7 @@
 package tree
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/Hecatoncheir/lazyrest/finder"
@@ -67,14 +68,15 @@ func (widget *Tree) updateSearch() {
 	if !ok {
 		return
 	}
-	widget.updateTitle()
 	widget.searchMatches = nil
 	widget.searchIndex = 0
 	if widget.searchQuery == "" {
+		widget.updateTitle()
 		return
 	}
 	query := strings.ToLower(widget.searchQuery)
 	collectMatchingNodes(element.GetRoot(), query, &widget.searchMatches)
+	widget.updateTitle()
 	if len(widget.searchMatches) > 0 {
 		element.SetCurrentNode(widget.searchMatches[0])
 	}
@@ -93,6 +95,9 @@ func (widget *Tree) updateTitle() {
 	}
 	if widget.searchMode || widget.searchQuery != "" {
 		title += " /" + widget.searchQuery
+		if widget.searchQuery != "" {
+			title += fmt.Sprintf(" [%d]", len(widget.searchMatches))
+		}
 	}
 	element.SetTitle(title)
 }

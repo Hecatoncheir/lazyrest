@@ -158,6 +158,29 @@ func TestTUIUsesConfiguredLanguage(t *testing.T) {
 	})
 }
 
+func TestTUICompactLayoutFollowsTheFocusedWorkflowStage(t *testing.T) {
+	application := BuildApplication(t.TempDir(), Config{})
+	screen, _ := runTestApplication(t, application)
+	screen.SetSize(70, 24)
+	waitFor(t, "compact files stage", func() bool {
+		text := applicationText(application, screen)
+		return strings.Contains(text, "Files") && !strings.Contains(text, "Producer")
+	})
+
+	screen.InjectKey(tcell.KeyCtrlL, 0, tcell.ModCtrl)
+	waitFor(t, "compact requests stage", func() bool {
+		text := applicationText(application, screen)
+		return strings.Contains(text, "Suites") && strings.Contains(text, "Suite") &&
+			!strings.Contains(text, "Files") && !strings.Contains(text, "Producer")
+	})
+
+	screen.InjectKey(tcell.KeyCtrlL, 0, tcell.ModCtrl)
+	waitFor(t, "compact response stage", func() bool {
+		text := applicationText(application, screen)
+		return strings.Contains(text, "Producer") && !strings.Contains(text, "Suites")
+	})
+}
+
 func TestTUIDiagnosticsAndHelpWorkflow(t *testing.T) {
 	root := t.TempDir()
 	filePath := filepath.Join(root, "requests.http")

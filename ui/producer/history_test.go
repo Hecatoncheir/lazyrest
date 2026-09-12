@@ -187,7 +187,7 @@ func TestResponseSummaryIsLocalized(t *testing.T) {
 	response := runner.Response{Code: "200 OK", Time: 1500 * time.Millisecond, ContentLength: 42, Truncated: true}
 
 	english := responseSummary(response, locale.English())
-	for _, want := range []string{"Response code: 200 OK", "Content length: 42", "Response body was truncated"} {
+	for _, want := range []string{"200 OK", "1500ms", "42 bytes", "Response body was truncated"} {
 		if !strings.Contains(english, want) {
 			t.Errorf("missing %q in %q", want, english)
 		}
@@ -198,7 +198,7 @@ func TestResponseSummaryIsLocalized(t *testing.T) {
 		t.Fatal(err)
 	}
 	translated := responseSummary(response, russian)
-	if !strings.Contains(translated, "Код ответа: 200 OK") {
+	if !strings.Contains(translated, "200 OK") || !strings.Contains(translated, "42 байт") {
 		t.Errorf("the summary was not translated: %q", translated)
 	}
 	if strings.Contains(translated, "Response code") {
@@ -206,5 +206,22 @@ func TestResponseSummaryIsLocalized(t *testing.T) {
 	}
 	if !strings.Contains(translated, "1500ms") {
 		t.Errorf("the timing is missing: %q", translated)
+	}
+}
+
+func TestRenderExecutionResultPrioritizesResponseBody(t *testing.T) {
+	suite := parserhttp.HttpSuite{Method: "GET", Uri: "https://example.com/users"}
+	response := runner.Response{
+		Code:   "200 OK",
+		Header: nethttp.Header{"Content-Type": []string{"application/json"}},
+		Body:   `{"users":[]}`,
+	}
+
+	text := renderExecutionResult(suite, response, nil)
+	body := strings.Index(text, `"users"`)
+	headers := strings.Index(text, "Headers:")
+	request := strings.Index(text, "Request:")
+	if body < 0 || headers < 0 || request < 0 || body >= headers || headers >= request {
+		t.Fatalf("result is not body-first: %q", text)
 	}
 }

@@ -71,10 +71,27 @@ func (widget *Footer) render() {
 	progressText.SetText(progress)
 	widget.progressElement = progressText
 
+	hintText := tview.NewTextView()
+	hintText.SetTextAlign(tview.AlignLeft)
+	hintText.SetTextColor(footerTheme.Foreground)
+	hintText.SetBackgroundColor(footerTheme.Background)
+	hints := widget.hints
+	if hints != "" {
+		hints = "  " + hints + "  "
+	}
+	hintText.SetText(hints)
+	widget.hintElement = hintText
+
 	layout.AddItem(breadcrumbs, 0, 1, false)
 	widget.suiteElement = nil
 	if environment != "" {
 		layout.AddItem(environmentText, tview.TaggedStringWidth(environment), 0, false)
+	}
+	// On medium and compact terminals, operation feedback takes precedence
+	// over shortcut hints. Wide terminals have enough room to retain both.
+	showHints := hints != "" && (status == "" || widget.width == 0 || widget.width >= 120)
+	if showHints {
+		layout.AddItem(hintText, tview.TaggedStringWidth(hints), 0, false)
 	}
 	if progress != "" {
 		progressArrow, progressArrowWidth := buildArrowLeftElement(footerTheme.Background, footerTheme.SuiteBackground)

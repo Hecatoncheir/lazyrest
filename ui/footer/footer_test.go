@@ -1,6 +1,7 @@
 package footer
 
 import (
+	"strings"
 	"testing"
 
 	appcolor "github.com/Hecatoncheir/lazyrest/color"
@@ -211,6 +212,49 @@ func TestDefaultFooterIndicatorPalette(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestFooterShowsHintsUntilCompactStatusNeedsTheSpace(t *testing.T) {
+	widget := New()
+	widget.Build(Parameters{RootDirectoryPath: "/workspace", Theme: theme.NewDefault()})
+	widget.Resize(80)
+	widget.UpdateHints("enter open · / search")
+	if text := drawFooterText(t, widget, 80); !strings.Contains(text, "enter open") {
+		t.Fatalf("contextual hints are missing: %q", text)
+	}
+
+	widget.UpdateStatus("Success")
+	if text := drawFooterText(t, widget, 80); strings.Contains(text, "enter open") || !strings.Contains(text, "Success") {
+		t.Fatalf("compact status did not replace hints: %q", text)
+	}
+
+	widget.Resize(120)
+	if text := drawFooterText(t, widget, 120); !strings.Contains(text, "enter open") || !strings.Contains(text, "Success") {
+		t.Fatalf("wide footer did not retain status and hints: %q", text)
+	}
+}
+
+func drawFooterText(t *testing.T, widget *Footer, width int) string {
+	t.Helper()
+	screen := tcell.NewSimulationScreen("UTF-8")
+	if err := screen.Init(); err != nil {
+		t.Fatalf("initialize simulation screen: %v", err)
+	}
+	t.Cleanup(screen.Fini)
+	screen.SetSize(width, 1)
+	widget.Element.SetRect(0, 0, width, 1)
+	widget.Element.Draw(screen)
+	screen.Show()
+	cells, _, _ := screen.GetContents()
+	var text strings.Builder
+	for _, cell := range cells {
+		if len(cell.Runes) == 0 {
+			text.WriteByte(' ')
+		} else {
+			text.WriteRune(cell.Runes[0])
+		}
+	}
+	return text.String()
 }
 
 func assertTextViewColors(t *testing.T, view *tview.TextView, foreground, background tcell.Color) {

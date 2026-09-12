@@ -104,6 +104,8 @@ func (widget *Suites) render() {
 	}
 	if visibleSuites == 0 && widget.diagnosticCount > 0 && query == "" {
 		element.AddItem(widget.locale.Text("no_requests"), "", 0, nil)
+	} else if visibleSuites == 0 && query != "" {
+		element.AddItem(widget.locale.Format("no_search_results", widget.searchQuery), "", 0, nil)
 	}
 	widget.applySelectionMarkup(element.GetCurrentItem())
 }

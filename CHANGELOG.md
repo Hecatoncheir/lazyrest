@@ -4,8 +4,15 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [v0.21.0] - 2026-09-12
+
 ### Added
 - A warm, responsive GitHub Pages landing page presents lazyrest's core workflow, installation command, and terminal interface, with a new application icon shared by the site and README.
+- Context-aware footer hints expose the most useful keybindings for the focused pane, and empty searches now explain why no rows are visible.
+
+### Changed
+- The workspace adapts from three panes to two-pane and focused-stage layouts as the terminal narrows, while the request preview gives more room to the request list.
+- Producer puts a compact response summary and body before response headers and request details, making the result faster to scan.
 
 ## [v0.20.0] - 2026-08-27
 ### Added
