@@ -38,6 +38,9 @@ func BuildApplication(rootDirectoryPath string, config Config) *Application {
 	if config.Locale == nil {
 		config.Locale = locale.English()
 	}
+	if config.ThemePreset == "" {
+		config.ThemePreset = theme.DefaultConfig().Preset
+	}
 	environmentName := config.Environment.Name
 	if environmentName == "" {
 		environmentName = config.EnvironmentName

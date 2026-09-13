@@ -7,6 +7,7 @@ All notable changes to this project will be documented in this file.
 ### Added
 - Request files are watched recursively and refreshed automatically after debounced writes, creates, renames, and removals.
 - Hurl runs now render the selected exchange's HTTP status, headers, protocol, body, and assertion failures instead of exposing only the raw JSON report.
+- Theme selections from the command palette are saved to the owning configuration layer and restored on the next launch.
 
 ### Fixed
 - Truncated responses now keep the complete declared size separately from the bytes retained for display and history; chunked responses report a lower bound when their full size is unknowable.

@@ -165,6 +165,132 @@ func Generate(path string) error {
 	return nil
 }
 
+// SetThemePreset updates only theme.preset in a configuration file. Editing
+// the YAML node tree keeps unrelated settings, ordering, and comments intact.
+func SetThemePreset(path, preset string) error {
+	if _, err := theme.FromConfig(theme.Config{Preset: preset}); err != nil {
+		return fmt.Errorf("validate theme preset: %w", err)
+	}
+	contents, err := os.ReadFile(path)
+	if errors.Is(err, os.ErrNotExist) {
+		contents = nil
+	} else if err != nil {
+		return fmt.Errorf("read config %s: %w", path, err)
+	}
+	if len(contents) > 0 {
+		if _, err := read(path); err != nil {
+			return err
+		}
+	}
+
+	document := yaml.Node{Kind: yaml.DocumentNode}
+	root := &yaml.Node{Kind: yaml.MappingNode, Tag: "!!map"}
+	document.Content = []*yaml.Node{root}
+	if len(contents) > 0 {
+		if err := yaml.Unmarshal(contents, &document); err != nil {
+			return fmt.Errorf("parse config %s: %w", path, err)
+		}
+		if len(document.Content) != 1 || document.Content[0].Kind != yaml.MappingNode {
+			return fmt.Errorf("parse config %s: root must be a mapping", path)
+		}
+		root = document.Content[0]
+	}
+
+	themeNode := mappingValue(root, "theme")
+	if themeNode == nil {
+		root.Content = append(root.Content,
+			&yaml.Node{Kind: yaml.ScalarNode, Tag: "!!str", Value: "theme"},
+			&yaml.Node{Kind: yaml.MappingNode, Tag: "!!map"},
+		)
+		themeNode = root.Content[len(root.Content)-1]
+	}
+	if themeNode.Kind != yaml.MappingNode {
+		return fmt.Errorf("parse config %s: theme must be a mapping", path)
+	}
+	presetNode := mappingValue(themeNode, "preset")
+	if presetNode == nil {
+		themeNode.Content = append(themeNode.Content,
+			&yaml.Node{Kind: yaml.ScalarNode, Tag: "!!str", Value: "preset"},
+			&yaml.Node{Kind: yaml.ScalarNode, Tag: "!!str", Value: preset},
+		)
+	} else {
+		presetNode.Kind = yaml.ScalarNode
+		presetNode.Tag = "!!str"
+		presetNode.Value = preset
+	}
+
+	var output bytes.Buffer
+	encoder := yaml.NewEncoder(&output)
+	encoder.SetIndent(2)
+	if err := encoder.Encode(&document); err != nil {
+		return fmt.Errorf("render config %s: %w", path, err)
+	}
+	if err := encoder.Close(); err != nil {
+		return fmt.Errorf("render config %s: %w", path, err)
+	}
+	return writeConfigAtomically(path, output.Bytes())
+}
+
+// SetThemePresetInFiles updates the highest-priority configuration layer that
+// already owns theme.preset. If no layer owns it, fallback receives the user
+// preference so merely choosing a theme does not create a project config.
+func SetThemePresetInFiles(paths []string, fallback, preset string) (string, error) {
+	target := fallback
+	for _, path := range paths {
+		document, err := read(path)
+		if err != nil {
+			return "", err
+		}
+		if document.Theme.Preset != "" {
+			target = path
+		}
+	}
+	if target == "" {
+		return "", errors.New("theme configuration path is empty")
+	}
+	if err := SetThemePreset(target, preset); err != nil {
+		return "", err
+	}
+	return target, nil
+}
+
+func mappingValue(mapping *yaml.Node, key string) *yaml.Node {
+	for index := 0; index+1 < len(mapping.Content); index += 2 {
+		if mapping.Content[index].Value == key {
+			return mapping.Content[index+1]
+		}
+	}
+	return nil
+}
+
+func writeConfigAtomically(path string, contents []byte) error {
+	directory := filepath.Dir(path)
+	if err := os.MkdirAll(directory, 0o700); err != nil {
+		return fmt.Errorf("create config directory: %w", err)
+	}
+	temporary, err := os.CreateTemp(directory, ".config-*.tmp")
+	if err != nil {
+		return fmt.Errorf("create temporary config: %w", err)
+	}
+	temporaryPath := temporary.Name()
+	defer func() { _ = os.Remove(temporaryPath) }()
+	if err := temporary.Chmod(0o600); err != nil {
+		_ = temporary.Close()
+		return fmt.Errorf("secure temporary config: %w", err)
+	}
+	if _, err := temporary.Write(contents); err != nil {
+		_ = temporary.Close()
+		return fmt.Errorf("write temporary config: %w", err)
+	}
+	if err := temporary.Close(); err != nil {
+		return fmt.Errorf("close temporary config: %w", err)
+	}
+	if err := os.Rename(temporaryPath, path); err != nil {
+		return fmt.Errorf("replace config %s: %w", path, err)
+	}
+	return nil
+}
+
 func read(path string) (Document, error) {
 	contents, err := os.ReadFile(path)
 	if errors.Is(err, os.ErrNotExist) {

@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	appconfig "github.com/Hecatoncheir/lazyrest/config"
 	"github.com/Hecatoncheir/lazyrest/keymap"
 	"github.com/Hecatoncheir/lazyrest/ui/producer"
 	"github.com/Hecatoncheir/lazyrest/ui/theme"
@@ -61,7 +62,11 @@ func TestCommandPaletteOpensFromConfiguredKey(t *testing.T) {
 }
 
 func TestThemePickerAppliesPreset(t *testing.T) {
-	application := BuildApplication(t.TempDir(), Config{})
+	configPath := filepath.Join(t.TempDir(), "config.yml")
+	if err := os.WriteFile(configPath, []byte("language: en\ntheme:\n  preset: gruvbox\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	application := BuildApplication(t.TempDir(), Config{ConfigPath: configPath})
 	before := application.theme.Background
 	commandPalette := application.CommandPalette
 	themePicker := application.ThemePicker
@@ -96,5 +101,12 @@ func TestThemePickerAppliesPreset(t *testing.T) {
 	}
 	if application.Footer == nil {
 		t.Fatal("footer was not preserved after applying theme")
+	}
+	settings, err := appconfig.Load(configPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if settings.Document.Theme.Preset != "monokai" || settings.Theme != application.theme {
+		t.Fatalf("selected theme was not persisted for the next launch: %+v", settings.Document.Theme)
 	}
 }

@@ -138,6 +138,114 @@ func TestGenerateDoesNotOverwriteExistingConfig(t *testing.T) {
 	}
 }
 
+func TestSetThemePresetPreservesTheRestOfTheConfiguration(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "config.yml")
+	contents := `# personal preferences
+language: ru
+history: full
+theme:
+  # keep custom accent
+  preset: gruvbox
+  accent: "#010203"
+keybindings:
+  help: ["?"]
+`
+	if err := os.WriteFile(path, []byte(contents), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := SetThemePreset(path, "monokai"); err != nil {
+		t.Fatal(err)
+	}
+	written, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, preserved := range []string{"# personal preferences", "# keep custom accent", `accent: "#010203"`, "language: ru", "history: full"} {
+		if !strings.Contains(string(written), preserved) {
+			t.Fatalf("configuration detail %q was lost:\n%s", preserved, written)
+		}
+	}
+	settings, err := Load(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if settings.Document.Theme.Preset != "monokai" || settings.Locale.Language() != "ru" || settings.Document.History != HistoryFull {
+		t.Fatalf("unexpected updated configuration: %+v", settings.Document)
+	}
+	info, err := os.Stat(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if info.Mode().Perm() != 0o600 {
+		t.Fatalf("updated config permissions are %o, want 600", info.Mode().Perm())
+	}
+}
+
+func TestSetThemePresetCreatesAConfiguration(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "lazyrest", "config.yml")
+	if err := SetThemePreset(path, "nord"); err != nil {
+		t.Fatal(err)
+	}
+	settings, err := Load(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if settings.Document.Theme.Preset != "nord" {
+		t.Fatalf("selected preset was not stored: %+v", settings.Document.Theme)
+	}
+}
+
+func TestSetThemePresetInFilesUpdatesTheLayerThatOwnsThePreset(t *testing.T) {
+	directory := t.TempDir()
+	user := filepath.Join(directory, "user.yml")
+	project := filepath.Join(directory, "project.yml")
+	if err := os.WriteFile(user, []byte("theme:\n  preset: gruvbox\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(project, []byte("theme:\n  preset: nord\n  accent: '#010203'\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	target, err := SetThemePresetInFiles([]string{user, project}, user, "monokai")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if target != project {
+		t.Fatalf("updated %q, want highest-priority owner %q", target, project)
+	}
+	userSettings, err := Load(user)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if userSettings.Document.Theme.Preset != "gruvbox" {
+		t.Fatalf("lower-priority preset changed: %+v", userSettings.Document.Theme)
+	}
+	merged, err := LoadFiles([]string{user, project})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if merged.Document.Theme.Preset != "monokai" || merged.Document.Theme.Accent != "#010203" {
+		t.Fatalf("updated layers do not reproduce the selected theme: %+v", merged.Document.Theme)
+	}
+}
+
+func TestSetThemePresetDoesNotOverwriteAnInvalidConfiguration(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "config.yml")
+	contents := []byte("unknown_setting: true\n")
+	if err := os.WriteFile(path, contents, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := SetThemePreset(path, "nord"); err == nil {
+		t.Fatal("invalid configuration was overwritten")
+	}
+	written, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(written) != string(contents) {
+		t.Fatalf("invalid configuration changed: %q", written)
+	}
+}
+
 func TestLoadRefusesAnUnknownKey(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "config.yml")
 	// "keybinding" is a typo for "keybindings" and used to be dropped without

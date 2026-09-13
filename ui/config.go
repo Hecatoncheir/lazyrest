@@ -17,6 +17,7 @@ type Config struct {
 	Keybindings     *keymap.Bindings
 	Locale          *locale.Translator
 	Theme           theme.Theme
+	ThemePreset     string
 	ConfigPath      string
 	ConfigPaths     []string
 	Ignore          []string

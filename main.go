@@ -129,6 +129,7 @@ func run(arguments []string, output io.Writer) error {
 		Keybindings:   settings.Keybindings,
 		Locale:        settings.Locale,
 		Theme:         settings.Theme,
+		ThemePreset:   settings.Document.Theme.Preset,
 		ConfigPath:    userConfigPath,
 		ConfigPaths:   configPaths,
 		HistoryPath:   historyPath,

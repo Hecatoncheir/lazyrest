@@ -2,7 +2,6 @@ package ui
 
 import (
 	"fmt"
-	"reflect"
 	"strings"
 
 	appconfig "github.com/Hecatoncheir/lazyrest/config"
@@ -131,8 +130,7 @@ func (application *Application) refreshThemePicker() {
 	for _, preset := range theme.PresetNames() {
 		name := preset
 		label := name
-		configured, err := theme.FromConfig(theme.Config{Preset: name})
-		if err == nil && reflect.DeepEqual(configured, application.theme) {
+		if application.config.ThemePreset == name {
 			label = "✓ " + label
 			selected = picker.GetItemCount()
 		}
@@ -145,13 +143,52 @@ func (application *Application) refreshThemePicker() {
 }
 
 func (application *Application) selectThemePreset(name string) {
-	selected, err := theme.FromConfig(theme.Config{Preset: name})
+	_, err := theme.FromConfig(theme.Config{Preset: name})
 	if err != nil {
 		application.Footer.UpdateIndicatorState(footer.IndicatorFailure)
 		application.Footer.UpdateStatus(application.config.Locale.Format("config_error", err))
 		return
 	}
-	application.config.Theme = selected
+	configPath := application.config.ConfigPath
+	if configPath == "" {
+		configPath, err = appconfig.DefaultPath()
+		if err != nil {
+			application.Footer.UpdateIndicatorState(footer.IndicatorFailure)
+			application.Footer.UpdateStatus(application.config.Locale.Format("config_error", err))
+			return
+		}
+	}
+	configPaths := application.config.ConfigPaths
+	if len(configPaths) == 0 {
+		configPaths = []string{configPath}
+	} else {
+		containsUserConfig := false
+		for _, path := range configPaths {
+			if path == configPath {
+				containsUserConfig = true
+				break
+			}
+		}
+		if !containsUserConfig {
+			configPaths = append([]string{configPath}, configPaths...)
+		}
+	}
+	if _, err := appconfig.SetThemePresetInFiles(configPaths, configPath, name); err != nil {
+		application.Footer.UpdateIndicatorState(footer.IndicatorFailure)
+		application.Footer.UpdateStatus(application.config.Locale.Format("config_error", err))
+		return
+	}
+	settings, err := appconfig.LoadFiles(configPaths)
+	if err != nil {
+		application.Footer.UpdateIndicatorState(footer.IndicatorFailure)
+		application.Footer.UpdateStatus(application.config.Locale.Format("config_error", err))
+		return
+	}
+	application.config.ConfigPath = configPath
+	application.config.ConfigPaths = configPaths
+	application.config.ThemePreset = settings.Document.Theme.Preset
+	application.config.Theme = settings.Theme
+	selected := settings.Theme
 	application.theme = selected
 	focused := application.Element.GetFocus()
 	application.Pages.SetBackgroundColor(selected.Background)
@@ -226,6 +263,7 @@ func (application *Application) reloadConfiguration() {
 	application.config.Keybindings = settings.Keybindings
 	application.config.Locale = settings.Locale
 	application.config.Theme = settings.Theme
+	application.config.ThemePreset = settings.Document.Theme.Preset
 	application.config.HistoryBodies = !settings.HistoryMetadata
 	application.config.ConfigPath = path
 	application.theme = settings.Theme
