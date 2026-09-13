@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [v0.26.0] - 2026-09-13
+
 ### Added
 - Request files are watched recursively and refreshed automatically after debounced writes, creates, renames, and removals.
 - Hurl runs now render the selected exchange's HTTP status, headers, protocol, body, and assertion failures instead of exposing only the raw JSON report.
