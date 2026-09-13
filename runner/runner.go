@@ -227,9 +227,16 @@ func (runner *Runner) Execute(ctx context.Context, onProgress ProgressCallback) 
 	if err != nil {
 		return Response{}, err
 	}
-	truncated := int64(len(responseBody)) > runner.maxResponseBytes
+	readLength := len(responseBody)
+	truncated := int64(readLength) > runner.maxResponseBytes
 	if truncated {
 		responseBody = responseBody[:runner.maxResponseBytes]
+	}
+	contentLength := readLength
+	contentLengthLowerBound := truncated
+	if result.ContentLength >= 0 {
+		contentLength = int(result.ContentLength)
+		contentLengthLowerBound = false
 	}
 
 	diff := time.Since(begin)
@@ -240,15 +247,17 @@ func (runner *Runner) Execute(ctx context.Context, onProgress ProgressCallback) 
 	}
 
 	response := Response{
-		Body:          string(responseBody),
-		GraphQLErrors: graphQLErrors,
-		ContentLength: len(responseBody),
-		Code:          fmt.Sprintf("%d %s", result.StatusCode, http.StatusText(result.StatusCode)),
-		StatusCode:    result.StatusCode,
-		Time:          diff,
-		Truncated:     truncated,
-		Header:        result.Header.Clone(),
-		Protocol:      result.Proto,
+		Body:                    string(responseBody),
+		GraphQLErrors:           graphQLErrors,
+		ContentLength:           contentLength,
+		StoredLength:            len(responseBody),
+		ContentLengthLowerBound: contentLengthLowerBound,
+		Code:                    fmt.Sprintf("%d %s", result.StatusCode, http.StatusText(result.StatusCode)),
+		StatusCode:              result.StatusCode,
+		Time:                    diff,
+		Truncated:               truncated,
+		Header:                  result.Header.Clone(),
+		Protocol:                result.Proto,
 	}
 	return response, nil
 }
@@ -314,8 +323,13 @@ func (runner *Runner) executeHurl(ctx context.Context) (Response, error) {
 		return Response{}, err
 	}
 	defer removeVariables()
+	reportDirectory, err := os.MkdirTemp("", "lazyrest-hurl-report-*")
+	if err != nil {
+		return Response{}, fmt.Errorf("create Hurl report directory: %w", err)
+	}
+	defer func() { _ = os.RemoveAll(reportDirectory) }()
 
-	arguments := []string{"--json"}
+	arguments := []string{"--report-json", reportDirectory}
 	if variablesPath != "" {
 		arguments = append(arguments, "--variables-file", variablesPath)
 	}
@@ -338,8 +352,23 @@ func (runner *Runner) executeHurl(ctx context.Context) (Response, error) {
 	if ctx.Err() != nil {
 		return Response{}, ctx.Err()
 	}
-	// Hurl returns non-zero exit code if assertions fail.
-	// Even if it's a "failure" in terms of assertions, we might still want to see the JSON output.
+	structured, available, reportErr := responseFromHurlReport(reportDirectory, diff, runner.maxResponseBytes)
+	if reportErr != nil {
+		return Response{}, reportErr
+	}
+	if available {
+		if err != nil && len(structured.AssertionErrors) == 0 {
+			message := strings.TrimSpace(stderr.String())
+			if message == "" {
+				message = err.Error()
+			}
+			structured.AssertionErrors = []string{message}
+		}
+		return structured, nil
+	}
+
+	// Older or wrapped Hurl executables may not create a report. Keep their
+	// stdout visible as a compatibility fallback.
 	if err != nil {
 		if stdout.Len() == 0 {
 			return Response{}, fmt.Errorf("hurl error: %v, stderr: %s", err, stderr.String())
@@ -356,6 +385,7 @@ func (runner *Runner) executeHurl(ctx context.Context) (Response, error) {
 		Code:          code,
 		Time:          diff,
 		ContentLength: stdout.Len(),
+		StoredLength:  stdout.Len(),
 		Truncated:     stdout.truncated,
 	}, nil
 }

@@ -3,11 +3,13 @@ package runner
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/cookiejar"
 	"net/http/httptest"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"runtime"
 	"slices"
@@ -323,6 +325,32 @@ func TestExecute_TruncatesLargeResponses(t *testing.T) {
 	if response.Body != "1234" || !response.Truncated {
 		t.Fatalf("expected truncated response, got %+v", response)
 	}
+	if response.ContentLength != 6 || response.StoredLength != 4 || response.ContentLengthLowerBound {
+		t.Fatalf("response sizes do not distinguish the full and retained bodies: %+v", response)
+	}
+}
+
+func TestExecute_ReportsALowerBoundWhenChunkedResponseIsTruncated(t *testing.T) {
+	suite := parser.HttpSuite{Method: http.MethodGet, Uri: "http://example.test"}
+	runner := NewFromSuiteWithConfig(suite, Config{
+		MaxResponseBytes: 4,
+		Client: &http.Client{Transport: roundTripFunc(func(*http.Request) (*http.Response, error) {
+			return &http.Response{
+				StatusCode:    http.StatusOK,
+				Body:          io.NopCloser(strings.NewReader("123456")),
+				ContentLength: -1,
+				Header:        make(http.Header),
+			}, nil
+		})},
+	})
+
+	response, err := runner.Execute(context.Background(), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if response.ContentLength != 5 || response.StoredLength != 4 || !response.ContentLengthLowerBound {
+		t.Fatalf("unexpected lower-bound sizes: %+v", response)
+	}
 }
 
 func TestExecuteHurl_RequiresFilePath(t *testing.T) {
@@ -358,6 +386,40 @@ func TestExecuteHurl_UsesConfiguredExecutable(t *testing.T) {
 	}
 	if response.Code != "OK" || response.Body != `{"ok":true}` {
 		t.Fatalf("unexpected Hurl response: %+v", response)
+	}
+}
+
+func TestExecuteHurl_ReadsTheStructuredReport(t *testing.T) {
+	if _, err := exec.LookPath("hurl"); err != nil {
+		t.Skip("hurl executable is not installed")
+	}
+	server := httptest.NewServer(http.HandlerFunc(func(response http.ResponseWriter, _ *http.Request) {
+		response.Header().Add("X-Test", "structured")
+		response.WriteHeader(http.StatusCreated)
+		_, _ = response.Write([]byte(`{"ok":true}`))
+	}))
+	defer server.Close()
+	directory := t.TempDir()
+	hurlFile := filepath.Join(directory, "structured.hurl")
+	contents := fmt.Sprintf("GET %s\nHTTP 201\n[Asserts]\nheader \"X-Test\" == \"structured\"\n", server.URL)
+	if err := os.WriteFile(hurlFile, []byte(contents), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	runner := NewFromSuiteWithConfig(parser.HttpSuite{
+		IsHurl:       true,
+		HurlFilePath: hurlFile,
+		HurlEntry:    1,
+	}, Config{})
+
+	response, err := runner.Execute(context.Background(), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if response.StatusCode != http.StatusCreated || response.Code != "201 Created" || response.Header.Get("X-Test") != "structured" {
+		t.Fatalf("Hurl metadata was not mapped to the response: %+v", response)
+	}
+	if response.Body != `{"ok":true}` || response.StoredLength != len(response.Body) || len(response.AssertionErrors) != 0 {
+		t.Fatalf("Hurl body or assertions were not mapped: %+v", response)
 	}
 }
 

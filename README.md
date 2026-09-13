@@ -321,6 +321,8 @@ internet access. Running `.hurl` examples also requires the `hurl` executable.
 A `.hurl` file is listed one entry at a time. Hurl runs a file in order and an
 entry may use what an earlier one captured, so selecting an entry runs the file
 up to it with `--to-entry`; the last entry therefore runs the whole file.
+The selected exchange is rendered like an ordinary HTTP response, including its
+status, headers, protocol, body, and any failed assertions.
 
 ## Configuration
 
@@ -540,7 +542,8 @@ the response pane, and report when the exported body was truncated.
 | Producer | `Ctrl+h` | Suite |
 
 - `/`: search in the focused Files, Suites, or Producer area; `Enter` finishes entering the query. Searchable panes show the current and total match count in their title, such as `[2/7]`; in Files and Producer, `n` / `N` move cyclically through matches.
-- `r`: reload the file tree in the background while Files is focused.
+- `r`: reload the file tree in the background while Files is focused. Request
+  file writes, creates, renames, and removals are also detected automatically.
 - `p`: toggle Pretty/Raw response bodies while Producer is focused. Pretty formats and highlights JSON, XML, and GraphQL; Raw shows exactly what came over the wire.
 - `R`: repeat the request currently shown in Producer; current-session History selections are supported.
 - `y` / `Y`: copy the current response body / complete response while Producer is focused.
@@ -584,7 +587,7 @@ visible.
   updates, and attach provenance or an SBOM to release archives.
 - [ ] **Add a headless runner.** Allow named requests to run without the TUI so the
   same `.http` and `.hurl` files can be used in CI and scripts.
-- [ ] **Refresh changed files automatically.** Watch the project tree and reparse
+- [x] **Refresh changed files automatically.** Watch the project tree and reparse
   affected request files without requiring a manual reload.
 - [ ] **Expand distribution.** Add package-manager installation and notarized macOS
   builds after the release process and signing credentials are ready.

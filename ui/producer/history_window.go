@@ -44,7 +44,7 @@ func (widget *Producer) HistorySummaries() []HistorySummary {
 			Status:         status,
 			Duration:       entry.Response.Time,
 			CreatedAt:      entry.CreatedAt,
-			Failed:         entry.Err != nil,
+			Failed:         entry.Err != nil || !entry.Response.IsSuccessful(),
 		})
 	}
 	return summaries

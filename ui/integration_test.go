@@ -626,6 +626,7 @@ func runTestApplication(t *testing.T, application *Application) (tcell.Simulatio
 		return strings.TrimSpace(applicationText(application, screen)) != ""
 	})
 	t.Cleanup(func() {
+		application.stopFileWatcher()
 		application.stopFooterProgress()
 		application.Producer.CancelActive()
 		application.Suites.CancelLoad()

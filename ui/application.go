@@ -61,6 +61,10 @@ type Application struct {
 	confirmHistoryClear  bool
 	confirmCapturedClear bool
 	startOnce            sync.Once
+	fileWatcherMutex     sync.Mutex
+	fileWatcherCancel    context.CancelFunc
+	fileWatcherDone      chan struct{}
+	fileWatcherReady     chan struct{}
 
 	footerProgressMutex  sync.Mutex
 	footerProgressCancel context.CancelFunc

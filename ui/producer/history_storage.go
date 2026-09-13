@@ -15,8 +15,8 @@ import (
 )
 
 // historyVersion is the format written by this version of lazyrest. Version 1
-// stored a single value per request header; it is still read.
-const historyVersion = 2
+// stored a single value per request header; versions 1 and 2 are still read.
+const historyVersion = 3
 
 // maxHistoryBodyBytes caps the body kept per entry. Without it a run of large
 // responses would grow the history file to hundreds of megabytes and make every
@@ -55,15 +55,19 @@ type storedSuite struct {
 // storedResponse serves the same purpose for responses. Its JSON field names
 // match the history written before the allowlist was introduced.
 type storedResponse struct {
-	Code          string        `json:"Code"`
-	StatusCode    int           `json:"StatusCode"`
-	Time          time.Duration `json:"Time"`
-	ContentLength int           `json:"ContentLength"`
-	Body          string        `json:"Body"`
-	Truncated     bool          `json:"Truncated"`
-	Header        storedHeader  `json:"Header"`
-	Protocol      string        `json:"Protocol"`
-	GraphQLErrors []string      `json:"GraphQLErrors,omitempty"`
+	Code                    string        `json:"Code"`
+	StatusCode              int           `json:"StatusCode"`
+	Time                    time.Duration `json:"Time"`
+	ContentLength           int           `json:"ContentLength"`
+	StoredLength            int           `json:"StoredLength,omitempty"`
+	ContentLengthLowerBound bool          `json:"ContentLengthLowerBound,omitempty"`
+	Body                    string        `json:"Body"`
+	Truncated               bool          `json:"Truncated"`
+	Header                  storedHeader  `json:"Header"`
+	Protocol                string        `json:"Protocol"`
+	Failed                  bool          `json:"Failed,omitempty"`
+	GraphQLErrors           []string      `json:"GraphQLErrors,omitempty"`
+	AssertionErrors         []string      `json:"AssertionErrors,omitempty"`
 }
 
 type storedHeader http.Header
@@ -100,29 +104,41 @@ func (stored storedSuite) suite() parserhttp.HttpSuite {
 
 func newStoredResponse(response runner.Response) storedResponse {
 	return storedResponse{
-		Code:          response.Code,
-		StatusCode:    response.StatusCode,
-		Time:          response.Time,
-		ContentLength: response.ContentLength,
-		Body:          response.Body,
-		Truncated:     response.Truncated,
-		Header:        cloneStoredHeader(response.Header),
-		Protocol:      response.Protocol,
-		GraphQLErrors: append([]string(nil), response.GraphQLErrors...),
+		Code:                    response.Code,
+		StatusCode:              response.StatusCode,
+		Time:                    response.Time,
+		ContentLength:           response.ContentLength,
+		StoredLength:            response.StoredLength,
+		ContentLengthLowerBound: response.ContentLengthLowerBound,
+		Body:                    response.Body,
+		Truncated:               response.Truncated,
+		Header:                  cloneStoredHeader(response.Header),
+		Protocol:                response.Protocol,
+		Failed:                  response.Failed,
+		GraphQLErrors:           append([]string(nil), response.GraphQLErrors...),
+		AssertionErrors:         append([]string(nil), response.AssertionErrors...),
 	}
 }
 
 func (stored storedResponse) response() runner.Response {
+	storedLength := stored.StoredLength
+	if storedLength == 0 && stored.Body != "" {
+		storedLength = len(stored.Body)
+	}
 	return runner.Response{
-		Code:          stored.Code,
-		StatusCode:    stored.StatusCode,
-		Time:          stored.Time,
-		ContentLength: stored.ContentLength,
-		Body:          stored.Body,
-		Truncated:     stored.Truncated,
-		Header:        http.Header(stored.Header).Clone(),
-		Protocol:      stored.Protocol,
-		GraphQLErrors: append([]string(nil), stored.GraphQLErrors...),
+		Code:                    stored.Code,
+		StatusCode:              stored.StatusCode,
+		Time:                    stored.Time,
+		ContentLength:           stored.ContentLength,
+		StoredLength:            storedLength,
+		ContentLengthLowerBound: stored.ContentLengthLowerBound,
+		Body:                    stored.Body,
+		Truncated:               stored.Truncated,
+		Header:                  http.Header(stored.Header).Clone(),
+		Protocol:                stored.Protocol,
+		Failed:                  stored.Failed,
+		GraphQLErrors:           append([]string(nil), stored.GraphQLErrors...),
+		AssertionErrors:         append([]string(nil), stored.AssertionErrors...),
 	}
 }
 
@@ -266,6 +282,7 @@ func (widget *Producer) buildStoredHistory() storedHistory {
 }
 
 func metadataOnlyHistoryEntry(entry HistoryEntry) HistoryEntry {
+	failed := !entry.Response.IsSuccessful()
 	entry.Suite = parserhttp.HttpSuite{
 		Name:     entry.Suite.Name,
 		Method:   entry.Suite.Method,
@@ -273,12 +290,15 @@ func metadataOnlyHistoryEntry(entry HistoryEntry) HistoryEntry {
 		IsHurl:   entry.Suite.IsHurl,
 	}
 	entry.Response = runner.Response{
-		Code:          entry.Response.Code,
-		StatusCode:    entry.Response.StatusCode,
-		Time:          entry.Response.Time,
-		ContentLength: entry.Response.ContentLength,
-		Truncated:     entry.Response.Truncated,
-		Protocol:      entry.Response.Protocol,
+		Code:                    entry.Response.Code,
+		StatusCode:              entry.Response.StatusCode,
+		Time:                    entry.Response.Time,
+		ContentLength:           entry.Response.ContentLength,
+		StoredLength:            entry.Response.StoredLength,
+		ContentLengthLowerBound: entry.Response.ContentLengthLowerBound,
+		Truncated:               entry.Response.Truncated,
+		Protocol:                entry.Response.Protocol,
+		Failed:                  failed,
 	}
 	if entry.Err != nil {
 		entry.Err = errors.New("request failed; details were not persisted")
@@ -298,6 +318,7 @@ func boundedEntryBodies(suite parserhttp.HttpSuite, response runner.Response) (p
 		response.Body = body
 		response.Truncated = true
 	}
+	response.StoredLength = len(response.Body)
 	return suite, response
 }
 
@@ -365,6 +386,10 @@ func sanitizedHistoryEntry(suite parserhttp.HttpSuite, response runner.Response,
 	response.GraphQLErrors = append([]string(nil), response.GraphQLErrors...)
 	for index, message := range response.GraphQLErrors {
 		response.GraphQLErrors[index] = redactSecrets(message, secrets)
+	}
+	response.AssertionErrors = append([]string(nil), response.AssertionErrors...)
+	for index, message := range response.AssertionErrors {
+		response.AssertionErrors[index] = redactSecrets(message, secrets)
 	}
 	var sanitizedError error
 	if err != nil {

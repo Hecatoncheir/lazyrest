@@ -146,5 +146,6 @@ func stopApplication(application *Application) {
 	application.Producer.CancelActive()
 	application.Suites.CancelLoad()
 	application.HttpFilesTree.CancelReload()
+	application.stopFileWatcher()
 	application.Element.Stop()
 }

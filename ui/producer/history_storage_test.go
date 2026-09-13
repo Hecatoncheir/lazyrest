@@ -310,6 +310,9 @@ func TestMetadataHistoryOmitsRequestAndResponseDetails(t *testing.T) {
 	if !got.DetailsOmitted || got.Suite.Name != "List users" || got.Suite.Method != http.MethodPost || got.Response.StatusCode != http.StatusOK || got.Response.ContentLength != 128 {
 		t.Fatalf("safe metadata was not preserved: %+v", got)
 	}
+	if !got.Response.Failed || got.Response.IsSuccessful() {
+		t.Fatalf("metadata history lost the failed outcome: %+v", got.Response)
+	}
 	if got.Suite.Uri != "" || got.Suite.Body != "" || len(got.Suite.Header) != 0 || got.Response.Body != "" || len(got.Response.Header) != 0 || len(got.Response.GraphQLErrors) != 0 {
 		t.Fatalf("restored metadata contains request or response details: %+v", got)
 	}

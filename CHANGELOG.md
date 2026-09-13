@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+- Request files are watched recursively and refreshed automatically after debounced writes, creates, renames, and removals.
+- Hurl runs now render the selected exchange's HTTP status, headers, protocol, body, and assertion failures instead of exposing only the raw JSON report.
+
+### Fixed
+- Truncated responses now keep the complete declared size separately from the bytes retained for display and history; chunked responses report a lower bound when their full size is unknowable.
+
 ## [v0.25.0] - 2026-09-13
 
 ### Changed

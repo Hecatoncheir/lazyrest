@@ -6,6 +6,7 @@ import (
 
 func (application *Application) Start() {
 	application.startOnce.Do(func() {
+		application.startFileWatcher()
 		treeWidget := application.HttpFilesTree
 		ctx, reloadID := treeWidget.StartReload()
 		treeWidget.ShowLoading()

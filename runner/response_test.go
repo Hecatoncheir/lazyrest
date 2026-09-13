@@ -17,6 +17,7 @@ func TestResponseIsSuccessful(t *testing.T) {
 		{name: "code fallback", response: Response{Code: "201 Created"}, want: true},
 		{name: "Hurl success", response: Response{Code: "OK"}, want: true},
 		{name: "Hurl failure", response: Response{Code: "FAILED"}},
+		{name: "Hurl assertion failure", response: Response{StatusCode: http.StatusOK, AssertionErrors: []string{"status mismatch"}}},
 	}
 
 	for _, test := range tests {

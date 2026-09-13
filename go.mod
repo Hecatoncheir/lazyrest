@@ -9,7 +9,10 @@ require (
 	github.com/rivo/tview v0.42.0
 )
 
-require gopkg.in/yaml.v3 v3.0.1
+require (
+	github.com/fsnotify/fsnotify v1.10.1
+	gopkg.in/yaml.v3 v3.0.1
+)
 
 require (
 	github.com/gdamore/encoding v1.0.1 // indirect

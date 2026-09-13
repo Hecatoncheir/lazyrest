@@ -163,7 +163,7 @@ func renderExecutionResultWithOptions(suite http.HttpSuite, response runner.Resp
 
 	responseColor := "white"
 	switch {
-	case len(response.GraphQLErrors) > 0:
+	case len(response.GraphQLErrors) > 0, len(response.AssertionErrors) > 0:
 		// GraphQL answers with 200 even when the operation failed.
 		responseColor = "red"
 	case strings.HasPrefix(response.Code, "2"):
@@ -179,6 +179,12 @@ func renderExecutionResultWithOptions(suite http.HttpSuite, response runner.Resp
 	if len(response.GraphQLErrors) > 0 {
 		responseText.WriteString("\n\n[red]" + translator.Text("graphql_errors") + ":[-]\n")
 		for _, message := range response.GraphQLErrors {
+			responseText.WriteString(tview.Escape("- " + redactSecrets(message, suite.SecretValues) + "\n"))
+		}
+	}
+	if len(response.AssertionErrors) > 0 {
+		responseText.WriteString("\n\n[red]" + translator.Text("assertion_errors") + ":[-]\n")
+		for _, message := range response.AssertionErrors {
 			responseText.WriteString(tview.Escape("- " + redactSecrets(message, suite.SecretValues) + "\n"))
 		}
 	}
@@ -226,10 +232,14 @@ func responseSummary(response runner.Response, translator *locale.Translator) st
 	if status == "" {
 		status = translator.Text("unknown_status")
 	}
+	size := translator.Format("bytes", response.ContentLength)
+	if response.ContentLengthLowerBound {
+		size = "≥" + size
+	}
 	parts := []string{
 		status,
 		fmt.Sprintf("%dms", response.Time.Milliseconds()),
-		translator.Format("bytes", response.ContentLength),
+		size,
 	}
 	if response.Protocol != "" {
 		parts = append(parts, response.Protocol)

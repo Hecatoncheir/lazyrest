@@ -21,6 +21,7 @@ import (
 func Run(rootDirectoryPath string, config Config) error {
 	applicationWidget := BuildApplication(rootDirectoryPath, config)
 	applicationWidget.Start()
+	defer applicationWidget.stopFileWatcher()
 	defer applicationWidget.stopFooterProgress()
 	defer applicationWidget.Producer.WaitForHistory()
 	return applicationWidget.Element.Run()
