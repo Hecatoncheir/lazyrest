@@ -4,11 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
-### Fixed
-- The footer no longer offers help twice when no pane holds focus.
-- Focus moves into and out of the stream pane, instead of navigating to the response view that the stream had replaced.
-- The stream pane follows a theme, language, or keybinding change like every other pane.
-- Picking a history entry while a stream is open brings the response pane back and closes the connection, instead of drawing the entry off screen behind a live socket.
+## [v0.27.0] - 2026-09-14
 
 ### Added
 - WebSocket requests run from `.http` files, addressed by a `ws://` or `wss://` URL, and carry the headers and session cookies of the requests around them.
@@ -17,6 +13,12 @@ All notable changes to this project will be documented in this file.
 - The body of a stream request is sent as its opening message on connecting, which is where a subscription belongs.
 - Frames are sent from the pane with `s`. A raw socket expands `\r`, `\n`, and `\t`, which a line oriented protocol needs and an input field cannot hold; a WebSocket message is sent exactly as typed, so JSON keeps its own escapes.
 - The frame log is bounded by both count and size, and reports how many earlier frames it discarded rather than pretending to be complete.
+
+### Fixed
+- The footer no longer offers help twice when no pane holds focus.
+- Focus moves into and out of the stream pane, instead of navigating to the response view that the stream had replaced.
+- The stream pane follows a theme, language, or keybinding change like every other pane.
+- Picking a history entry while a stream is open brings the response pane back and closes the connection, instead of drawing the entry off screen behind a live socket.
 
 ## [v0.26.1] - 2026-09-14
 
