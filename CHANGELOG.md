@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+- MQTT 5 requests run from `.http` files, addressed by an `mqtt://` URL. Headers describe the session: `Subscribe` repeats for every topic filter to watch, `Topic` names where a composed frame is published, and a quality of service rides along as a header parameter (`sensors/#; qos=1`). `mqtt.http` is an example.
+- A stream frame carries what the protocol says about it beyond its bytes. The pane shows a message's topic and quality of service before its payload, because a payload without the topic it arrived on hides the part that matters most. Secrets are redacted there too, since a topic is built from the same variables a body is.
+- Connecting and subscribing appear in the log as events of their own, so a session that never gets past its handshake says so.
+
 ## [v0.29.0] - 2026-09-14
 
 ### Added

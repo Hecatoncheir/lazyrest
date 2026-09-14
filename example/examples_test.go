@@ -209,3 +209,34 @@ func TestExampleBodiesCarryNoComments(t *testing.T) {
 		}
 	}
 }
+
+func TestMQTTExampleDescribesItsSession(t *testing.T) {
+	parser, err := parserhttp.NewParser()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer parser.Close()
+
+	result, err := parser.ParseFileWithOptions(context.Background(), "mqtt.http", parserhttp.ParseOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(result.Diagnostics) != 0 {
+		t.Fatalf("diagnostics: %v", result.Diagnostics)
+	}
+	if len(result.Suites) != 1 {
+		t.Fatalf("parsed %d requests, want 1", len(result.Suites))
+	}
+	suite := result.Suites[0]
+	if suite.Transport != parserhttp.TransportMQTT {
+		t.Errorf("transport = %v, want mqtt", suite.Transport)
+	}
+	// Header keeps every value a name was given; folding it into a map of
+	// strings would silently drop every subscription but one.
+	if got := len(suite.Header.Values("Subscribe")); got != 2 {
+		t.Errorf("kept %d Subscribe headers, want 2", got)
+	}
+	if suite.Header.Get("Topic") == "" {
+		t.Error("the example names no topic to publish to")
+	}
+}

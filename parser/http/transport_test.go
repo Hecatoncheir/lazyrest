@@ -16,6 +16,8 @@ func TestTransportForURI(t *testing.T) {
 		{"WSS://EXAMPLE.COM/socket", TransportWebSocket},
 		{"  wss://example.com/socket  ", TransportWebSocket},
 		{"tcp://127.0.0.1:6379", TransportTCP},
+		{"mqtt://127.0.0.1:1883", TransportMQTT},
+		{"MQTT://broker", TransportMQTT},
 		{"http://example.com", TransportHTTP},
 		{"https://example.com", TransportHTTP},
 		{"example.com/path", TransportHTTP},
@@ -54,7 +56,7 @@ func TestTransportIsStream(t *testing.T) {
 	if TransportHTTP.IsStream() {
 		t.Error("an ordinary request reports itself as a stream")
 	}
-	if !TransportWebSocket.IsStream() || !TransportTCP.IsStream() {
+	if !TransportWebSocket.IsStream() || !TransportTCP.IsStream() || !TransportMQTT.IsStream() {
 		t.Error("a stream transport does not report itself as one")
 	}
 }

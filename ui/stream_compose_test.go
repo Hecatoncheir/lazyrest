@@ -36,7 +36,7 @@ func TestExpandEscapesForARawSocket(t *testing.T) {
 // A WebSocket message is sent as written so JSON keeps its own escapes. The
 // null byte is the exception: JSON has no \0 escape, so it can only be the
 // terminator a STOMP frame ends on.
-func TestExpandEscapesForAWebSocket(t *testing.T) {
+func TestExpandEscapesForAMessageTransport(t *testing.T) {
 	cases := []struct{ in, want string }{
 		{`{"text":"line\nbreak"}`, `{"text":"line\nbreak"}`},
 		{`a\tb`, `a\tb`},
@@ -45,7 +45,7 @@ func TestExpandEscapesForAWebSocket(t *testing.T) {
 		{"", ""},
 	}
 	for _, testCase := range cases {
-		if got := expandEscapes(testCase.in, webSocketEscapes); got != testCase.want {
+		if got := expandEscapes(testCase.in, messageEscapes); got != testCase.want {
 			t.Errorf("expandEscapes(%q) = %q, want %q", testCase.in, got, testCase.want)
 		}
 	}

@@ -1,0 +1,19 @@
+# An MQTT broker, such as Mosquitto or RabbitMQ with the rabbitmq_mqtt plugin.
+#
+# The headers describe the session: Subscribe repeats for every topic filter to
+# watch, and Topic is where a frame composed by hand is published. A quality of
+# service rides along as a header parameter, the way an HTTP header carries one.
+
+@broker = "mqtt://127.0.0.1:1883"
+
+# @name Watch the sensors
+MQTT {{broker}}
+Client-Id: lazyrest-example
+Keep-Alive: 30
+Subscribe: sensors/+/temperature; qos=1
+Subscribe: devices/#
+Topic: commands/reboot
+
+{
+  "announce": "lazyrest is watching"
+}

@@ -31,6 +31,12 @@ func dialStreamSuite(config Config) func(context.Context, parserhttp.HttpSuite) 
 			return runnerstream.DialTCP(ctx, suite.Uri, runnerstream.TCPConfig{
 				DialTimeout: config.Runner.Timeout,
 			})
+		case parserhttp.TransportMQTT:
+			// The request headers describe the session: which topics to watch,
+			// where a composed frame is published, who to connect as.
+			mqtt := runnerstream.MQTTConfigFromHeader(suite.Header)
+			mqtt.DialTimeout = config.Runner.Timeout
+			return runnerstream.DialMQTT(ctx, suite.Uri, mqtt)
 		default:
 			return nil, fmt.Errorf("%q is not a stream", suite.Uri)
 		}
@@ -100,11 +106,10 @@ func (application *Application) runStream(
 	if strings.TrimSpace(suite.Body) != "" {
 		opening := runnerstream.Frame{
 			Opcode:  runnerstream.Text,
-			Payload: []byte(expandEscapes(suite.Body, webSocketEscapes)),
+			Payload: []byte(expandEscapes(suite.Body, escapesFor(suite.Transport))),
 		}
 		if suite.Transport == parserhttp.TransportTCP {
 			opening.Opcode = runnerstream.Bytes
-			opening.Payload = []byte(expandEscapes(suite.Body, rawSocketEscapes))
 		}
 		if err := session.Send(ctx, opening); err != nil {
 			application.Element.QueueUpdateDraw(func() {

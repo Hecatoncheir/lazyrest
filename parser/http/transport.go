@@ -20,6 +20,7 @@ const (
 	TransportHTTP Transport = iota
 	TransportWebSocket
 	TransportTCP
+	TransportMQTT
 )
 
 func (transport Transport) String() string {
@@ -28,6 +29,8 @@ func (transport Transport) String() string {
 		return "websocket"
 	case TransportTCP:
 		return "tcp"
+	case TransportMQTT:
+		return "mqtt"
 	default:
 		return "http"
 	}
@@ -49,6 +52,8 @@ func TransportForURI(uri string) Transport {
 		return TransportWebSocket
 	case hasScheme(trimmed, "tcp"):
 		return TransportTCP
+	case hasScheme(trimmed, "mqtt"):
+		return TransportMQTT
 	default:
 		return TransportHTTP
 	}

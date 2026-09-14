@@ -160,13 +160,10 @@ func (application *Application) sendFrame() {
 
 	frame := runnerstream.Frame{
 		Opcode:  runnerstream.Text,
-		Payload: []byte(expandEscapes(text, webSocketEscapes)),
+		Payload: []byte(expandEscapes(text, escapesFor(transport))),
 	}
 	if transport == parserhttp.TransportTCP {
-		frame = runnerstream.Frame{
-			Opcode:  runnerstream.Bytes,
-			Payload: []byte(expandEscapes(text, rawSocketEscapes)),
-		}
+		frame.Opcode = runnerstream.Bytes
 	}
 
 	// Sending writes to the network, which must not happen on the draw
@@ -185,12 +182,22 @@ func (application *Application) sendFrame() {
 // character at all, so they have to be written rather than typed.
 var rawSocketEscapes = map[byte]byte{'n': '\n', 'r': '\r', 't': '\t', '\\': '\\', '0': 0}
 
-// webSocketEscapes is deliberately just the null byte. A WebSocket message is
-// otherwise sent exactly as written, so JSON keeps its own escapes — and `\n`
-// inside a JSON string must stay two characters. `\0` is different: JSON spells
-// a null byte `\u0000` and has no `\0` escape at all, so a backslash-zero in a
-// message can only mean the terminator a STOMP frame ends on.
-var webSocketEscapes = map[byte]byte{'0': 0}
+// messageEscapes is deliberately just the null byte. A transport that carries
+// whole messages — a WebSocket, an MQTT publish — needs no terminator, and its
+// payload is usually JSON, where `\n` inside a string must stay two characters.
+// `\0` is different: JSON spells a null byte `\u0000` and has no `\0` escape at
+// all, so a backslash-zero can only mean the terminator a STOMP frame ends on.
+var messageEscapes = map[byte]byte{'0': 0}
+
+// escapesFor picks how much of what was written is interpreted. Only a byte
+// oriented transport needs the control characters a file cannot end on and an
+// input field cannot hold at all.
+func escapesFor(transport parserhttp.Transport) map[byte]byte {
+	if transport == parserhttp.TransportTCP {
+		return rawSocketEscapes
+	}
+	return messageEscapes
+}
 
 // expandEscapes turns the escapes in the table into the bytes they stand for.
 // An escape outside the table is left exactly as it was typed.
