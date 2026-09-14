@@ -47,6 +47,7 @@ const (
 	OverlayThemePicker
 	OverlayEnvironmentPicker
 	OverlaySaveResponse
+	OverlaySendFrame
 )
 
 type State struct {

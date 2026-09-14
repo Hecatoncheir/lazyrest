@@ -185,3 +185,8 @@ stream_frames_dropped: "отброшено предыдущих кадров: %d
 stream_follow_help: "Следить за кадрами или поставить на паузу"
 stream_clear_help: "Очистить кадры, не разрывая соединение"
 stream_close_help: "Закрыть соединение и вернуться"
+send_frame: "Отправить кадр"
+frame: "кадр"
+stream_send_help: "Отправить кадр в открытое соединение"
+no_stream_to_send: "Нет открытого соединения"
+frame_required: "Кадр не может быть пустым"

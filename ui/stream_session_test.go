@@ -21,16 +21,23 @@ import (
 // the way scanFiles and loadEnvironment stand in for the filesystem.
 type fakeStreamSession struct {
 	frames    chan runnerstream.Frame
+	sent      chan runnerstream.Frame
 	closeOnce sync.Once
 }
 
 func newFakeStreamSession() *fakeStreamSession {
-	return &fakeStreamSession{frames: make(chan runnerstream.Frame, 8)}
+	return &fakeStreamSession{
+		frames: make(chan runnerstream.Frame, 8),
+		sent:   make(chan runnerstream.Frame, 8),
+	}
 }
 
 func (session *fakeStreamSession) Frames() <-chan runnerstream.Frame { return session.frames }
 
-func (session *fakeStreamSession) Send(context.Context, runnerstream.Frame) error { return nil }
+func (session *fakeStreamSession) Send(_ context.Context, frame runnerstream.Frame) error {
+	session.sent <- frame
+	return nil
+}
 
 func (session *fakeStreamSession) Close() error {
 	session.closeOnce.Do(func() { close(session.frames) })

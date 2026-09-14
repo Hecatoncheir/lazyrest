@@ -20,6 +20,7 @@ const (
 	themePickerPage       = "theme-picker"
 	environmentPickerPage = "environment-picker"
 	saveResponsePage      = "save-response"
+	sendFramePage         = "send-frame"
 )
 
 func (application *Application) buildOverlays() {
@@ -33,6 +34,7 @@ func (application *Application) buildOverlays() {
 	application.buildEnvironmentPicker()
 	application.buildCommandPalette()
 	application.buildSaveResponseInput()
+	application.buildSendFrameInput()
 
 	application.addOverlayPage(diagnosticsPage, application.Diagnostics, 84, 24)
 	application.addOverlayPage(helpPage, application.Help, 72, 25)
@@ -42,6 +44,7 @@ func (application *Application) buildOverlays() {
 	application.addOverlayPage(themePickerPage, application.ThemePicker, 58, 14)
 	application.addOverlayPage(environmentPickerPage, application.EnvironmentPicker, 64, 16)
 	application.addOverlayPage(saveResponsePage, application.SaveResponse, 92, 3)
+	application.addOverlayPage(sendFramePage, application.SendFrame, 92, 3)
 	application.refreshDiagnostics()
 }
 
@@ -78,6 +81,7 @@ func (application *Application) openOverlay(overlay Overlay) {
 	application.Pages.HidePage(themePickerPage)
 	application.Pages.HidePage(environmentPickerPage)
 	application.Pages.HidePage(saveResponsePage)
+	application.Pages.HidePage(sendFramePage)
 
 	var page string
 	var focus tview.Primitive
@@ -112,6 +116,9 @@ func (application *Application) openOverlay(overlay Overlay) {
 	case OverlaySaveResponse:
 		page = saveResponsePage
 		focus = application.SaveResponse
+	case OverlaySendFrame:
+		page = sendFramePage
+		focus = application.SendFrame
 	default:
 		application.closeOverlay()
 		return
@@ -344,6 +351,7 @@ func helpText(bindings *keymap.Bindings, translator *locale.Translator) string {
 		translator.Text("stream"),
 		line(keymap.StreamFollow, translator.Text("stream_follow_help")),
 		line(keymap.StreamClear, translator.Text("stream_clear_help")),
+		line(keymap.StreamSend, translator.Text("stream_send_help")),
 		line(keymap.Back, translator.Text("stream_close_help")),
 		"",
 		translator.Format("search_finish", bindings.Describe(keymap.SearchFinish)),

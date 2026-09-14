@@ -45,6 +45,7 @@ type Application struct {
 	ThemePicker       *tview.List
 	EnvironmentPicker *tview.List
 	SaveResponse      *tview.InputField
+	SendFrame         *tview.InputField
 
 	config               Config
 	theme                theme.Theme
@@ -54,6 +55,7 @@ type Application struct {
 	streamMutex          sync.Mutex
 	streamCancel         context.CancelFunc
 	streamSession        runnerstream.Session
+	streamTransport      parserhttp.Transport
 	previousFocus        tview.Primitive
 	screen               tcell.Screen
 	pendingExport        *producer.ResponseExport

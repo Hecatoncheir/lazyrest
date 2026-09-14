@@ -8,6 +8,7 @@ All notable changes to this project will be documented in this file.
 - WebSocket requests run from `.http` files, addressed by a `ws://` or `wss://` URL, and carry the headers and session cookies of the requests around them.
 - Raw TCP requests run from a new `.socket` file. A socket carries no message boundary, so a burst is joined into one frame and a pause ends it.
 - A live pane replaces the response while a stream is open: frames appear with direction, kind, size, and time; JSON is highlighted, unprintable payloads are shown as hex, and secrets are redacted. `f` follows or pauses, `c` clears without hanging up, and `Esc` closes the connection.
+- Frames are sent from the pane with `s`. A raw socket expands `\r`, `\n`, and `\t`, which a line oriented protocol needs and an input field cannot hold; a WebSocket message is sent exactly as typed, so JSON keeps its own escapes.
 - The frame log is bounded by both count and size, and reports how many earlier frames it discarded rather than pretending to be complete.
 
 ## [v0.26.1] - 2026-09-14

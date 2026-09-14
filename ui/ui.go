@@ -138,6 +138,7 @@ func BuildApplication(rootDirectoryPath string, config Config) *Application {
 		Locale:           config.Locale,
 		Keybindings:      config.Keybindings,
 		OnEscapeCallback: onStreamEscape(applicationWidget),
+		OnSendCallback:   applicationWidget.openSendFrame,
 	})
 	applicationWidget.Stream = streamWidget
 	applicationWidget.dialStream = dialStreamSuite(config)

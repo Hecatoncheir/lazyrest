@@ -1,0 +1,147 @@
+package ui
+
+import (
+	"context"
+	"testing"
+	"time"
+
+	parserhttp "github.com/Hecatoncheir/lazyrest/parser/http"
+	runnerstream "github.com/Hecatoncheir/lazyrest/runner/stream"
+
+	"github.com/gdamore/tcell/v2"
+)
+
+func TestExpandEscapes(t *testing.T) {
+	cases := []struct{ in, want string }{
+		{"PING", "PING"},
+		{`PING\r\n`, "PING\r\n"},
+		{`a\tb`, "a\tb"},
+		{`back\\slash`, `back\slash`},
+		// An unknown escape is left exactly as typed rather than guessed at.
+		{`\q`, `\q`},
+		// A trailing backslash has nothing to escape.
+		{`trailing\`, `trailing\`},
+		{"", ""},
+	}
+	for _, testCase := range cases {
+		if got := expandEscapes(testCase.in); got != testCase.want {
+			t.Errorf("expandEscapes(%q) = %q, want %q", testCase.in, got, testCase.want)
+		}
+	}
+}
+
+func startStreamFor(t *testing.T, suite parserhttp.HttpSuite) (*Application, *fakeStreamSession, tcell.SimulationScreen) {
+	t.Helper()
+	application := buildStreamApplication(t)
+	session := newFakeStreamSession()
+	application.dialStream = func(context.Context, parserhttp.HttpSuite) (runnerstream.Session, error) {
+		return session, nil
+	}
+	screen, _ := runTestApplication(t, application)
+	application.Element.QueueUpdateDraw(func() { onSuiteRun(application)(suite) })
+	waitFor(t, "the stream pane taking the response slot", func() bool {
+		return application.Workspace.ResponseElement() == application.Stream.Element
+	})
+	return application, session, screen
+}
+
+func nextSent(t *testing.T, session *fakeStreamSession) runnerstream.Frame {
+	t.Helper()
+	select {
+	case frame := <-session.sent:
+		return frame
+	case <-time.After(5 * time.Second):
+		t.Fatal("nothing was sent")
+	}
+	return runnerstream.Frame{}
+}
+
+func TestTUIStreamComposerSendsAFrame(t *testing.T) {
+	application, session, screen := startStreamFor(t, streamSuite())
+
+	screen.InjectKey(tcell.KeyRune, 's', tcell.ModNone)
+	waitFor(t, "the composer opening", func() bool {
+		return application.Model.CurrentOverlay() == OverlaySendFrame
+	})
+
+	application.Element.QueueUpdateDraw(func() {
+		application.SendFrame.SetText(`{"action":"subscribe"}`)
+		application.sendFrame()
+	})
+
+	frame := nextSent(t, session)
+	if string(frame.Payload) != `{"action":"subscribe"}` {
+		t.Fatalf("payload = %q", frame.Payload)
+	}
+	if frame.Opcode != runnerstream.Text {
+		t.Fatalf("opcode = %v, want text for a websocket", frame.Opcode)
+	}
+	waitFor(t, "the composer closing", func() bool {
+		return application.Model.CurrentOverlay() == OverlayNone
+	})
+}
+
+// A raw socket is line oriented, and an input field cannot hold a newline.
+func TestTUIStreamComposerExpandsEscapesForARawSocket(t *testing.T) {
+	suite := parserhttp.HttpSuite{
+		Name:      "cache",
+		Method:    "SOCKET",
+		Uri:       "tcp://127.0.0.1:6379",
+		Transport: parserhttp.TransportTCP,
+	}
+	application, session, _ := startStreamFor(t, suite)
+
+	application.Element.QueueUpdateDraw(func() {
+		application.SendFrame.SetText(`PING\r\n`)
+		application.sendFrame()
+	})
+
+	frame := nextSent(t, session)
+	if string(frame.Payload) != "PING\r\n" {
+		t.Fatalf("payload = %q, want a real CRLF", frame.Payload)
+	}
+	if frame.Opcode != runnerstream.Bytes {
+		t.Fatalf("opcode = %v, want bytes for a raw socket", frame.Opcode)
+	}
+}
+
+// Expanding escapes in a WebSocket message would corrupt JSON that contains a
+// legitimate \n inside a string.
+func TestTUIStreamComposerLeavesAWebSocketPayloadAlone(t *testing.T) {
+	application, session, _ := startStreamFor(t, streamSuite())
+
+	application.Element.QueueUpdateDraw(func() {
+		application.SendFrame.SetText(`{"text":"line\nbreak"}`)
+		application.sendFrame()
+	})
+
+	frame := nextSent(t, session)
+	if string(frame.Payload) != `{"text":"line\nbreak"}` {
+		t.Fatalf("payload = %q, want the escape left as typed", frame.Payload)
+	}
+}
+
+func TestTUIStreamComposerRefusesAnEmptyFrame(t *testing.T) {
+	application, session, _ := startStreamFor(t, streamSuite())
+
+	application.Element.QueueUpdateDraw(func() {
+		application.SendFrame.SetText("   ")
+		application.sendFrame()
+	})
+
+	select {
+	case frame := <-session.sent:
+		t.Fatalf("an empty frame was sent: %q", frame.Payload)
+	case <-time.After(300 * time.Millisecond):
+	}
+}
+
+func TestTUIStreamComposerWillNotOpenWithoutAConnection(t *testing.T) {
+	application := buildStreamApplication(t)
+	runTestApplication(t, application)
+
+	application.Element.QueueUpdateDraw(func() { application.openSendFrame() })
+	waitFor(t, "the composer staying shut", func() bool {
+		return application.Model.CurrentOverlay() == OverlayNone
+	})
+}

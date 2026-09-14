@@ -56,6 +56,7 @@ func (application *Application) startStream(suite parserhttp.HttpSuite) {
 	ctx, cancel := context.WithCancel(context.Background())
 	application.streamMutex.Lock()
 	application.streamCancel = cancel
+	application.streamTransport = suite.Transport
 	application.streamMutex.Unlock()
 
 	go application.runStream(ctx, cancel, suite, log)
@@ -118,6 +119,7 @@ func (application *Application) stopStream() {
 	session := application.streamSession
 	application.streamCancel = nil
 	application.streamSession = nil
+	application.streamTransport = parserhttp.TransportHTTP
 	application.streamMutex.Unlock()
 
 	if cancel != nil {

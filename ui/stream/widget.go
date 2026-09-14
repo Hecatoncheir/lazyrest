@@ -29,6 +29,7 @@ type Parameters struct {
 	Locale           *locale.Translator
 	Keybindings      *keymap.Bindings
 	OnEscapeCallback func()
+	OnSendCallback   func()
 	MaxVisibleFrames int
 }
 
@@ -45,6 +46,7 @@ type Widget struct {
 	maxVisible  int
 	keybindings *keymap.Bindings
 	onEscape    func()
+	onSend      func()
 	failure     error
 }
 
@@ -62,6 +64,7 @@ func (widget *Widget) Build(parameters Parameters) tview.Primitive {
 	widget.locale = parameters.Locale
 	widget.keybindings = parameters.Keybindings
 	widget.onEscape = parameters.OnEscapeCallback
+	widget.onSend = parameters.OnSendCallback
 	widget.theme = parameters.Theme.Producer
 	widget.syntax = parameters.Theme.Syntax
 	widget.maxVisible = parameters.MaxVisibleFrames
@@ -99,6 +102,11 @@ func (widget *Widget) onInput(event *tcell.EventKey) *tcell.EventKey {
 		return nil
 	case widget.keybindings.Matches(keymap.StreamClear, event):
 		widget.ClearLog()
+		return nil
+	case widget.keybindings.Matches(keymap.StreamSend, event):
+		if widget.onSend != nil {
+			widget.onSend()
+		}
 		return nil
 	}
 	return event

@@ -225,6 +225,7 @@ func (application *Application) applyOverlayTheme() {
 		}
 	}
 	application.applySaveResponseTheme()
+	application.applySendFrameTheme()
 }
 
 func (application *Application) applyCommandPaletteTheme(palette *tview.List) {
