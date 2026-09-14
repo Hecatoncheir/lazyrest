@@ -110,6 +110,11 @@ func (application *Application) selectHistory(index int) {
 		return
 	}
 	application.closeOverlay()
+	// A history entry is a past response, so the response pane has to be back
+	// in the slot before it can be seen. Leaving a live connection running
+	// behind it would keep a socket open with nothing on screen.
+	application.stopStream()
+	application.showResponsePane()
 	application.Element.SetFocus(application.Producer.Element)
 }
 

@@ -8,6 +8,8 @@ import (
 	parserhttp "github.com/Hecatoncheir/lazyrest/parser/http"
 	runnerstream "github.com/Hecatoncheir/lazyrest/runner/stream"
 	uistream "github.com/Hecatoncheir/lazyrest/ui/stream"
+
+	"github.com/rivo/tview"
 )
 
 // dialStreamSuite opens what a stream suite describes. It is installed as
@@ -145,6 +147,15 @@ func (application *Application) stopStream() {
 	if session != nil {
 		_ = session.Close()
 	}
+}
+
+// responseElement is whatever fills the response slot right now: Producer's
+// view, or the stream pane while a connection is open.
+func (application *Application) responseElement() tview.Primitive {
+	if application.Workspace == nil {
+		return application.Producer.Element
+	}
+	return application.Workspace.ResponseElement()
 }
 
 // showResponsePane puts the ordinary response back in the slot.

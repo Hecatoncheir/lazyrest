@@ -105,13 +105,18 @@ func onInputCallback(application *Application) onInputCallbackType {
 				return event
 			}
 
+			// The response slot holds Producer's view, or the stream pane while
+			// a connection is open. Navigating to Producer by name would focus
+			// a primitive that is not on screen.
+			responseElement := application.responseElement()
+
 			var target tview.Primitive
 			switch {
 			case bindings.Matches(keymap.FocusLeft, event):
 				switch focused {
 				case application.Suites.Element, application.Suite.Element:
 					target = application.HttpFilesTree.Element
-				case application.Producer.Element:
+				case responseElement:
 					target = application.Suite.Element
 				}
 			case bindings.Matches(keymap.FocusDown, event):
@@ -127,7 +132,7 @@ func onInputCallback(application *Application) onInputCallbackType {
 				case application.HttpFilesTree.Element:
 					target = application.Suites.Element
 				case application.Suite.Element, application.Suites.Element:
-					target = application.Producer.Element
+					target = responseElement
 				}
 			}
 

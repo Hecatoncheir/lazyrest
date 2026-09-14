@@ -304,3 +304,26 @@ func looksLikeJSON(text string) bool {
 	}
 	return trimmed[0] == '{' || trimmed[0] == '['
 }
+
+// ApplySettings repaints and rebinds the pane after a theme or configuration
+// change, the way every other pane does. Without it the pane keeps the colours
+// and keys it was built with.
+func (widget *Widget) ApplySettings(uiTheme theme.Theme, translator *locale.Translator, bindings *keymap.Bindings) {
+	if translator != nil {
+		widget.locale = translator
+	}
+	if bindings != nil {
+		widget.keybindings = bindings
+	}
+	widget.theme = uiTheme.Producer
+	widget.syntax = uiTheme.Syntax
+	if widget.Element == nil {
+		return
+	}
+	widget.Element.SetBackgroundColor(widget.theme.Background)
+	widget.Element.SetTextColor(widget.theme.Foreground)
+	widget.Element.SetBorderColor(widget.theme.Border)
+	widget.Element.SetTitleColor(widget.theme.Title)
+	widget.updateTitle()
+	widget.Render()
+}

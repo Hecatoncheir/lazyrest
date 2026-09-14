@@ -6,6 +6,9 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 - The footer no longer offers help twice when no pane holds focus.
+- Focus moves into and out of the stream pane, instead of navigating to the response view that the stream had replaced.
+- The stream pane follows a theme, language, or keybinding change like every other pane.
+- Picking a history entry while a stream is open brings the response pane back and closes the connection, instead of drawing the entry off screen behind a live socket.
 
 ### Added
 - WebSocket requests run from `.http` files, addressed by a `ws://` or `wss://` URL, and carry the headers and session cookies of the requests around them.
