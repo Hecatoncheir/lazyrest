@@ -10,7 +10,7 @@
 
 set -euo pipefail
 
-if [ "$#" -ne 2 ]; then
+if [[ "$#" -ne 2 ]]; then
   echo "usage: $0 <fuzztime> <parallel>" >&2
   exit 2
 fi
@@ -23,7 +23,7 @@ fuzz_targets=$(go test ./... -list='^Fuzz' | awk '
   /^Fuzz/    { targets[++count] = $1 }
 ')
 
-if [ -z "$fuzz_targets" ]; then
+if [[ -z "$fuzz_targets" ]]; then
   echo "no fuzz targets discovered" >&2
   exit 1
 fi
