@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [v0.26.1] - 2026-09-14
+
+### Changed
+- CI discovers its fuzz targets with `go test -list` instead of two hand-written lists, so a target added to the tree can no longer go unfuzzed, and a discovery that finds nothing fails the run instead of passing empty.
+- Contributor documentation now records the full set of CI gates, how the terminal UI is wired, and how the terminal tests work; the everyday command list lives in `AGENTS.md` alone.
+
+No application code changed since v0.26.0. The binaries differ only in the stamped version, so there is nothing to gain by upgrading.
+
 ## [v0.26.0] - 2026-09-13
 
 ### Added
