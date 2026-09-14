@@ -97,6 +97,38 @@ shows both directions:
 A `.socket` body needs its terminator written as `\r\n`: the parser trims the
 trailing newline, so a file cannot end a message any other way.
 
+## Typing into the composer
+
+`tmux send-keys -l` delivers a whole string faster than the field takes focus,
+so the opening characters land on the pane behind it and the frame goes out
+truncated — silently, because what is left still looks like a frame. Waiting
+for the composer label is not enough on its own: the frame is drawn before the
+field is focused.
+
+Type one character at a time, and read the field back before pressing Enter.
+
+```bash
+field() {
+  tmux capture-pane -t lazyrest -p | grep "кадр:" | sed 's/.*\(кадр:.*\)/\1/'
+}
+type_slowly() {
+  for (( i = 0; i < ${#1}; i++ )); do
+    tmux send-keys -t lazyrest -l "${1:$i:1}"
+    sleep 0.08
+  done
+}
+
+tmux send-keys -t lazyrest s
+wait_for "кадр:"          # the label; "frame:" when the UI is in English
+sleep 0.4                 # the field takes focus after the frame is drawn
+type_slowly "SUBSCRIBE prices"
+tmux send-keys -t lazyrest Enter
+```
+
+`Up` and `Down` walk the frames sent earlier and return to an empty draft.
+The opening message from the request body is not among them: the history holds
+what was typed here, not everything the connection has sent.
+
 ## Things that will confuse you
 
 - **The UI follows the configured language.** `capture-pane` may come back in
