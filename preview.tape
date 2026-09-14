@@ -34,7 +34,9 @@ Hide
 Type "mkdir -p /tmp/lazyrest-vhs/bin /tmp/lazyrest-vhs/requests" Enter
 Type "go build -o /tmp/lazyrest-vhs/bin/lazyrest . && go build -o /tmp/lazyrest-vhs/bin/echo-server ./.claude/skills/run-lazyrest/echo-server && echo BUILT" Enter
 Wait+Screen@180s /BUILT/
-Type "export PATH=/tmp/lazyrest-vhs/bin:$PATH" Enter
+# set -gx is fish's own; export survives only as a compatibility function
+# whose presence differs between fish versions, and CI carries a different one.
+Type "set -gx PATH /tmp/lazyrest-vhs/bin $PATH" Enter
 Type "echo-server > /dev/null 2>&1 &" Enter
 Sleep 1s
 Type "printf '# @name Live cache stream\nSOCKET tcp://127.0.0.1:7788\n\nPING\n' > /tmp/lazyrest-vhs/requests/live.socket && echo READY" Enter
