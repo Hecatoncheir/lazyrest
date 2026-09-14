@@ -1,8 +1,8 @@
 # CLAUDE.md
 
-Guidance for Claude Code (claude.ai/code) when working in this repository.
-`AGENTS.md` holds the full contribution conventions; this file covers what is
-easiest to get wrong.
+This file provides guidance to Claude Code (claude.ai/code) when working with
+code in this repository. `AGENTS.md` holds the full contribution conventions;
+this file covers what is easiest to get wrong.
 
 ## Commands
 
@@ -10,11 +10,31 @@ easiest to get wrong.
 - Test: `go test ./...`
 - Test (race, what CI runs): `go test -race ./...`
 - Test (one package): `go test -v ./parser/http`
+- Test (one test): `go test ./ui -run TestTUIChainsRequestsThroughAnEarlierResponse`
 - Terminal integration tests: `go test ./ui -run TUI`
+- Fuzz one target: `go test ./parser/http -run=^$ -fuzz=^FuzzResolveVariables$ -fuzztime=2s`
 - Lint: `golangci-lint run ./...` (the set is pinned in `.golangci.yml`)
 - Vet: `go vet ./...`
 - Format: `gofmt -w .`
 - Run: `go run . example`
+
+Beyond the tests, CI fails on anything `gofmt -l .` prints, on a `go mod tidy`
+that leaves a diff, on `govulncheck`, on a two second smoke run of every fuzz
+target, and on a `CGO_ENABLED=0` build of all five release targets. Run the
+formatter and `go mod tidy` before handing work back.
+
+### Fuzz targets
+
+Every target is smoke run for two seconds on each push and for thirty seconds
+on the weekly schedule. Both lists live in `.github/workflows/go-test.yml`; a
+new target has to be added to both or it never runs.
+
+| Package       | Targets                                                                                       |
+| ------------- | --------------------------------------------------------------------------------------------- |
+| `parser/http` | `FuzzHTTPDocumentSyntax`, `FuzzResolveVariables`, `FuzzResolveResponseReferences`, `FuzzSecretRedaction` |
+| `parser/hurl` | `FuzzSplitEntries`                                                                              |
+| `environment` | `FuzzParseDotEnvValue`                                                                          |
+| `ui/producer` | `FuzzShellQuote`                                                                                |
 
 ## Invariants
 
@@ -43,7 +63,10 @@ file discovery → parsing → suite selection → execution → response render
 ### Packages
 
 - `main.go`: flags, configuration layering, and the client built once per
-  session.
+  session. `config.LoadFiles` merges the user file, then the project file, then
+  an explicit `--config`, onto `DefaultDocument()`, and validates the keymap,
+  locale, and theme while building `Settings`. A configuration error surfaces
+  there, not in the UI.
 - `parser/http/`: reads `.http` files. `document.go` splits a file into comment,
   variable, and request blocks; `request_text.go` reads one request into a
   request line, headers, and a body; `body_type.go` names the format of a body;
@@ -53,10 +76,44 @@ file discovery → parsing → suite selection → execution → response render
 - `parser/hurl/`: splits a `.hurl` file into its entries.
 - `runner/`: executes a request or shells out to `hurl`.
 - `finder/`: walks a directory tree for request files.
-- `environment/`, `config/`, `keymap/`, `locale/`: environment profiles, layered
-  YAML configuration, key bindings, and translations.
-- `ui/`: the widgets — `tree/`, `suites/`, `suite/`, `producer/`, `footer/`,
-  `workspace/`, `layout/` — plus `theme/`, `syntax/`, `progress/`, `symbols/`.
+- `environment/`, `config/`, `keymap/`, `locale/`, `color/`: environment
+  profiles, layered YAML configuration, key bindings, translations, and the
+  hexadecimal `Color` that themes are written in.
+- `ui/`: the root package owns the `Application`, the `Model`, the overlays, and
+  the callbacks that join the widgets. The widgets themselves live one level
+  down — `tree/`, `suites/`, `suite/`, `producer/`, `footer/`, `workspace/`,
+  `layout/` — beside `theme/`, `syntax/`, `progress/`, `symbols/`.
+
+### How the UI is wired
+
+- `ui.Run` calls `BuildApplication` in `ui/ui.go`, and that function is the one
+  place where widgets are joined together. A widget never reaches back for the
+  `Application`; it is handed `On…Callback` functions and calls them. Adding a
+  widget interaction means adding a callback to its `Parameters`, not an import.
+- Every widget package follows the same shape: `New()` returns the widget, then
+  `Build(parameters)` constructs the `tview` primitive and stores it on
+  `Element`. `Parameters` carries the theme, keybindings, locale, and callbacks.
+- `Model` guards `State` with an `RWMutex`. Read with `Snapshot()`, which hands
+  back a deep clone, and write with `Model.update(func(*State))`. Do not keep a
+  `State` around and expect it to track the model.
+- `tview` is not concurrency safe. Anything touching a widget from a goroutine —
+  startup, the file watcher, footer progress, a running request — goes through
+  `Element.QueueUpdateDraw`.
+- `Application.loadEnvironment` and `Application.scanFiles` are function fields
+  precisely so tests can replace them. Keep new I/O seams in that form.
+- Sizing happens in one place: `SetBeforeDrawFunc` calls `updateResponsiveUI`,
+  which resizes the workspace, the footer hints, and every overlay from the
+  screen size and the focused pane. Do not compute widths in a widget.
+
+### How the terminal tests work
+
+`ui/integration_test.go` holds the harness the `TestTUI…` tests share.
+`runTestApplication` puts a `tcell.SimulationScreen` behind an application built
+by `BuildApplication`, runs it on its own goroutine, and registers the cleanup
+that cancels the watchers and stops it. Drive the UI with `screen.InjectKey`,
+and assert with `waitFor` and `waitForScreenText` against `applicationText`,
+which flattens the screen to text. These tests poll to a deadline; never add a
+sleep, and never assert on a single draw.
 
 ### Things worth knowing before editing
 
