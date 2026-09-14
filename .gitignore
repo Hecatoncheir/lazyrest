@@ -24,3 +24,6 @@ http-client.private.env.json
 # Go workspace file
 go.work
 go.work.sum
+
+# Frames vhs records while scripts/preview.sh assembles the previews.
+preview-frames/
