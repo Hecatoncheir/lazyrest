@@ -68,123 +68,203 @@ func (application *Application) stopFileWatcher() {
 	}
 }
 
-func watchRequestFiles(ctx context.Context, root string, ignored []string, onReady func(), onChange func(map[string]struct{})) error {
+// requestWatcher is the state watching a tree needs: the watcher itself, the
+// directory names to skip, the directories currently watched, and the changes
+// waiting to be reported.
+type requestWatcher struct {
+	watcher *fsnotify.Watcher
+	ignore  map[string]struct{}
+	watched map[string]struct{}
+	pending map[string]struct{}
+}
+
+func newRequestWatcher(ignored []string) (*requestWatcher, error) {
 	watcher, err := fsnotify.NewWatcher()
+	if err != nil {
+		return nil, err
+	}
+	return &requestWatcher{
+		watcher: watcher,
+		ignore:  ignoredDirectoryNames(ignored),
+		watched: make(map[string]struct{}),
+		pending: make(map[string]struct{}),
+	}, nil
+}
+
+// ignoredDirectoryNames collects the directory names never to descend into:
+// the built in ones and whatever the configuration added. Only the last part
+// of a configured path is used, since that is what a walk compares against.
+func ignoredDirectoryNames(ignored []string) map[string]struct{} {
+	names := make(map[string]struct{}, len(defaultWatchIgnoredDirectories)+len(ignored))
+	for name := range defaultWatchIgnoredDirectories {
+		names[name] = struct{}{}
+	}
+	for _, name := range ignored {
+		base := filepath.Base(filepath.Clean(name))
+		if base == "." || base == string(filepath.Separator) {
+			continue
+		}
+		names[base] = struct{}{}
+	}
+	return names
+}
+
+func (watch *requestWatcher) close() { _ = watch.watcher.Close() }
+
+// addTree watches path and every directory under it. A failure on path itself
+// is fatal, because nothing would be watched; a failure deeper down is not,
+// because the rest of the tree still is.
+func (watch *requestWatcher) addTree(path string) error {
+	return filepath.WalkDir(path, func(current string, entry fs.DirEntry, walkErr error) error {
+		if walkErr != nil {
+			return watch.rootOnly(current, path, walkErr)
+		}
+		if !entry.IsDir() {
+			return nil
+		}
+		if current != path {
+			if _, skip := watch.ignore[entry.Name()]; skip {
+				return filepath.SkipDir
+			}
+		}
+		if err := watch.watcher.Add(current); err != nil {
+			return watch.rootOnly(current, path, err)
+		}
+		watch.watched[filepath.Clean(current)] = struct{}{}
+		return nil
+	})
+}
+
+func (watch *requestWatcher) rootOnly(current, root string, err error) error {
+	if current == root {
+		return err
+	}
+	return nil
+}
+
+// note records what an event changed, if anything worth reporting. It reports
+// whether there is now something to report.
+func (watch *requestWatcher) note(event fsnotify.Event) bool {
+	const interesting = fsnotify.Create | fsnotify.Write | fsnotify.Remove | fsnotify.Rename
+	if event.Op&interesting == 0 {
+		return false
+	}
+	path := filepath.Clean(event.Name)
+
+	if event.Op&fsnotify.Create != 0 && isDirectory(event.Name) {
+		// A directory that appeared has to be watched too, or the files
+		// created inside it later are never seen.
+		_ = watch.addTree(event.Name)
+		watch.pending[path] = struct{}{}
+	}
+	if event.Op&(fsnotify.Remove|fsnotify.Rename) != 0 {
+		if _, wasDirectory := watch.watched[path]; wasDirectory {
+			delete(watch.watched, path)
+			watch.pending[path] = struct{}{}
+		}
+	}
+	if isRequestFile(event.Name) || filepath.Base(event.Name) == ".gitignore" {
+		watch.pending[path] = struct{}{}
+	}
+	return len(watch.pending) > 0
+}
+
+// take hands over what has changed and starts collecting again.
+func (watch *requestWatcher) take() map[string]struct{} {
+	if len(watch.pending) == 0 {
+		return nil
+	}
+	changed := make(map[string]struct{}, len(watch.pending))
+	for path := range watch.pending {
+		changed[path] = struct{}{}
+	}
+	clear(watch.pending)
+	return changed
+}
+
+func isDirectory(path string) bool {
+	info, err := os.Stat(path)
+	return err == nil && info.IsDir()
+}
+
+// debounce collapses a burst of events into one report. Editors write a file
+// more than once when saving it, and a reload per write would be wasted work.
+type debounce struct {
+	timer   *time.Timer
+	expired <-chan time.Time
+}
+
+// restart begins the window again, so a report follows the last event of a
+// burst rather than the first.
+func (d *debounce) restart(after time.Duration) {
+	if d.timer == nil {
+		d.timer = time.NewTimer(after)
+		d.expired = d.timer.C
+		return
+	}
+	if !d.timer.Stop() {
+		// The timer had already fired; drain it so the restart is not reported
+		// immediately.
+		select {
+		case <-d.timer.C:
+		default:
+		}
+	}
+	d.timer.Reset(after)
+	d.expired = d.timer.C
+}
+
+func (d *debounce) settle() { d.expired = nil }
+
+func (d *debounce) stop() {
+	if d.timer != nil {
+		d.timer.Stop()
+	}
+}
+
+// watchRequestFiles reports request files that change under root, one report
+// per burst of writes, until ctx is done.
+func watchRequestFiles(
+	ctx context.Context,
+	root string,
+	ignored []string,
+	onReady func(),
+	onChange func(map[string]struct{}),
+) error {
+	watch, err := newRequestWatcher(ignored)
 	if err != nil {
 		return err
 	}
-	defer func() { _ = watcher.Close() }()
+	defer watch.close()
 
-	ignore := make(map[string]struct{}, len(defaultWatchIgnoredDirectories)+len(ignored))
-	for name := range defaultWatchIgnoredDirectories {
-		ignore[name] = struct{}{}
-	}
-	for _, name := range ignored {
-		if base := filepath.Base(filepath.Clean(name)); base != "." && base != string(filepath.Separator) {
-			ignore[base] = struct{}{}
-		}
-	}
-	watchedDirectories := make(map[string]struct{})
-	addTree := func(path string) error {
-		return filepath.WalkDir(path, func(current string, entry fs.DirEntry, walkErr error) error {
-			if walkErr != nil {
-				if current == path {
-					return walkErr
-				}
-				return nil
-			}
-			if !entry.IsDir() {
-				return nil
-			}
-			if current != path {
-				if _, skip := ignore[entry.Name()]; skip {
-					return filepath.SkipDir
-				}
-			}
-			if err := watcher.Add(current); err != nil {
-				if current == path {
-					return err
-				}
-				return nil
-			}
-			watchedDirectories[filepath.Clean(current)] = struct{}{}
-			return nil
-		})
-	}
-	if err := addTree(root); err != nil {
+	if err := watch.addTree(root); err != nil {
 		return err
 	}
 	if onReady != nil {
 		onReady()
 	}
 
-	pending := make(map[string]struct{})
-	var timer *time.Timer
-	var timerChannel <-chan time.Time
-	flush := func() {
-		if len(pending) == 0 {
-			return
-		}
-		changed := make(map[string]struct{}, len(pending))
-		for path := range pending {
-			changed[path] = struct{}{}
-		}
-		clear(pending)
-		onChange(changed)
-	}
-	defer func() {
-		if timer != nil {
-			timer.Stop()
-		}
-	}()
+	var window debounce
+	defer window.stop()
 
 	for {
 		select {
 		case <-ctx.Done():
 			return nil
-		case event, ok := <-watcher.Events:
-			if !ok {
+		case event, open := <-watch.watcher.Events:
+			if !open {
 				return nil
 			}
-			if event.Op&(fsnotify.Create|fsnotify.Write|fsnotify.Remove|fsnotify.Rename) == 0 {
-				continue
+			if watch.note(event) {
+				window.restart(fileWatchDebounce)
 			}
-			cleanedEventPath := filepath.Clean(event.Name)
-			if event.Op&fsnotify.Create != 0 {
-				if info, statErr := os.Stat(event.Name); statErr == nil && info.IsDir() {
-					_ = addTree(event.Name)
-					pending[cleanedEventPath] = struct{}{}
-				}
+		case <-window.expired:
+			window.settle()
+			if changed := watch.take(); changed != nil {
+				onChange(changed)
 			}
-			if event.Op&(fsnotify.Remove|fsnotify.Rename) != 0 {
-				if _, wasDirectory := watchedDirectories[cleanedEventPath]; wasDirectory {
-					delete(watchedDirectories, cleanedEventPath)
-					pending[cleanedEventPath] = struct{}{}
-				}
-			}
-			if isRequestFile(event.Name) || filepath.Base(event.Name) == ".gitignore" {
-				pending[cleanedEventPath] = struct{}{}
-			}
-			if len(pending) == 0 {
-				continue
-			}
-			if timer == nil {
-				timer = time.NewTimer(fileWatchDebounce)
-			} else {
-				if !timer.Stop() {
-					select {
-					case <-timer.C:
-					default:
-					}
-				}
-				timer.Reset(fileWatchDebounce)
-			}
-			timerChannel = timer.C
-		case <-timerChannel:
-			flush()
-			timerChannel = nil
-		case _, ok := <-watcher.Errors:
-			if !ok {
+		case _, open := <-watch.watcher.Errors:
+			if !open {
 				return nil
 			}
 		}

@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/Hecatoncheir/lazyrest/keymap"
+	"github.com/Hecatoncheir/lazyrest/locale"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 )
@@ -41,103 +42,145 @@ func (application *Application) focusedMainPane() tview.Primitive {
 	return nil
 }
 
+// hint writes one footer hint: the key a binding uses, then what it does.
+type hint struct {
+	bindings   *keymap.Bindings
+	translator *locale.Translator
+}
+
+func (write hint) of(action keymap.Action, label string) string {
+	key, _, _ := strings.Cut(write.bindings.Describe(action), " / ")
+	return fmt.Sprintf("%s %s", key, write.translator.Text(label))
+}
+
+func (write hint) join(items ...string) string {
+	return strings.Join(items, " · ")
+}
+
+// footerHints says what the keys do right now. An overlay answers first, then a
+// search in progress, then the focused pane.
 func (application *Application) footerHints(width int, focused tview.Primitive) string {
 	bindings := application.config.Keybindings
 	translator := application.config.Locale
 	if bindings == nil || translator == nil {
 		return ""
 	}
+	write := hint{bindings: bindings, translator: translator}
 
-	hint := func(action keymap.Action, label string) string {
-		key, _, _ := strings.Cut(bindings.Describe(action), " / ")
-		return fmt.Sprintf("%s %s", key, translator.Text(label))
+	if overlay, open := application.overlayOnScreen(); open {
+		return application.overlayHints(overlay, write)
 	}
-	join := func(items ...string) string { return strings.Join(items, " · ") }
-
-	if application.Model != nil && application.Model.CurrentOverlay() != OverlayNone {
-		overlay := application.Model.CurrentOverlay()
-		if overlay == OverlayHistory {
-			if application.confirmHistoryClear {
-				return join(hint(keymap.ClearHistory, "hint_confirm"), hint(keymap.Back, "hint_cancel"))
-			}
-			if len(application.Producer.HistorySummaries()) == 0 {
-				return hint(keymap.Back, "hint_close")
-			}
-			return join(hint(keymap.ClearHistory, "hint_clear"), hint(keymap.Back, "hint_close"))
-		}
-		if overlay == OverlayCaptured {
-			if application.confirmCapturedClear {
-				return join(hint(keymap.ClearCaptured, "hint_confirm"), hint(keymap.Back, "hint_cancel"))
-			}
-			if len(application.Producer.CapturedResponses()) == 0 {
-				return hint(keymap.Back, "hint_close")
-			}
-			return join(hint(keymap.ClearCaptured, "hint_clear"), hint(keymap.Back, "hint_close"))
-		}
-		if overlay == OverlayCommandPalette {
-			if application.commandSearchMode || application.commandQuery != "" {
-				return join(hint(keymap.Open, "hint_select"), hint(keymap.Back, "hint_clear"))
-			}
-			return join(hint(keymap.Search, "hint_filter"), hint(keymap.Open, "hint_select"), hint(keymap.Back, "hint_close"))
-		}
-		if overlay == OverlayHelp {
-			return join(hint(keymap.Help, "hint_toggle"), hint(keymap.Back, "hint_close"))
-		}
-		if overlay == OverlayDiagnostics {
-			return join(hint(keymap.Diagnostics, "hint_toggle"), hint(keymap.Back, "hint_close"))
-		}
-		if overlay == OverlayThemePicker || overlay == OverlayEnvironmentPicker {
-			return join(hint(keymap.Open, "hint_select"), hint(keymap.Back, "hint_close"))
-		}
-		if overlay == OverlaySaveResponse {
-			if application.saveOverwritePath != "" {
-				return join(hint(keymap.Open, "hint_confirm"), hint(keymap.Back, "hint_cancel"))
-			}
-			return join(hint(keymap.Open, "hint_save"), hint(keymap.Back, "hint_close"))
-		}
-		return hint(keymap.Back, "hint_close")
+	if application.isSearching() {
+		return write.of(keymap.SearchFinish, "hint_finish")
 	}
-	if application.HttpFilesTree.IsSearching() || application.Suites.IsSearching() || application.Producer.IsSearching() {
-		return hint(keymap.SearchFinish, "hint_finish")
+	return application.paneHints(width, focused, write)
+}
+
+func (application *Application) overlayHints(overlay Overlay, write hint) string {
+	switch overlay {
+	case OverlayHistory:
+		return clearableHints(write, keymap.ClearHistory,
+			application.confirmHistoryClear, len(application.Producer.HistorySummaries()) == 0)
+	case OverlayCaptured:
+		return clearableHints(write, keymap.ClearCaptured,
+			application.confirmCapturedClear, len(application.Producer.CapturedResponses()) == 0)
+	case OverlayCommandPalette:
+		if application.commandSearchMode || application.commandQuery != "" {
+			return write.join(write.of(keymap.Open, "hint_select"), write.of(keymap.Back, "hint_clear"))
+		}
+		return write.join(
+			write.of(keymap.Search, "hint_filter"),
+			write.of(keymap.Open, "hint_select"),
+			write.of(keymap.Back, "hint_close"),
+		)
+	case OverlayHelp:
+		return write.join(write.of(keymap.Help, "hint_toggle"), write.of(keymap.Back, "hint_close"))
+	case OverlayDiagnostics:
+		return write.join(write.of(keymap.Diagnostics, "hint_toggle"), write.of(keymap.Back, "hint_close"))
+	case OverlayThemePicker, OverlayEnvironmentPicker:
+		return write.join(write.of(keymap.Open, "hint_select"), write.of(keymap.Back, "hint_close"))
+	case OverlaySaveResponse:
+		if application.saveOverwritePath != "" {
+			return write.join(write.of(keymap.Open, "hint_confirm"), write.of(keymap.Back, "hint_cancel"))
+		}
+		return write.join(write.of(keymap.Open, "hint_save"), write.of(keymap.Back, "hint_close"))
+	default:
+		return write.of(keymap.Back, "hint_close")
 	}
-	onboarding := application.Model != nil && func() bool {
-		state := application.Model.Snapshot()
-		return state.Request.Phase == PhaseIdle && state.Request.Outcome == OutcomeNone
-	}()
+}
 
-	helpHint := hint(keymap.Help, "hint_help")
+// clearableHints serves the windows that list something and can empty it. They
+// differ only in which action clears them.
+func clearableHints(write hint, clear keymap.Action, confirming, empty bool) string {
+	if confirming {
+		return write.join(write.of(clear, "hint_confirm"), write.of(keymap.Back, "hint_cancel"))
+	}
+	if empty {
+		return write.of(keymap.Back, "hint_close")
+	}
+	return write.join(write.of(clear, "hint_clear"), write.of(keymap.Back, "hint_close"))
+}
 
-	var contextual string
+// paneHints says what the focused pane offers, and adds the two bindings worth
+// advertising whenever the footer has room for them.
+func (application *Application) paneHints(width int, focused tview.Primitive, write hint) string {
+	help := write.of(keymap.Help, "hint_help")
+	contextual := application.contextualHints(width, focused, write, help)
+
+	if !application.hasRoomForGlobalHints(width) {
+		return contextual
+	}
+	// The fallback already offers help; appending it again is how the hint used
+	// to appear twice.
+	if contextual != help {
+		contextual = write.join(contextual, help)
+	}
+	return write.join(contextual, write.of(keymap.CommandPalette, "hint_commands"))
+}
+
+// hasRoomForGlobalHints is wider before the first request has run, when the
+// footer is the only place that says help and the palette exist.
+func (application *Application) hasRoomForGlobalHints(width int) bool {
+	if width >= 120 {
+		return true
+	}
+	if width < 80 || application.Model == nil {
+		return false
+	}
+	state := application.Model.Snapshot()
+	return state.Request.Phase == PhaseIdle && state.Request.Outcome == OutcomeNone
+}
+
+func (application *Application) contextualHints(
+	width int,
+	focused tview.Primitive,
+	write hint,
+	help string,
+) string {
 	switch {
 	case focused == application.HttpFilesTree.Element:
-		contextual = join(hint(keymap.Open, "hint_open"), hint(keymap.Search, "hint_search"))
+		hints := write.join(write.of(keymap.Open, "hint_open"), write.of(keymap.Search, "hint_search"))
 		if width >= 100 {
-			contextual = join(contextual, hint(keymap.Reload, "hint_reload"))
+			hints = write.join(hints, write.of(keymap.Reload, "hint_reload"))
 		}
+		return hints
 	case focused == application.Suites.Element:
-		contextual = join(hint(keymap.Open, "hint_select"), hint(keymap.Search, "hint_search"))
+		return write.join(write.of(keymap.Open, "hint_select"), write.of(keymap.Search, "hint_search"))
 	case focused == application.Suite.Element:
-		contextual = join(hint(keymap.Run, "hint_run"), hint(keymap.Back, "hint_back"))
+		return write.join(write.of(keymap.Run, "hint_run"), write.of(keymap.Back, "hint_back"))
 	case focused == application.Producer.Element:
-		contextual = join(hint(keymap.ToggleBody, "hint_view"), hint(keymap.ToggleHeaders, "hint_headers"))
+		hints := write.join(write.of(keymap.ToggleBody, "hint_view"), write.of(keymap.ToggleHeaders, "hint_headers"))
 		if width >= 80 {
-			contextual = join(contextual, hint(keymap.ToggleRequest, "hint_request"))
+			hints = write.join(hints, write.of(keymap.ToggleRequest, "hint_request"))
 		}
+		return hints
 	case application.Stream != nil && focused == application.Stream.Element:
-		contextual = join(hint(keymap.StreamFollow, "hint_follow"), hint(keymap.StreamSend, "hint_send"))
+		hints := write.join(write.of(keymap.StreamFollow, "hint_follow"), write.of(keymap.StreamSend, "hint_send"))
 		if width >= 80 {
-			contextual = join(contextual, hint(keymap.StreamClear, "hint_clear"))
+			hints = write.join(hints, write.of(keymap.StreamClear, "hint_clear"))
 		}
+		return hints
 	default:
-		contextual = helpHint
+		return help
 	}
-	if width >= 120 || (onboarding && width >= 80) {
-		// The default branch already offers help; appending it again is how the
-		// hint used to appear twice.
-		if contextual != helpHint {
-			contextual = join(contextual, helpHint)
-		}
-		contextual = join(contextual, hint(keymap.CommandPalette, "hint_commands"))
-	}
-	return contextual
 }
