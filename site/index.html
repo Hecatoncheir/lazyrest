@@ -6,7 +6,7 @@
   <meta name="description" content="lazyrest is a fast terminal UI for discovering and running .http, .hurl and .socket requests, including live WebSocket, MQTT and STOMP streams.">
   <meta name="theme-color" content="#f7f3e8">
   <meta property="og:title" content="lazyrest — REST at your fingertips">
-  <meta property="og:description" content="Browse, run, inspect, repeat. A warm and focused TUI for your API request files.">
+  <meta property="og:description" content="Browse, run, watch, repeat. A warm and focused TUI for your API request files and the connections that stay open.">
   <meta property="og:image" content="https://hecatoncheir.github.io/lazyrest/assets/social-card.svg">
   <title>lazyrest — REST at your fingertips</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -38,8 +38,8 @@
     <section class="hero" id="top">
       <div class="hero-copy">
         <div class="eyebrow"><span class="status-dot"></span> TUI FOR .HTTP + .HURL + .SOCKET</div>
-        <h1>Your API requests.<br><span>Ready when you are.</span></h1>
-        <p>Discover, run, and inspect requests without leaving the terminal. No heavy client. No context switch. Just a focused, keyboard-first flow.</p>
+        <h1>Send a request.<br><span>Or keep the line open.</span></h1>
+        <p>Run the request files in your project, then stay on the connection — a WebSocket, an MQTT topic, a raw socket — and watch it answer, frame by frame. No heavy client. No context switch. Just a focused, keyboard-first flow.</p>
         <div class="hero-actions">
           <a class="button button-primary" href="#install">Install lazyrest <span aria-hidden="true">↓</span></a>
           <a class="button button-secondary" href="https://github.com/Hecatoncheir/lazyrest">View source <span aria-hidden="true">↗</span></a>
@@ -121,16 +121,17 @@
       <div class="workflow-copy">
         <span class="index">02</span>
         <p class="kicker">A SHORTER LOOP</p>
-        <h2>Browse. Run.<br>Inspect. Repeat.</h2>
-        <p>Stay close to your code and keep your hands on the keyboard. lazyrest turns request files into a fast, navigable workspace.</p>
+        <h2>Browse. Run.<br>Watch. Repeat.</h2>
+        <p>Stay close to your code and keep your hands on the keyboard. A request answers once and is done; a stream keeps answering, and the pane fills as it does.</p>
         <ul>
           <li><span>1</span> Pick a request from the tree</li>
           <li><span>2</span> Select an environment</li>
-          <li><span>3</span> Run and inspect the response</li>
+          <li><span>3</span> Run it, or open the connection</li>
+          <li><span>4</span> Read the response, or follow the frames</li>
         </ul>
       </div>
       <figure class="preview-frame">
-        <div class="frame-label"><span>LIVE INTERFACE</span><span>v0.26</span></div>
+        <div class="frame-label"><span>LIVE INTERFACE</span><span>v0.30</span></div>
         <img src="assets/preview.png" width="1280" height="720" loading="lazy" alt="lazyrest terminal interface showing request files, request details, and a JSON response">
       </figure>
     </section>
