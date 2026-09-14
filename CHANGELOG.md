@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [v0.30.1] - 2026-09-14
+
+### Changed
+- The most tangled functions are split into named steps: reading a key press, watching for file changes, the footer hints, the directory scan, the startup sequence, and reading a document. The highest cognitive complexity in the tree fell from 94 to 24.
+- `gocognit` holds a function under a cognitive complexity of 25, so nothing grows back past what can be held in your head at once. Test files are exempt, where a table is long by design.
+- The bundled run skill has recipes for driving the stream pane over MQTT and a WebSocket, alongside the raw socket it already covered.
+
+No behaviour changed. The binaries differ only in how the source is arranged, so there is nothing to gain by upgrading.
+
 ## [v0.30.0] - 2026-09-14
 
 ### Added
