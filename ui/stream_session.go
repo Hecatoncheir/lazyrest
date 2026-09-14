@@ -36,6 +36,7 @@ func dialStreamSuite(config Config) func(context.Context, parserhttp.HttpSuite) 
 			// where a composed frame is published, who to connect as.
 			mqtt := runnerstream.MQTTConfigFromHeader(suite.Header)
 			mqtt.DialTimeout = config.Runner.Timeout
+			mqtt.InsecureSkipVerify = config.Runner.InsecureSkipVerify
 			return runnerstream.DialMQTT(ctx, suite.Uri, mqtt)
 		default:
 			return nil, fmt.Errorf("%q is not a stream", suite.Uri)

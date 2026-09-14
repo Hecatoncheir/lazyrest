@@ -2,6 +2,7 @@ package stream
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 	"net"
 	"strconv"
@@ -28,6 +29,10 @@ type MQTTConfig struct {
 	Username  string
 	Password  string
 	KeepAlive uint16
+
+	// InsecureSkipVerify accepts any certificate an mqtts:// broker presents,
+	// matching what the rest of the session does with --insecure.
+	InsecureSkipVerify bool
 
 	Subscriptions []MQTTSubscription
 	// PublishTopic is where a frame composed by hand is published, since the
@@ -82,8 +87,8 @@ func DialMQTT(ctx context.Context, address string, config MQTTConfig) (*MQTTSess
 	dialCtx, cancelDial := context.WithTimeout(ctx, config.DialTimeout)
 	defer cancelDial()
 
-	dialer := net.Dialer{}
-	conn, err := dialer.DialContext(dialCtx, "tcp", mqttAddress(address))
+	endpoint, secure := mqttEndpoint(address)
+	conn, err := dialMQTTConn(dialCtx, endpoint, secure, config)
 	if err != nil {
 		return nil, err
 	}
@@ -154,18 +159,54 @@ func DialMQTT(ctx context.Context, address string, config MQTTConfig) (*MQTTSess
 	return session, nil
 }
 
-// mqttAddress accepts the scheme a request file writes as well as a bare
-// host:port, and supplies the default port when none was given.
-func mqttAddress(address string) string {
+// mqttEndpoint reads the scheme a request file writes and returns what to dial
+// along with whether the connection is wrapped in TLS. A bare host:port is
+// accepted too, and the default port follows the scheme: 1883 in the clear and
+// 8883 secured, as the standard assigns them.
+func mqttEndpoint(address string) (string, bool) {
 	trimmed := strings.TrimSpace(address)
-	for _, scheme := range []string{"mqtt://", "tcp://"} {
-		trimmed = strings.TrimPrefix(trimmed, scheme)
+	secure := false
+
+	switch {
+	case hasScheme(trimmed, "mqtts"), hasScheme(trimmed, "ssl"), hasScheme(trimmed, "tls"):
+		secure = true
+		trimmed = trimmed[strings.Index(trimmed, "://")+len("://"):]
+	case hasScheme(trimmed, "mqtt"), hasScheme(trimmed, "tcp"):
+		trimmed = trimmed[strings.Index(trimmed, "://")+len("://"):]
 	}
+
 	trimmed = strings.TrimSuffix(trimmed, "/")
 	if !strings.Contains(trimmed, ":") {
-		trimmed += ":1883"
+		if secure {
+			trimmed += ":8883"
+		} else {
+			trimmed += ":1883"
+		}
 	}
-	return trimmed
+	return trimmed, secure
+}
+
+func hasScheme(address, scheme string) bool {
+	prefix := scheme + "://"
+	return len(address) >= len(prefix) && strings.EqualFold(address[:len(prefix)], prefix)
+}
+
+// dialMQTTConn opens the connection the client will speak over. TLS is the
+// caller's concern rather than the client's, which is why paho takes a net.Conn
+// and not an address.
+func dialMQTTConn(ctx context.Context, endpoint string, secure bool, config MQTTConfig) (net.Conn, error) {
+	if !secure {
+		dialer := net.Dialer{}
+		return dialer.DialContext(ctx, "tcp", endpoint)
+	}
+	// InsecureSkipVerify follows the same --insecure the rest of the session
+	// obeys, so a broker with a self signed certificate is reachable on the
+	// same terms as a server with one.
+	dialer := tls.Dialer{Config: &tls.Config{
+		InsecureSkipVerify: config.InsecureSkipVerify, //nolint:gosec // the user asked for it
+		MinVersion:         tls.VersionTLS12,
+	}}
+	return dialer.DialContext(ctx, "tcp", endpoint)
 }
 
 func (session *MQTTSession) subscribe(ctx context.Context) error {

@@ -2,6 +2,12 @@ package stream
 
 import (
 	"context"
+	"crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/rand"
+	"crypto/tls"
+	"crypto/x509"
+	"math/big"
 	"net"
 	"testing"
 	"time"
@@ -23,6 +29,46 @@ func startBroker(t *testing.T) *fakeBroker {
 	if err != nil {
 		t.Fatalf("listen: %v", err)
 	}
+	return serveBroker(t, listener)
+}
+
+// startTLSBroker serves the same broker behind a certificate it signs itself,
+// which is what an mqtts:// session has to get through.
+func startTLSBroker(t *testing.T) *fakeBroker {
+	t.Helper()
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("listen: %v", err)
+	}
+	return serveBroker(t, tls.NewListener(listener, &tls.Config{
+		Certificates: []tls.Certificate{selfSignedCertificate(t)},
+		MinVersion:   tls.VersionTLS12,
+	}))
+}
+
+func selfSignedCertificate(t *testing.T) tls.Certificate {
+	t.Helper()
+	key, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if err != nil {
+		t.Fatalf("generate key: %v", err)
+	}
+	template := x509.Certificate{
+		SerialNumber: big.NewInt(1),
+		NotBefore:    time.Now().Add(-time.Hour),
+		NotAfter:     time.Now().Add(time.Hour),
+		IPAddresses:  []net.IP{net.ParseIP("127.0.0.1")},
+		KeyUsage:     x509.KeyUsageDigitalSignature,
+		ExtKeyUsage:  []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
+	}
+	certificate, err := x509.CreateCertificate(rand.Reader, &template, &template, &key.PublicKey, key)
+	if err != nil {
+		t.Fatalf("create certificate: %v", err)
+	}
+	return tls.Certificate{Certificate: [][]byte{certificate}, PrivateKey: key}
+}
+
+func serveBroker(t *testing.T, listener net.Listener) *fakeBroker {
+	t.Helper()
 	t.Cleanup(func() { _ = listener.Close() })
 
 	broker := &fakeBroker{
@@ -94,18 +140,28 @@ func dialBroker(t *testing.T, broker *fakeBroker, config MQTTConfig) *MQTTSessio
 	return session
 }
 
-func TestMQTTAddress(t *testing.T) {
-	cases := map[string]string{
-		"mqtt://127.0.0.1:1883": "127.0.0.1:1883",
-		"tcp://broker:1883":     "broker:1883",
-		"broker:1883":           "broker:1883",
-		// The default port is supplied, as a request file usually leaves it out.
-		"broker":          "broker:1883",
-		"  mqtt://host/ ": "host:1883",
+func TestMQTTEndpoint(t *testing.T) {
+	cases := []struct {
+		address string
+		want    string
+		secure  bool
+	}{
+		{"mqtt://127.0.0.1:1883", "127.0.0.1:1883", false},
+		{"tcp://broker:1883", "broker:1883", false},
+		{"broker:1883", "broker:1883", false},
+		// The default port follows the scheme, as the standard assigns them.
+		{"broker", "broker:1883", false},
+		{"mqtts://broker", "broker:8883", true},
+		{"mqtts://broker:1884", "broker:1884", true},
+		{"MQTTS://BROKER", "BROKER:8883", true},
+		{"ssl://broker", "broker:8883", true},
+		{"  mqtt://host/ ", "host:1883", false},
 	}
-	for address, want := range cases {
-		if got := mqttAddress(address); got != want {
-			t.Errorf("mqttAddress(%q) = %q, want %q", address, got, want)
+	for _, testCase := range cases {
+		endpoint, secure := mqttEndpoint(testCase.address)
+		if endpoint != testCase.want || secure != testCase.secure {
+			t.Errorf("mqttEndpoint(%q) = %q, %v; want %q, %v",
+				testCase.address, endpoint, secure, testCase.want, testCase.secure)
 		}
 	}
 }
@@ -271,5 +327,51 @@ func TestMQTTSessionOmitsTheDefaultQoS(t *testing.T) {
 	}
 	if topic, _ := message.Attribute("topic"); topic != "plain/message" {
 		t.Errorf("topic = %q", topic)
+	}
+}
+
+// mqtts:// has to get through a certificate, and a development broker usually
+// signs its own.
+func TestMQTTSessionConnectsOverTLS(t *testing.T) {
+	broker := startTLSBroker(t)
+	session, err := DialMQTT(context.Background(), "mqtts://"+broker.address, MQTTConfig{
+		InsecureSkipVerify: true,
+		Subscriptions:      []MQTTSubscription{{Topic: "secure/#"}},
+	})
+	if err != nil {
+		t.Fatalf("dial over TLS: %v", err)
+	}
+	t.Cleanup(func() { _ = session.Close() })
+
+	nextFrame(t, session.Frames()) // connack
+	nextFrame(t, session.Frames()) // suback
+	broker.deliver(t, "secure/message", "over tls")
+
+	if got := string(nextFrame(t, session.Frames()).Payload); got != "over tls" {
+		t.Fatalf("payload = %q", got)
+	}
+}
+
+// Without --insecure a certificate the session cannot verify must stop it,
+// rather than being accepted quietly.
+func TestMQTTSessionRefusesAnUnverifiableCertificate(t *testing.T) {
+	broker := startTLSBroker(t)
+	_, err := DialMQTT(context.Background(), "mqtts://"+broker.address, MQTTConfig{
+		DialTimeout: 3 * time.Second,
+	})
+	if err == nil {
+		t.Fatal("a self signed certificate was accepted without being asked for")
+	}
+}
+
+// A plain broker reached over mqtts:// must fail rather than hang.
+func TestMQTTSessionFailsWhenTheBrokerSpeaksNoTLS(t *testing.T) {
+	broker := startBroker(t)
+	_, err := DialMQTT(context.Background(), "mqtts://"+broker.address, MQTTConfig{
+		DialTimeout:        3 * time.Second,
+		InsecureSkipVerify: true,
+	})
+	if err == nil {
+		t.Fatal("a plain broker answered an mqtts:// dial")
 	}
 }

@@ -224,13 +224,18 @@ func TestMQTTExampleDescribesItsSession(t *testing.T) {
 	if len(result.Diagnostics) != 0 {
 		t.Fatalf("diagnostics: %v", result.Diagnostics)
 	}
-	if len(result.Suites) != 1 {
-		t.Fatalf("parsed %d requests, want 1", len(result.Suites))
+	if len(result.Suites) != 2 {
+		t.Fatalf("parsed %d requests, want one in the clear and one over TLS", len(result.Suites))
+	}
+	for _, suite := range result.Suites {
+		if suite.Transport != parserhttp.TransportMQTT {
+			t.Errorf("%q transport = %v, want mqtt", suite.Name, suite.Transport)
+		}
+	}
+	if !strings.HasPrefix(result.Suites[1].Uri, "mqtts://") {
+		t.Errorf("the second request is %q, want an mqtts:// one", result.Suites[1].Uri)
 	}
 	suite := result.Suites[0]
-	if suite.Transport != parserhttp.TransportMQTT {
-		t.Errorf("transport = %v, want mqtt", suite.Transport)
-	}
 	// Header keeps every value a name was given; folding it into a map of
 	// strings would silently drop every subscription but one.
 	if got := len(suite.Header.Values("Subscribe")); got != 2 {

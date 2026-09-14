@@ -3,8 +3,13 @@
 # The headers describe the session: Subscribe repeats for every topic filter to
 # watch, and Topic is where a frame composed by hand is published. A quality of
 # service rides along as a header parameter, the way an HTTP header carries one.
+#
+# mqtts:// connects over TLS and defaults to port 8883. A broker with a
+# certificate it signed itself needs --insecure, the same flag the rest of the
+# session obeys.
 
 @broker = "mqtt://127.0.0.1:1883"
+@secureBroker = "mqtts://127.0.0.1:8883"
 
 # @name Watch the sensors
 MQTT {{broker}}
@@ -17,3 +22,8 @@ Topic: commands/reboot
 {
   "announce": "lazyrest is watching"
 }
+
+# @name Watch a broker over TLS
+MQTT {{secureBroker}}
+Client-Id: lazyrest-example-tls
+Subscribe: sensors/+/temperature

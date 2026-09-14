@@ -52,7 +52,7 @@ func TransportForURI(uri string) Transport {
 		return TransportWebSocket
 	case hasScheme(trimmed, "tcp"):
 		return TransportTCP
-	case hasScheme(trimmed, "mqtt"):
+	case hasScheme(trimmed, "mqtt"), hasScheme(trimmed, "mqtts"):
 		return TransportMQTT
 	default:
 		return TransportHTTP

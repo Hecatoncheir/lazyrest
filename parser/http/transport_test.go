@@ -18,6 +18,7 @@ func TestTransportForURI(t *testing.T) {
 		{"tcp://127.0.0.1:6379", TransportTCP},
 		{"mqtt://127.0.0.1:1883", TransportMQTT},
 		{"MQTT://broker", TransportMQTT},
+		{"mqtts://broker:8883", TransportMQTT},
 		{"http://example.com", TransportHTTP},
 		{"https://example.com", TransportHTTP},
 		{"example.com/path", TransportHTTP},
