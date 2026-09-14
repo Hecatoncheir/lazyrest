@@ -38,6 +38,9 @@ const (
 	Ping
 	Pong
 	Close
+	// Event is a thing the protocol did rather than a message it carried: a
+	// connection acknowledged, a subscription granted.
+	Event
 )
 
 func (opcode Opcode) String() string {
@@ -52,6 +55,8 @@ func (opcode Opcode) String() string {
 		return "pong"
 	case Close:
 		return "close"
+	case Event:
+		return "event"
 	default:
 		return "bytes"
 	}
