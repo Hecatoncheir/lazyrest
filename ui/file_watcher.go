@@ -11,7 +11,11 @@ import (
 	"github.com/fsnotify/fsnotify"
 )
 
-const fileWatchDebounce = 150 * time.Millisecond
+// fileWatchDebounce is a variable rather than a constant so a test can widen
+// the window. A test that writes a burst and expects one report depends on the
+// whole burst landing inside the window, which 150ms cannot guarantee on a
+// loaded machine.
+var fileWatchDebounce = 150 * time.Millisecond
 
 var defaultWatchIgnoredDirectories = map[string]struct{}{
 	".git": {}, ".hg": {}, ".svn": {}, ".cache": {}, ".venv": {}, ".tox": {},

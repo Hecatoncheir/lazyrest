@@ -9,6 +9,13 @@ import (
 )
 
 func TestWatchRequestFilesDebouncesWrites(t *testing.T) {
+	// The burst below has to land inside one debounce window, and the writes
+	// are only as fast as the machine is. With the production 150ms this test
+	// fails on a loaded CI runner even though the debouncing is correct.
+	previousDebounce := fileWatchDebounce
+	fileWatchDebounce = time.Second
+	t.Cleanup(func() { fileWatchDebounce = previousDebounce })
+
 	root := t.TempDir()
 	path := filepath.Join(root, "requests.http")
 	if err := os.WriteFile(path, []byte("GET https://example.test\n"), 0o600); err != nil {
@@ -46,7 +53,11 @@ func TestWatchRequestFilesDebouncesWrites(t *testing.T) {
 	select {
 	case extra := <-changes:
 		t.Fatalf("rapid writes were not debounced: %#v", extra)
-	case <-time.After(2 * fileWatchDebounce):
+	// The wait has an absolute floor rather than being a multiple of the
+	// window. Scaled purely to the window, a debounce shortened to nothing
+	// would leave too little time for the extra reports to arrive, and the
+	// test would pass while reporting every write separately.
+	case <-time.After(fileWatchDebounce + time.Second):
 	}
 
 	cancel()

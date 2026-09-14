@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Changed
+- The fuzz smoke run in CI lasts ten seconds per target rather than two. The deadline used to arrive while a target was still gathering baseline coverage, which failed the run with `context deadline exceeded` and blocked a release.
+- The file watcher debounce window is a variable so its test can widen it. The test writes a burst and expects one report, which depends on the burst landing inside one window; the production window cannot guarantee that on a loaded machine.
+
 ## [v0.27.1] - 2026-09-14
 
 ### Fixed

@@ -106,7 +106,7 @@ jobs:
         run: go test -race ./...
 
       - name: Run fuzz smoke tests
-        run: .github/scripts/fuzz.sh 2s 2
+        run: .github/scripts/fuzz.sh 10s 2
 
       - name: Build project
         run: go build -v ./...
