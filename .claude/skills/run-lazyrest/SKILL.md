@@ -71,11 +71,15 @@ file is a good marker.
 | `?` | help | any |
 | `:` | command palette | any |
 
-## Driving the stream pane
+## Driving a stream pane
 
-Do not point a test at an external WebSocket service: it makes the run depend
-on the network and on somebody else's uptime. Start the echo server bundled
-with this skill and use a `.socket` file.
+Three transports reach the pane, and each needs something listening. Do not
+point a run at a public broker or echo service: it then depends on the network
+and on somebody else's uptime.
+
+### A raw socket
+
+Start the echo server bundled with this skill and use a `.socket` file.
 
 ```bash
 go build -o /tmp/lazyrest-echo ./.claude/skills/run-lazyrest/echo-server
@@ -96,6 +100,65 @@ shows both directions:
 
 A `.socket` body needs its terminator written as `\r\n`: the parser trims the
 trailing newline, so a file cannot end a message any other way.
+
+### A WebSocket
+
+The bundled WebSocket server uses the same library lazyrest does, so it needs
+no module of its own.
+
+```bash
+go build -o /tmp/lazyrest-ws ./.claude/skills/run-lazyrest/ws-echo
+/tmp/lazyrest-ws &            # listens on ws://127.0.0.1:7799
+mkdir -p /tmp/lazyrest-requests
+printf '@url = "ws://127.0.0.1:7799"\n\n# @name Watch an echo stream\nWEBSOCKET {{url}}\n\n{"hello":"lazyrest"}\n' \
+  > /tmp/lazyrest-requests/live.http
+```
+
+Frames say `text` rather than `bytes` here, because a WebSocket declares what
+its messages are:
+
+```
+→ text 20B {"hello":"lazyrest"}
+← text 29B {"echo":{"hello":"lazyrest"}}
+← text 10B {"tick":1}
+```
+
+### MQTT
+
+mosquitto refuses anonymous clients by default, so even a throwaway broker
+needs a configuration file.
+
+```bash
+printf 'listener 1883 127.0.0.1\nallow_anonymous true\n' > /tmp/mosquitto.conf
+mosquitto -c /tmp/mosquitto.conf &
+mkdir -p /tmp/lazyrest-requests
+printf '@broker = "mqtt://127.0.0.1:1883"\n\n# @name Watch the sensors\nMQTT {{broker}}\nClient-Id: lazyrest-run\nSubscribe: sensors/+/temperature; qos=1\nTopic: commands/reboot\n\n{"announce":"watching"}\n' \
+  > /tmp/lazyrest-requests/live.http
+```
+
+Drive both directions with the clients that ship with mosquitto — an outside
+publisher and an outside subscriber prove more than an echo does. Start the
+subscriber **before** running the request, or it misses the body, which is
+published the moment the session connects.
+
+```bash
+mosquitto_sub -h 127.0.0.1 -t 'commands/#' -v &    # sees what the pane sends
+# ... now launch lazyrest and run the request ...
+mosquitto_pub -h 127.0.0.1 -t sensors/7/temperature -m '{"celsius":23.5}'
+```
+
+The pane reports the connection and each subscription as events of their own,
+and puts the topic before the payload:
+
+```
+← event 0B packet=connack client-id=lazyrest-run
+← event 0B packet=suback topic=sensors/+/temperature qos=1
+→ text 23B topic=commands/reboot {"announce":"watching"}
+← text 16B topic=sensors/7/temperature {"celsius":23.5}
+```
+
+A quality of service of zero is not shown: it is what a broker assumes anyway,
+and the row has little space to spare.
 
 ## Typing into the composer
 
@@ -145,6 +208,9 @@ what was typed here, not everything the connection has sent.
 tmux send-keys -t lazyrest q
 tmux kill-session -t lazyrest 2>/dev/null || true
 pkill -f lazyrest-echo 2>/dev/null || true
+pkill -f lazyrest-ws 2>/dev/null || true
+pkill -f "mosquitto -c" 2>/dev/null || true
+pkill -f mosquitto_sub 2>/dev/null || true
 ```
 
 ## Direct run, for a human
