@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="lazyrest is a fast terminal UI for discovering and running .http and .hurl requests.">
+  <meta name="description" content="lazyrest is a fast terminal UI for discovering and running .http, .hurl and .socket requests, including live WebSocket, MQTT and STOMP streams.">
   <meta name="theme-color" content="#f7f3e8">
   <meta property="og:title" content="lazyrest — REST at your fingertips">
   <meta property="og:description" content="Browse, run, inspect, repeat. A warm and focused TUI for your API request files.">
@@ -37,7 +37,7 @@
   <main id="main">
     <section class="hero" id="top">
       <div class="hero-copy">
-        <div class="eyebrow"><span class="status-dot"></span> TUI FOR .HTTP + .HURL</div>
+        <div class="eyebrow"><span class="status-dot"></span> TUI FOR .HTTP + .HURL + .SOCKET</div>
         <h1>Your API requests.<br><span>Ready when you are.</span></h1>
         <p>Discover, run, and inspect requests without leaving the terminal. No heavy client. No context switch. Just a focused, keyboard-first flow.</p>
         <div class="hero-actions">
@@ -52,7 +52,7 @@
       <div class="console-wrap" aria-label="Stylized lazyrest terminal preview">
         <div class="console-machine">
           <div class="machine-top">
-            <span>LAZYREST</span><span class="machine-model">HTTP / HURL</span>
+            <span>LAZYREST</span><span class="machine-model">HTTP / HURL / STREAMS</span>
             <div class="speaker" aria-hidden="true"></div>
           </div>
           <div class="screen">
@@ -86,7 +86,7 @@
     </section>
 
     <section class="marquee" aria-label="Highlights">
-      <div>HTTP REQUESTS <span>✦</span> HURL FILES <span>✦</span> GRAPHQL <span>✦</span> ENVIRONMENTS <span>✦</span> SAVED THEMES <span>✦</span> CURL EXPORT</div>
+      <div>HTTP REQUESTS <span>✦</span> HURL FILES <span>✦</span> WEBSOCKET <span>✦</span> MQTT <span>✦</span> STOMP <span>✦</span> GRAPHQL <span>✦</span> ENVIRONMENTS <span>✦</span> SAVED THEMES <span>✦</span> CURL EXPORT</div>
     </section>
 
     <section class="features section" id="features">
@@ -100,13 +100,13 @@
           <div class="feature-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h7l2 2h7v12H4zM8 11h8M8 15h5"/></svg></div>
           <span class="card-number">01</span>
           <h3>Find requests instantly</h3>
-          <p>Recursive discovery for <code>.http</code> and <code>.hurl</code> files, with automatic refresh whenever your editor saves a change.</p>
+          <p>Recursive discovery for <code>.http</code>, <code>.hurl</code> and <code>.socket</code> files, with automatic refresh whenever your editor saves a change.</p>
         </article>
         <article class="feature-card orange-card">
           <div class="feature-icon dark"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m8 5 10 7-10 7z"/></svg></div>
           <span class="card-number">02</span>
           <h3>Run with one key</h3>
-          <p>Execute, cancel, replay, and move on. Hurl workflows surface their HTTP response and assertion failures directly in the TUI.</p>
+          <p>Execute, cancel, replay, and move on. Hurl workflows surface their assertion failures in the TUI, and a WebSocket, MQTT or raw socket request opens a connection that stays there, frame by frame.</p>
         </article>
         <article class="feature-card dark-card">
           <div class="feature-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 6h14M5 12h9M5 18h11"/></svg></div>

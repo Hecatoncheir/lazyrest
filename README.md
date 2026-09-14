@@ -11,7 +11,7 @@
 [![CI](https://github.com/Hecatoncheir/lazyrest/actions/workflows/go-test.yml/badge.svg)](https://github.com/Hecatoncheir/lazyrest/actions/workflows/go-test.yml)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
-`lazyrest` is a terminal UI for discovering and running requests from `.http` and `.hurl` files.
+`lazyrest` is a terminal UI for discovering and running requests from `.http`, `.hurl` and `.socket` files, including the connections that stay open.
 
 ## Preview
 
@@ -23,13 +23,15 @@
 
 ## Features
 
-- Immediate TUI startup with background environment loading and recursive `.http` / `.hurl` discovery.
+- Immediate TUI startup with background environment loading and recursive `.http` / `.hurl` / `.socket` discovery.
 - Pure Go, with no CGO and no external parser: `go install` and cross-compilation need nothing but the Go toolchain.
 - Requests chained through what an earlier one answered, so a token is captured rather than copied by hand.
 - Automatic private `.env` loading, public/private environment profiles, and recursive `{{variable}}` substitution shared with Hurl.
 - Cookies carried from one request to the next, with control over redirects and certificate checks.
 - GraphQL requests encoded the way servers expect, with a variables block and errors surfaced from `200` responses.
-- WebSocket streams run from `.http` files and raw TCP streams from `.socket` files, with a live frame log, follow/pause, and redacted payloads.
+- WebSocket and MQTT 5 sessions run from `.http` files, addressed by a `ws://`, `wss://`, `mqtt://` or `mqtts://` URL, and raw TCP from `.socket` files. A live pane shows every frame with its direction, size and time; an MQTT message shows the topic it arrived on.
+- STOMP brokers such as RabbitMQ are reachable over both transports: a frame ends on the null byte the protocol requires, written `\0`.
+- A stream pane follows or pauses, clears without hanging up, and sends frames from a composer that remembers what was sent before.
 - `.hurl` files listed one entry at a time, each run with the entries it depends on.
 - Syntax highlighting for JSON, XML, and GraphQL across the panes, and HTTP methods coloured by what they do.
 - Response headers, protocol metadata, Pretty/Raw bodies, and clipboard/file export.
@@ -308,9 +310,10 @@ cookies from the previous one, and reparses the open request file immediately.
 
 ## Examples
 
-The [`example`](example) directory contains ready-to-run `.http` and `.hurl`
-files with named requests, variables, different body formats, assertions, and
-a multi-request Hurl workflow:
+The [`example`](example) directory contains ready-to-run `.http`, `.hurl` and
+`.socket` files with named requests, variables, different body formats,
+assertions, a multi-request Hurl workflow, and streams over WebSocket, MQTT and
+STOMP:
 
 ```sh
 go run . example
@@ -414,6 +417,11 @@ keybindings:
   clear_history: ["c"]
   history_previous: ["["]
   history_next: ["]"]
+  stream_follow: ["f"]
+  stream_clear: ["c"]
+  stream_send: ["s"]
+  stream_recall_previous: ["up"]
+  stream_recall_next: ["down"]
   command_palette: [":", "ctrl+p"]
   reload_config: ["ctrl+r"]
 ```
@@ -542,6 +550,9 @@ the response pane, and report when the exported body was truncated.
 | Suite | `Ctrl+l` | Producer |
 | Producer | `Ctrl+h` | Suite |
 
+While a stream is open its pane takes the place of Producer, so `Ctrl+l` from
+Suites or Suite leads to it and `Ctrl+h` leads back.
+
 - `/`: search in the focused Files, Suites, or Producer area; `Enter` finishes entering the query. Searchable panes show the current and total match count in their title, such as `[2/7]`; in Files and Producer, `n` / `N` move cyclically through matches.
 - `r`: reload the file tree in the background while Files is focused. Request
   file writes, creates, renames, and removals are also detected automatically.
@@ -552,6 +563,9 @@ the response pane, and report when the exported body was truncated.
 - `s` / `S`: save the unformatted current response body / complete response while Producer is focused.
 - `n` / `N`: next/previous match in the focused Files or Producer area.
 - `[` / `]`: previous/next response history entry.
+- `f`: follow or pause the live frames while a stream pane is focused. Paused keeps the screen still while the connection keeps talking.
+- `s`: send a frame on the open connection; `Up` / `Down` in the composer recall frames sent earlier. An MQTT frame is published to the topic the request names.
+- `c`: clear the frame log without closing the connection.
 - **History** in the command palette: inspect the project's saved runs; use `j` / `k`, open one with `Enter` / `l`, or press `c` twice to clear all entries.
 - `d`: open parser, startup, and file-discovery diagnostics; press `d`, `q`, or `Esc` to close.
 - `?`: open the built-in keyboard reference; press `?`, `q`, or `Esc` to close.
