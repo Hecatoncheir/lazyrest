@@ -158,13 +158,15 @@ func (application *Application) sendFrame() {
 	// should be what was written.
 	application.rememberSentFrame(text)
 
-	frame := runnerstream.Frame{Opcode: runnerstream.Text, Payload: []byte(text)}
+	frame := runnerstream.Frame{
+		Opcode:  runnerstream.Text,
+		Payload: []byte(expandEscapes(text, webSocketEscapes)),
+	}
 	if transport == parserhttp.TransportTCP {
-		// A raw socket is line oriented more often than not, and an input field
-		// cannot hold a real newline, so escapes are expanded here. A WebSocket
-		// message is a whole message on its own, and expanding escapes there
-		// would corrupt JSON that legitimately contains a \n.
-		frame = runnerstream.Frame{Opcode: runnerstream.Bytes, Payload: []byte(expandEscapes(text))}
+		frame = runnerstream.Frame{
+			Opcode:  runnerstream.Bytes,
+			Payload: []byte(expandEscapes(text, rawSocketEscapes)),
+		}
 	}
 
 	// Sending writes to the network, which must not happen on the draw
@@ -178,9 +180,21 @@ func (application *Application) sendFrame() {
 	}()
 }
 
-// expandEscapes turns the escapes a line oriented protocol needs into the bytes
-// they stand for. An unknown escape is left exactly as it was typed.
-func expandEscapes(text string) string {
+// rawSocketEscapes is what a .socket body and the composer may spell out. The
+// parser trims a trailing newline, and an input field holds no control
+// character at all, so they have to be written rather than typed.
+var rawSocketEscapes = map[byte]byte{'n': '\n', 'r': '\r', 't': '\t', '\\': '\\', '0': 0}
+
+// webSocketEscapes is deliberately just the null byte. A WebSocket message is
+// otherwise sent exactly as written, so JSON keeps its own escapes — and `\n`
+// inside a JSON string must stay two characters. `\0` is different: JSON spells
+// a null byte `\u0000` and has no `\0` escape at all, so a backslash-zero in a
+// message can only mean the terminator a STOMP frame ends on.
+var webSocketEscapes = map[byte]byte{'0': 0}
+
+// expandEscapes turns the escapes in the table into the bytes they stand for.
+// An escape outside the table is left exactly as it was typed.
+func expandEscapes(text string, escapes map[byte]byte) string {
 	var builder strings.Builder
 	for index := 0; index < len(text); index++ {
 		if text[index] != '\\' || index+1 >= len(text) {
@@ -188,19 +202,12 @@ func expandEscapes(text string) string {
 			continue
 		}
 		index++
-		switch text[index] {
-		case 'n':
-			builder.WriteByte('\n')
-		case 'r':
-			builder.WriteByte('\r')
-		case 't':
-			builder.WriteByte('\t')
-		case '\\':
-			builder.WriteByte('\\')
-		default:
-			builder.WriteByte('\\')
-			builder.WriteByte(text[index])
+		if value, known := escapes[text[index]]; known {
+			builder.WriteByte(value)
+			continue
 		}
+		builder.WriteByte('\\')
+		builder.WriteByte(text[index])
 	}
 	return builder.String()
 }

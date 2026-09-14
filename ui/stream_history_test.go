@@ -146,3 +146,38 @@ func TestComposerHistoryKeepsTheTextAsTyped(t *testing.T) {
 		t.Fatalf("history = %#v, want the escape as typed", history)
 	}
 }
+
+// A global binding on a printable key used to win over the field, so a frame
+// holding `q` or `:` could not be entered at all — and every STOMP header
+// holds a colon.
+func TestTUIComposerTakesKeysThatAreAlsoGlobalBindings(t *testing.T) {
+	application, _, screen := startStreamFor(t, streamSuite())
+
+	screen.InjectKey(tcell.KeyRune, 's', tcell.ModNone)
+	waitFor(t, "the composer opening", func() bool {
+		return application.Model.CurrentOverlay() == OverlaySendFrame
+	})
+
+	// q is Quit, : is the command palette, ? is help, d is diagnostics.
+	for _, character := range "q:?d" {
+		screen.InjectKey(tcell.KeyRune, character, tcell.ModNone)
+	}
+
+	waitFor(t, "the typed characters", func() bool { return composerText(t, application) == "q:?d" })
+	if overlay := application.Model.CurrentOverlay(); overlay != OverlaySendFrame {
+		t.Fatalf("overlay = %v, want the composer still open", overlay)
+	}
+}
+
+func TestTUIComposerStillClosesOnEscape(t *testing.T) {
+	application, _, screen := startStreamFor(t, streamSuite())
+
+	screen.InjectKey(tcell.KeyRune, 's', tcell.ModNone)
+	waitFor(t, "the composer opening", func() bool {
+		return application.Model.CurrentOverlay() == OverlaySendFrame
+	})
+	screen.InjectKey(tcell.KeyEscape, 0, tcell.ModNone)
+	waitFor(t, "the composer closing", func() bool {
+		return application.Model.CurrentOverlay() == OverlayNone
+	})
+}

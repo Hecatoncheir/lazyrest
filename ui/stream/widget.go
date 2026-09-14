@@ -273,7 +273,10 @@ func printable(payload []byte) bool {
 		return false
 	}
 	for _, character := range string(payload) {
-		if character == '\n' || character == '\r' || character == '\t' {
+		// A null byte is expected rather than exceptional: a STOMP frame ends
+		// on one. It is drawn as \0 like the other control characters, so it
+		// never reaches the terminal raw.
+		if character == '\n' || character == '\r' || character == '\t' || character == 0 {
 			continue
 		}
 		if character < 0x20 || character == 0x7f {
@@ -300,7 +303,7 @@ func hexPreview(payload []byte) string {
 // visibleControls keeps one frame on one line. A line oriented protocol ends
 // every message with a newline, and letting those through would break the log
 // into rows that no longer correspond to frames.
-var controlReplacer = strings.NewReplacer("\r", `\r`, "\n", `\n`, "\t", `\t`)
+var controlReplacer = strings.NewReplacer("\r", `\r`, "\n", `\n`, "\t", `\t`, "\x00", `\0`)
 
 func visibleControls(text string) string {
 	return controlReplacer.Replace(text)

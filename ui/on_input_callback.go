@@ -8,6 +8,12 @@ import (
 
 type onInputCallbackType func(event *tcell.EventKey) *tcell.EventKey
 
+// isTextInputOverlay reports whether the overlay is one the user types into,
+// where only keys that cannot be part of text may act globally.
+func isTextInputOverlay(overlay Overlay) bool {
+	return overlay == OverlaySaveResponse || overlay == OverlaySendFrame
+}
+
 func onInputCallback(application *Application) onInputCallbackType {
 	applicationElement := application.Element
 	return func(event *tcell.EventKey) *tcell.EventKey {
@@ -18,6 +24,22 @@ func onInputCallback(application *Application) onInputCallbackType {
 		if application.Model != nil {
 			overlay := application.Model.CurrentOverlay()
 			if overlay != OverlayNone {
+				// An overlay that is a text field has to receive what is
+				// typed. Without this, a global binding on a printable key
+				// wins over the field: `q` closes the overlay, `:` opens the
+				// command palette, and a frame or a path holding either simply
+				// cannot be entered.
+				if isTextInputOverlay(overlay) {
+					switch {
+					case event.Key() == tcell.KeyCtrlC:
+						stopApplication(application)
+						return nil
+					case bindings.Matches(keymap.Back, event):
+						application.closeOverlay()
+						return nil
+					}
+					return event
+				}
 				if application.handleClearConfirmation(overlay, event) {
 					return nil
 				}

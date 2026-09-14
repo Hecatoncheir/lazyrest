@@ -12,12 +12,14 @@ import (
 	"github.com/gdamore/tcell/v2"
 )
 
-func TestExpandEscapes(t *testing.T) {
+func TestExpandEscapesForARawSocket(t *testing.T) {
 	cases := []struct{ in, want string }{
 		{"PING", "PING"},
 		{`PING\r\n`, "PING\r\n"},
 		{`a\tb`, "a\tb"},
 		{`back\\slash`, `back\slash`},
+		// A STOMP frame ends on a null byte.
+		{`CONNECT\n\n\0`, "CONNECT\n\n\x00"},
 		// An unknown escape is left exactly as typed rather than guessed at.
 		{`\q`, `\q`},
 		// A trailing backslash has nothing to escape.
@@ -25,7 +27,25 @@ func TestExpandEscapes(t *testing.T) {
 		{"", ""},
 	}
 	for _, testCase := range cases {
-		if got := expandEscapes(testCase.in); got != testCase.want {
+		if got := expandEscapes(testCase.in, rawSocketEscapes); got != testCase.want {
+			t.Errorf("expandEscapes(%q) = %q, want %q", testCase.in, got, testCase.want)
+		}
+	}
+}
+
+// A WebSocket message is sent as written so JSON keeps its own escapes. The
+// null byte is the exception: JSON has no \0 escape, so it can only be the
+// terminator a STOMP frame ends on.
+func TestExpandEscapesForAWebSocket(t *testing.T) {
+	cases := []struct{ in, want string }{
+		{`{"text":"line\nbreak"}`, `{"text":"line\nbreak"}`},
+		{`a\tb`, `a\tb`},
+		{`back\\slash`, `back\\slash`},
+		{`CONNECT\n\n\0`, "CONNECT\\n\\n\x00"},
+		{"", ""},
+	}
+	for _, testCase := range cases {
+		if got := expandEscapes(testCase.in, webSocketEscapes); got != testCase.want {
 			t.Errorf("expandEscapes(%q) = %q, want %q", testCase.in, got, testCase.want)
 		}
 	}
@@ -246,5 +266,38 @@ func TestTUIStreamLeavesAWebSocketBodyAsWritten(t *testing.T) {
 	frame := nextSent(t, session)
 	if string(frame.Payload) != `{"text":"line\nbreak"}` {
 		t.Fatalf("payload = %q, want the escape left as written", frame.Payload)
+	}
+}
+
+// The whole point of the null byte: a STOMP frame cannot be sent without one.
+func TestTUIStreamSendsAStompFrameOverAWebSocket(t *testing.T) {
+	suite := streamSuite()
+	suite.Body = `CONNECT\naccept-version:1.2\nhost:/\n\n\0`
+	_, session, _ := startStreamFor(t, suite)
+
+	frame := nextSent(t, session)
+	want := "CONNECT\\naccept-version:1.2\\nhost:/\\n\\n\x00"
+	if string(frame.Payload) != want {
+		t.Fatalf("payload = %q, want %q", frame.Payload, want)
+	}
+	if frame.Opcode != runnerstream.Text {
+		t.Fatalf("opcode = %v, want text", frame.Opcode)
+	}
+}
+
+func TestTUIStreamSendsAStompFrameOverARawSocket(t *testing.T) {
+	suite := parserhttp.HttpSuite{
+		Name:      "stomp",
+		Method:    "SOCKET",
+		Uri:       "tcp://127.0.0.1:61613",
+		Transport: parserhttp.TransportTCP,
+		Body:      `CONNECT\naccept-version:1.2\nhost:/\n\n\0`,
+	}
+	_, session, _ := startStreamFor(t, suite)
+
+	frame := nextSent(t, session)
+	want := "CONNECT\naccept-version:1.2\nhost:/\n\n\x00"
+	if string(frame.Payload) != want {
+		t.Fatalf("payload = %q, want %q", frame.Payload, want)
 	}
 }

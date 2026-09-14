@@ -175,3 +175,41 @@ func TestWidgetKeepsOneFramePerLine(t *testing.T) {
 		t.Fatalf("text = %q, want the terminator shown rather than applied", text)
 	}
 }
+
+// A STOMP frame ends on a null byte. Dropping the whole frame into hex because
+// of that one byte would make a text protocol unreadable.
+func TestWidgetShowsANullTerminatedFrameAsText(t *testing.T) {
+	log := NewLog(10, 1<<20)
+	log.Append(runnerstream.Frame{
+		At:      at(1),
+		Opcode:  runnerstream.Bytes,
+		Payload: []byte("CONNECTED\nversion:1.2\n\n\x00"),
+	})
+
+	widget := buildWidget(t, log)
+	text := widget.Element.GetText(true)
+
+	if !strings.Contains(text, "CONNECTED") {
+		t.Fatalf("text = %q, want the frame shown as text", text)
+	}
+	if !strings.Contains(text, `\0`) {
+		t.Fatalf("text = %q, want the terminator shown as an escape", text)
+	}
+	if strings.Contains(text, "43 4f 4e") {
+		t.Fatalf("text = %q, want text rather than hex", text)
+	}
+	if lines := strings.Split(strings.TrimRight(text, "\n"), "\n"); len(lines) != 1 {
+		t.Fatalf("rendered %d lines for one frame:\n%s", len(lines), text)
+	}
+}
+
+// Allowing the null byte must not turn genuinely binary payloads into text.
+func TestWidgetStillShowsBinaryAsHexAlongsideANull(t *testing.T) {
+	log := NewLog(10, 1<<20)
+	log.Append(runnerstream.Frame{At: at(1), Opcode: runnerstream.Bytes, Payload: []byte{0x00, 0x01, 0x02}})
+
+	widget := buildWidget(t, log)
+	if text := widget.Element.GetText(true); !strings.Contains(text, "00 01 02") {
+		t.Fatalf("text = %q, want hex", text)
+	}
+}
