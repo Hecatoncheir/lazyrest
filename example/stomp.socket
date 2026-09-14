@@ -1,0 +1,14 @@
+# A STOMP broker such as RabbitMQ with the rabbitmq_stomp plugin enabled.
+# The frame ends on a null byte, which the file spells \0: the parser trims a
+# trailing newline, so it cannot be written any other way.
+
+@stompHost = "/"
+
+# @name Connect to a STOMP broker
+SOCKET tcp://127.0.0.1:61613
+
+CONNECT
+accept-version:1.2
+host:{{stompHost}}
+
+\0

@@ -139,3 +139,38 @@ func TestHTTPExamplesDeriveTheWebSocketTransport(t *testing.T) {
 		}
 	}
 }
+
+// A STOMP frame ends on a null byte, which a request file spells \0. Losing
+// that suffix would leave the examples parsing cleanly and still malformed.
+func TestStompExamplesEndOnANullEscape(t *testing.T) {
+	parser, err := parserhttp.NewParser()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer parser.Close()
+
+	found := 0
+	for _, path := range []string{"stomp.socket", "streams.http"} {
+		result, err := parser.ParseFileWithOptions(context.Background(), path, parserhttp.ParseOptions{})
+		if err != nil {
+			t.Fatalf("%s: %v", path, err)
+		}
+		for _, suite := range result.Suites {
+			if !strings.HasPrefix(suite.Body, "CONNECT") {
+				continue
+			}
+			found++
+			if !strings.HasSuffix(suite.Body, `\0`) {
+				t.Errorf("%s: %q does not end on a null escape: %q", path, suite.Name, suite.Body)
+			}
+			// The blank line between the headers and the body is part of the
+			// frame, not formatting.
+			if !strings.Contains(suite.Body, "\n\n") {
+				t.Errorf("%s: %q lost the blank line that ends its headers", path, suite.Name)
+			}
+		}
+	}
+	if found != 2 {
+		t.Fatalf("found %d STOMP examples, want one per transport", found)
+	}
+}
