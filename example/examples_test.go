@@ -3,6 +3,7 @@ package example
 import (
 	"context"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	parserhttp "github.com/Hecatoncheir/lazyrest/parser/http"
@@ -104,6 +105,11 @@ func TestSocketExamplesParseAsRawStreams(t *testing.T) {
 			if suite.Transport != parserhttp.TransportTCP {
 				t.Errorf("%s: %q transport = %v, want tcp", path, suite.Name, suite.Transport)
 			}
+			// The body is the opening message. An example whose body is never
+			// sent would promise what does not happen.
+			if strings.TrimSpace(suite.Body) == "" {
+				t.Errorf("%s: %q has no opening message", path, suite.Name)
+			}
 		}
 	}
 }
@@ -127,6 +133,9 @@ func TestHTTPExamplesDeriveTheWebSocketTransport(t *testing.T) {
 	for _, suite := range result.Suites {
 		if suite.Transport != parserhttp.TransportWebSocket {
 			t.Errorf("%q transport = %v, want websocket (uri %q)", suite.Name, suite.Transport, suite.Uri)
+		}
+		if strings.TrimSpace(suite.Body) == "" {
+			t.Errorf("%q has no opening message", suite.Name)
 		}
 	}
 }

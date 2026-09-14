@@ -3,6 +3,7 @@ package ui
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	parserhttp "github.com/Hecatoncheir/lazyrest/parser/http"
 	runnerstream "github.com/Hecatoncheir/lazyrest/runner/stream"
@@ -91,6 +92,22 @@ func (application *Application) runStream(
 		})
 		application.refreshStatus()
 	})
+
+	// The body of a stream request is what it says on connecting: a
+	// subscription is normally the first thing sent. Escapes are not expanded
+	// here, unlike in the composer, because a file can hold a real newline and
+	// an input field cannot.
+	if strings.TrimSpace(suite.Body) != "" {
+		opening := runnerstream.Frame{Opcode: runnerstream.Text, Payload: []byte(suite.Body)}
+		if suite.Transport == parserhttp.TransportTCP {
+			opening.Opcode = runnerstream.Bytes
+		}
+		if err := session.Send(ctx, opening); err != nil {
+			application.Element.QueueUpdateDraw(func() {
+				application.showStreamError(err.Error())
+			})
+		}
+	}
 
 	uistream.Follow(ctx, session, log, 0, func() {
 		application.Element.QueueUpdateDraw(application.Stream.Render)

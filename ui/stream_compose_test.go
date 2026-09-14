@@ -145,3 +145,50 @@ func TestTUIStreamComposerWillNotOpenWithoutAConnection(t *testing.T) {
 		return application.Model.CurrentOverlay() == OverlayNone
 	})
 }
+
+// The body of a stream request is its opening message. Both examples in
+// example/ rely on this, and without it they promise what does not happen.
+func TestTUIStreamSendsTheRequestBodyOnConnect(t *testing.T) {
+	suite := streamSuite()
+	suite.Body = `{"action":"subscribe","symbol":"BTC"}`
+	_, session, _ := startStreamFor(t, suite)
+
+	frame := nextSent(t, session)
+	if string(frame.Payload) != suite.Body {
+		t.Fatalf("payload = %q, want the request body", frame.Payload)
+	}
+	if frame.Opcode != runnerstream.Text {
+		t.Fatalf("opcode = %v, want text for a websocket", frame.Opcode)
+	}
+}
+
+func TestTUIStreamSendsARawSocketBodyAsBytes(t *testing.T) {
+	suite := parserhttp.HttpSuite{
+		Name:      "cache",
+		Method:    "SOCKET",
+		Uri:       "tcp://127.0.0.1:6379",
+		Transport: parserhttp.TransportTCP,
+		Body:      "PING\r\n",
+	}
+	_, session, _ := startStreamFor(t, suite)
+
+	frame := nextSent(t, session)
+	if string(frame.Payload) != "PING\r\n" {
+		t.Fatalf("payload = %q", frame.Payload)
+	}
+	if frame.Opcode != runnerstream.Bytes {
+		t.Fatalf("opcode = %v, want bytes for a raw socket", frame.Opcode)
+	}
+}
+
+func TestTUIStreamSendsNothingWhenTheBodyIsEmpty(t *testing.T) {
+	suite := streamSuite()
+	suite.Body = "   \n"
+	_, session, _ := startStreamFor(t, suite)
+
+	select {
+	case frame := <-session.sent:
+		t.Fatalf("an empty body was sent as a frame: %q", frame.Payload)
+	case <-time.After(300 * time.Millisecond):
+	}
+}
