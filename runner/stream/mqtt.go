@@ -10,6 +10,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/eclipse/paho.golang/packets"
 	"github.com/eclipse/paho.golang/paho"
 )
 
@@ -206,7 +207,15 @@ func dialMQTTConn(ctx context.Context, endpoint string, secure bool, config MQTT
 		InsecureSkipVerify: config.InsecureSkipVerify, //nolint:gosec // the user asked for it
 		MinVersion:         tls.VersionTLS12,
 	}}
-	return dialer.DialContext(ctx, "tcp", endpoint)
+	conn, err := dialer.DialContext(ctx, "tcp", endpoint)
+	if err != nil {
+		return nil, err
+	}
+	// The client writes from more than one goroutine — a publish, a keepalive —
+	// and a tls.Conn is not safe for concurrent writes the way a net.TCPConn
+	// is. Without this the stream is corrupted at random and the session hangs
+	// until its timeout.
+	return packets.NewThreadSafeConn(conn), nil
 }
 
 func (session *MQTTSession) subscribe(ctx context.Context) error {
