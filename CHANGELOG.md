@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Fixed
+- The footer no longer offers help twice when no pane holds focus.
+
 ### Added
 - WebSocket requests run from `.http` files, addressed by a `ws://` or `wss://` URL, and carry the headers and session cookies of the requests around them.
 - Raw TCP requests run from a new `.socket` file. A socket carries no message boundary, so a burst is joined into one frame and a pause ends it.

@@ -105,27 +105,39 @@ func (application *Application) footerHints(width int, focused tview.Primitive) 
 		return state.Request.Phase == PhaseIdle && state.Request.Outcome == OutcomeNone
 	}()
 
+	helpHint := hint(keymap.Help, "hint_help")
+
 	var contextual string
-	switch focused {
-	case application.HttpFilesTree.Element:
+	switch {
+	case focused == application.HttpFilesTree.Element:
 		contextual = join(hint(keymap.Open, "hint_open"), hint(keymap.Search, "hint_search"))
 		if width >= 100 {
 			contextual = join(contextual, hint(keymap.Reload, "hint_reload"))
 		}
-	case application.Suites.Element:
+	case focused == application.Suites.Element:
 		contextual = join(hint(keymap.Open, "hint_select"), hint(keymap.Search, "hint_search"))
-	case application.Suite.Element:
+	case focused == application.Suite.Element:
 		contextual = join(hint(keymap.Run, "hint_run"), hint(keymap.Back, "hint_back"))
-	case application.Producer.Element:
+	case focused == application.Producer.Element:
 		contextual = join(hint(keymap.ToggleBody, "hint_view"), hint(keymap.ToggleHeaders, "hint_headers"))
 		if width >= 80 {
 			contextual = join(contextual, hint(keymap.ToggleRequest, "hint_request"))
 		}
+	case application.Stream != nil && focused == application.Stream.Element:
+		contextual = join(hint(keymap.StreamFollow, "hint_follow"), hint(keymap.StreamSend, "hint_send"))
+		if width >= 80 {
+			contextual = join(contextual, hint(keymap.StreamClear, "hint_clear"))
+		}
 	default:
-		contextual = hint(keymap.Help, "hint_help")
+		contextual = helpHint
 	}
 	if width >= 120 || (onboarding && width >= 80) {
-		contextual = join(contextual, hint(keymap.Help, "hint_help"), hint(keymap.CommandPalette, "hint_commands"))
+		// The default branch already offers help; appending it again is how the
+		// hint used to appear twice.
+		if contextual != helpHint {
+			contextual = join(contextual, helpHint)
+		}
+		contextual = join(contextual, hint(keymap.CommandPalette, "hint_commands"))
 	}
 	return contextual
 }
