@@ -14,14 +14,18 @@ does not cover:
 - Test (one test): `go test ./ui -run TestTUIChainsRequestsThroughAnEarlierResponse`
 - Terminal integration tests: `go test ./ui -run TUI`
 - Fuzz one target: `go test ./parser/http -run=^$ -fuzz=^FuzzResolveVariables$ -fuzztime=2s`
-- Fuzz everything the way CI does: `.github/scripts/fuzz.sh 2s 2`
+- Fuzz everything the way CI does: `.github/scripts/fuzz.sh 10s 2`
 - Run against the bundled samples: `go run . example`
+
+The app is a TUI and cannot be driven from a shell directly. To see a change
+working, follow `.claude/skills/run-lazyrest/SKILL.md`: it wraps the app in
+tmux and bundles the servers a stream needs.
 
 CI enforces more than `go test -race ./...`. It also fails on anything
 `gofmt -l .` prints, on a `go mod tidy` that leaves a diff, on `shellcheck`
-over every tracked `*.sh`, on `govulncheck`, on a two second smoke run of every
-fuzz target, and on a `CGO_ENABLED=0` build
-of all five release targets. Both fuzz jobs call
+over every tracked `*.sh`, on `govulncheck`, on a ten second smoke run of every
+fuzz target, and on a `CGO_ENABLED=0` build of all five release targets. Both
+fuzz jobs call
 `.github/scripts/fuzz.sh <fuzztime> <parallel>`, which discovers the targets
 with `go test ./... -list='^Fuzz'` rather than listing them, so a new target
 needs no CI change; a discovery that comes back empty fails the run instead of
@@ -50,8 +54,11 @@ quietly fuzzing nothing.
 
 ## Architecture
 
-A terminal UI for reading and running `.http` and `.hurl` files. The flow is:
-file discovery → parsing → suite selection → execution → response rendering.
+A terminal UI for reading and running `.http`, `.hurl` and `.socket` files. The
+flow is: file discovery → parsing → suite selection → execution → response
+rendering. A request that opens a long lived connection — a WebSocket, an MQTT
+session, a raw socket — takes a different path after selection: `runner/stream`
+holds the connection open and `ui/stream` shows the frames.
 
 ### Tech stack
 
@@ -74,6 +81,9 @@ file discovery → parsing → suite selection → execution → response render
   document from its variables; `redact.go` hides secrets.
 - `parser/hurl/`: splits a `.hurl` file into its entries.
 - `runner/`: executes a request or shells out to `hurl`.
+- `runner/stream/`: the connections that outlive a single request. `tcp.go`,
+  `websocket.go` and `mqtt.go` each satisfy `Session`; `frame.go` holds the
+  `Frame` they all produce.
 - `finder/`: walks a directory tree for request files.
 - `environment/`, `config/`, `keymap/`, `locale/`, `color/`: environment
   profiles, layered YAML configuration, key bindings, translations, and the
@@ -130,3 +140,21 @@ sleep, and never assert on a single draw.
   item text by default.
 - A `.hurl` entry is run with `--to-entry`, never `--from-entry`: an entry may
   use what an earlier one captured.
+- **Which file a request belongs in is decided by the session, not the
+  protocol.** A WebSocket and an MQTT session live in `.http` because they want
+  the variables, cookies and captured responses around them — a broker password
+  is commonly a token an HTTP login returned. A raw socket authenticates inside
+  its own protocol, so it lives in `.socket` and gives up chaining, which a
+  reference keyed by source file cannot cross. STOMP needs no file of its own:
+  it rides on a raw socket or on a WebSocket, which is how brokers serve it.
+- Only the dial of a stream is bounded by the timeout; the session that follows
+  is not. `runner.Runner` bounds a whole run and returns one response, which is
+  why a stream is not one. It refuses a stream transport rather than failing
+  obscurely.
+- Frames never reach `ui.Model`. A snapshot deep copies every suite in the file
+  and `refreshStatus` takes one on each call, so a busy connection would clone
+  the request list per frame. `ui/stream.Log` carries its own lock, and the
+  pane repaints on a ticker rather than per frame.
+- A `Frame` carries `Attributes` for what the payload does not say — an MQTT
+  topic, a quality of service. Redact them as you redact a body: a topic is
+  built from the same variables.

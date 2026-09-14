@@ -5,10 +5,16 @@ import (
 	"strings"
 )
 
-// SocketFileExtension marks a file of raw socket requests. WebSocket stays in
-// .http because it upgrades from an HTTP session and wants the same headers,
-// cookies and captured responses. A raw socket shares none of that, so it gets
-// a file of its own.
+// SocketFileExtension marks a file of raw socket requests.
+//
+// What decides the file is not whether the protocol is HTTP. It is whether the
+// request wants the surrounding HTTP session: its variables, its cookies, and
+// the responses earlier requests captured. A WebSocket upgrades from that
+// session, and an MQTT broker commonly takes as its password a token an HTTP
+// login returned, so both live in .http and can write
+// {{login.response.body.$.token}}. A raw socket authenticates inside its own
+// protocol and wants none of it, so it gets a file of its own — and gives up
+// the chaining, which a reference keyed by source file cannot cross.
 const SocketFileExtension = ".socket"
 
 // Transport names how a request reaches its peer. Everything but TransportHTTP
