@@ -14,97 +14,101 @@ import (
 type Action string
 
 const (
-	Help             Action = "help"
-	Diagnostics      Action = "diagnostics"
-	Quit             Action = "quit"
-	FocusLeft        Action = "focus_left"
-	FocusDown        Action = "focus_down"
-	FocusUp          Action = "focus_up"
-	FocusRight       Action = "focus_right"
-	Open             Action = "open"
-	Run              Action = "run"
-	Back             Action = "back"
-	Search           Action = "search"
-	SearchFinish     Action = "search_finish"
-	SearchNext       Action = "search_next"
-	SearchPrevious   Action = "search_previous"
-	Reload           Action = "reload"
-	MoveDown         Action = "move_down"
-	MoveUp           Action = "move_up"
-	HalfPageDown     Action = "half_page_down"
-	HalfPageUp       Action = "half_page_up"
-	PageDown         Action = "page_down"
-	PageUp           Action = "page_up"
-	GoToTop          Action = "go_to_top"
-	GoToBottom       Action = "go_to_bottom"
-	AlignTop         Action = "align_top"
-	CenterView       Action = "center_view"
-	AlignBottom      Action = "align_bottom"
-	ToggleBody       Action = "toggle_body"
-	ToggleHeaders    Action = "toggle_headers"
-	ToggleRequest    Action = "toggle_request_details"
-	RerunRequest     Action = "rerun_request"
-	CopyResponseBody Action = "copy_response_body"
-	CopyResponse     Action = "copy_response"
-	CopyAsCurl       Action = "copy_as_curl"
-	SaveResponse     Action = "save_response"
-	SaveFullResponse Action = "save_full_response"
-	ClearCaptured    Action = "clear_captured_responses"
-	ClearHistory     Action = "clear_history"
-	HistoryPrevious  Action = "history_previous"
-	HistoryNext      Action = "history_next"
-	CommandPalette   Action = "command_palette"
-	ReloadConfig     Action = "reload_config"
-	StreamFollow     Action = "stream_follow"
-	StreamClear      Action = "stream_clear"
-	StreamSend       Action = "stream_send"
+	Help                 Action = "help"
+	Diagnostics          Action = "diagnostics"
+	Quit                 Action = "quit"
+	FocusLeft            Action = "focus_left"
+	FocusDown            Action = "focus_down"
+	FocusUp              Action = "focus_up"
+	FocusRight           Action = "focus_right"
+	Open                 Action = "open"
+	Run                  Action = "run"
+	Back                 Action = "back"
+	Search               Action = "search"
+	SearchFinish         Action = "search_finish"
+	SearchNext           Action = "search_next"
+	SearchPrevious       Action = "search_previous"
+	Reload               Action = "reload"
+	MoveDown             Action = "move_down"
+	MoveUp               Action = "move_up"
+	HalfPageDown         Action = "half_page_down"
+	HalfPageUp           Action = "half_page_up"
+	PageDown             Action = "page_down"
+	PageUp               Action = "page_up"
+	GoToTop              Action = "go_to_top"
+	GoToBottom           Action = "go_to_bottom"
+	AlignTop             Action = "align_top"
+	CenterView           Action = "center_view"
+	AlignBottom          Action = "align_bottom"
+	ToggleBody           Action = "toggle_body"
+	ToggleHeaders        Action = "toggle_headers"
+	ToggleRequest        Action = "toggle_request_details"
+	RerunRequest         Action = "rerun_request"
+	CopyResponseBody     Action = "copy_response_body"
+	CopyResponse         Action = "copy_response"
+	CopyAsCurl           Action = "copy_as_curl"
+	SaveResponse         Action = "save_response"
+	SaveFullResponse     Action = "save_full_response"
+	ClearCaptured        Action = "clear_captured_responses"
+	ClearHistory         Action = "clear_history"
+	HistoryPrevious      Action = "history_previous"
+	HistoryNext          Action = "history_next"
+	CommandPalette       Action = "command_palette"
+	ReloadConfig         Action = "reload_config"
+	StreamFollow         Action = "stream_follow"
+	StreamClear          Action = "stream_clear"
+	StreamSend           Action = "stream_send"
+	StreamRecallPrevious Action = "stream_recall_previous"
+	StreamRecallNext     Action = "stream_recall_next"
 )
 
 var defaults = map[Action][]string{
-	Help:             {"?"},
-	Diagnostics:      {"d"},
-	Quit:             {"q", "ctrl+c"},
-	FocusLeft:        {"ctrl+h"},
-	FocusDown:        {"ctrl+j"},
-	FocusUp:          {"ctrl+k"},
-	FocusRight:       {"ctrl+l"},
-	Open:             {"enter", "l"},
-	Run:              {"enter"},
-	Back:             {"esc"},
-	Search:           {"/"},
-	SearchFinish:     {"enter", "esc"},
-	SearchNext:       {"n"},
-	SearchPrevious:   {"N"},
-	Reload:           {"r"},
-	MoveDown:         {"j"},
-	MoveUp:           {"k"},
-	HalfPageDown:     {"ctrl+d"},
-	HalfPageUp:       {"ctrl+u"},
-	PageDown:         {"ctrl+f"},
-	PageUp:           {"ctrl+b"},
-	GoToTop:          {"gg"},
-	GoToBottom:       {"G"},
-	AlignTop:         {"zt"},
-	CenterView:       {"zz"},
-	AlignBottom:      {"zb"},
-	ToggleBody:       {"p"},
-	ToggleHeaders:    {"h"},
-	ToggleRequest:    {"i"},
-	RerunRequest:     {"R"},
-	CopyResponseBody: {"y"},
-	CopyResponse:     {"Y"},
-	CopyAsCurl:       {"C"},
-	SaveResponse:     {"s"},
-	SaveFullResponse: {"S"},
-	ClearCaptured:    {"c"},
-	ClearHistory:     {"c"},
-	HistoryPrevious:  {"["},
-	HistoryNext:      {"]"},
-	CommandPalette:   {":", "ctrl+p"},
-	StreamFollow:     {"f"},
-	StreamClear:      {"c"},
-	StreamSend:       {"s"},
-	ReloadConfig:     {"ctrl+r"},
+	Help:                 {"?"},
+	Diagnostics:          {"d"},
+	Quit:                 {"q", "ctrl+c"},
+	FocusLeft:            {"ctrl+h"},
+	FocusDown:            {"ctrl+j"},
+	FocusUp:              {"ctrl+k"},
+	FocusRight:           {"ctrl+l"},
+	Open:                 {"enter", "l"},
+	Run:                  {"enter"},
+	Back:                 {"esc"},
+	Search:               {"/"},
+	SearchFinish:         {"enter", "esc"},
+	SearchNext:           {"n"},
+	SearchPrevious:       {"N"},
+	Reload:               {"r"},
+	MoveDown:             {"j"},
+	MoveUp:               {"k"},
+	HalfPageDown:         {"ctrl+d"},
+	HalfPageUp:           {"ctrl+u"},
+	PageDown:             {"ctrl+f"},
+	PageUp:               {"ctrl+b"},
+	GoToTop:              {"gg"},
+	GoToBottom:           {"G"},
+	AlignTop:             {"zt"},
+	CenterView:           {"zz"},
+	AlignBottom:          {"zb"},
+	ToggleBody:           {"p"},
+	ToggleHeaders:        {"h"},
+	ToggleRequest:        {"i"},
+	RerunRequest:         {"R"},
+	CopyResponseBody:     {"y"},
+	CopyResponse:         {"Y"},
+	CopyAsCurl:           {"C"},
+	SaveResponse:         {"s"},
+	SaveFullResponse:     {"S"},
+	ClearCaptured:        {"c"},
+	ClearHistory:         {"c"},
+	HistoryPrevious:      {"["},
+	HistoryNext:          {"]"},
+	CommandPalette:       {":", "ctrl+p"},
+	StreamFollow:         {"f"},
+	StreamClear:          {"c"},
+	StreamSend:           {"s"},
+	StreamRecallPrevious: {"up"},
+	StreamRecallNext:     {"down"},
+	ReloadConfig:         {"ctrl+r"},
 }
 
 type Bindings struct {
@@ -258,6 +262,7 @@ func (bindings *Bindings) validateConflicts() error {
 		{"suite", append(append([]Action{}, global...), Run, Back)},
 		{"producer", append(append([]Action{}, global...), Back, Search, SearchNext, SearchPrevious, HistoryPrevious, HistoryNext, ToggleBody, ToggleHeaders, ToggleRequest, RerunRequest, CopyResponseBody, CopyResponse, CopyAsCurl, SaveResponse, SaveFullResponse)},
 		{"stream", append(append([]Action{}, global...), Back, StreamFollow, StreamClear, StreamSend)},
+		{"send frame", []Action{Back, StreamRecallPrevious, StreamRecallNext}},
 		{"search", []Action{SearchFinish}},
 		{"overlay", overlay},
 		{"captured responses", append(append([]Action{}, overlay...), ClearCaptured)},

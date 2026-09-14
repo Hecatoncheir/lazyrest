@@ -56,6 +56,9 @@ type Application struct {
 	streamCancel         context.CancelFunc
 	streamSession        runnerstream.Session
 	streamTransport      parserhttp.Transport
+	sentFramesMutex      sync.Mutex
+	sentFrames           []string
+	sentFrameCursor      int
 	previousFocus        tview.Primitive
 	screen               tcell.Screen
 	pendingExport        *producer.ResponseExport

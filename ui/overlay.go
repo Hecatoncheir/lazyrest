@@ -353,6 +353,7 @@ func helpText(bindings *keymap.Bindings, translator *locale.Translator) string {
 		line(keymap.StreamFollow, translator.Text("stream_follow_help")),
 		line(keymap.StreamClear, translator.Text("stream_clear_help")),
 		line(keymap.StreamSend, translator.Text("stream_send_help")),
+		line(keymap.StreamRecallPrevious, translator.Text("stream_recall_help")),
 		line(keymap.Back, translator.Text("stream_close_help")),
 		"",
 		translator.Format("search_finish", bindings.Describe(keymap.SearchFinish)),
