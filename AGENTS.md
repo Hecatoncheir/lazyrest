@@ -17,8 +17,9 @@ The request flow is broadly: file discovery → parsing → suite selection → 
 - `gofmt -w .` formats Go sources.
 - `go mod tidy` normalizes module metadata; verify it does not leave unintended changes.
 - `go run golang.org/x/vuln/cmd/govulncheck@v1.7.0 ./...` scans reachable dependencies the way CI does.
+- `git ls-files '*.sh' | xargs -r shellcheck` lints the shell scripts the way CI does; the script list is discovered, not fixed.
 
-Before submitting changes, run formatting, vet, the linters, race tests, and the full build. CI checks more than that: `gofmt -l .` must print nothing, `go mod tidy` must leave no diff, `govulncheck` must be clean, every fuzz target must survive a two second smoke run, and all five release targets must build with `CGO_ENABLED=0`.
+Before submitting changes, run formatting, vet, the linters, race tests, and the full build. CI checks more than that: `gofmt -l .` must print nothing, `go mod tidy` must leave no diff, `shellcheck` must pass over every tracked `*.sh`, `govulncheck` must be clean, every fuzz target must survive a two second smoke run, and all five release targets must build with `CGO_ENABLED=0`.
 
 ## Coding Style & Naming Conventions
 

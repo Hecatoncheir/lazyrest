@@ -83,6 +83,14 @@ jobs:
       - name: Verify module files
         run: go mod tidy && git diff --exit-code
 
+      - name: Run shellcheck
+        run: |
+          set -euo pipefail
+          shellcheck --version
+          # Discovered rather than listed, so a script added later is linted
+          # without touching this workflow.
+          git ls-files '*.sh' | xargs -r shellcheck
+
       - name: Run go vet
         run: go vet ./...
 

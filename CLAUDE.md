@@ -18,8 +18,9 @@ does not cover:
 - Run against the bundled samples: `go run . example`
 
 CI enforces more than `go test -race ./...`. It also fails on anything
-`gofmt -l .` prints, on a `go mod tidy` that leaves a diff, on `govulncheck`,
-on a two second smoke run of every fuzz target, and on a `CGO_ENABLED=0` build
+`gofmt -l .` prints, on a `go mod tidy` that leaves a diff, on `shellcheck`
+over every tracked `*.sh`, on `govulncheck`, on a two second smoke run of every
+fuzz target, and on a `CGO_ENABLED=0` build
 of all five release targets. Both fuzz jobs call
 `.github/scripts/fuzz.sh <fuzztime> <parallel>`, which discovers the targets
 with `go test ./... -list='^Fuzz'` rather than listing them, so a new target
