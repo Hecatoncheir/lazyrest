@@ -39,7 +39,14 @@ quietly fuzzing nothing.
   redacted body shown by Producer to a user-selected `0600` file.
 - Every package holding logic has tests. `ui/symbols`, which is four glyph
   constants, is the only package without them. `golangci-lint` reports zero
-  issues; keep it that way rather than adding exclusions.
+  issues; keep it that way rather than adding exclusions. The single exclusion
+  that exists exempts test files from `gocognit`, where a table is long by
+  design.
+- **A function stays under a cognitive complexity of 25**, which `gocognit`
+  enforces. The usual fix is to split a long dispatch into named steps, one per
+  thing it decides. What sits nearest the bound is a hand written scanner, the
+  flag parsing in `main`, and one read loop: branchy by nature, where splitting
+  would add indirection rather than clarity.
 
 ## Architecture
 

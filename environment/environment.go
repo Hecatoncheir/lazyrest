@@ -232,65 +232,94 @@ func loadDotEnv(path string) (map[string]string, bool, error) {
 	return values, true, nil
 }
 
+// parseDotEnvValue reads the value side of a dotenv line. Three forms are
+// possible and each treats escapes differently: single quotes take the text as
+// written, double quotes interpret backslash escapes, and an unquoted value
+// ends where a comment begins.
 func parseDotEnvValue(value string) (string, error) {
 	if value == "" {
 		return "", nil
 	}
-	if value[0] == '\'' {
-		closing := strings.IndexByte(value[1:], '\'')
-		if closing < 0 {
-			return "", fmt.Errorf("unterminated single-quoted value")
-		}
-		closing++
-		if err := validateDotEnvSuffix(value[closing+1:]); err != nil {
-			return "", err
-		}
-		return value[1:closing], nil
+	switch value[0] {
+	case '\'':
+		return parseSingleQuotedValue(value)
+	case '"':
+		return parseDoubleQuotedValue(value)
+	default:
+		return parseBareValue(value), nil
 	}
-	if value[0] == '"' {
-		var result strings.Builder
-		escaped := false
-		for index := 1; index < len(value); index++ {
-			character := value[index]
-			if escaped {
-				switch character {
-				case 'n':
-					result.WriteByte('\n')
-				case 'r':
-					result.WriteByte('\r')
-				case 't':
-					result.WriteByte('\t')
-				case '\\', '"':
-					result.WriteByte(character)
-				default:
-					result.WriteByte('\\')
-					result.WriteByte(character)
-				}
-				escaped = false
-				continue
+}
+
+// parseSingleQuotedValue takes everything up to the closing quote exactly as it
+// was written; single quotes define no escapes at all.
+func parseSingleQuotedValue(value string) (string, error) {
+	closing := strings.IndexByte(value[1:], '\'')
+	if closing < 0 {
+		return "", fmt.Errorf("unterminated single-quoted value")
+	}
+	closing++
+	if err := validateDotEnvSuffix(value[closing+1:]); err != nil {
+		return "", err
+	}
+	return value[1:closing], nil
+}
+
+// parseDoubleQuotedValue interprets the escapes the format defines, and keeps
+// any other escape as it was written.
+func parseDoubleQuotedValue(value string) (string, error) {
+	var result strings.Builder
+	escaped := false
+
+	for index := 1; index < len(value); index++ {
+		character := value[index]
+		switch {
+		case escaped:
+			writeDotEnvEscape(&result, character)
+			escaped = false
+		case character == '\\':
+			escaped = true
+		case character == '"':
+			if err := validateDotEnvSuffix(value[index+1:]); err != nil {
+				return "", err
 			}
-			if character == '\\' {
-				escaped = true
-				continue
-			}
-			if character == '"' {
-				if err := validateDotEnvSuffix(value[index+1:]); err != nil {
-					return "", err
-				}
-				return result.String(), nil
-			}
+			return result.String(), nil
+		default:
 			result.WriteByte(character)
 		}
-		return "", fmt.Errorf("unterminated double-quoted value")
 	}
+	return "", fmt.Errorf("unterminated double-quoted value")
+}
 
+func writeDotEnvEscape(result *strings.Builder, character byte) {
+	switch character {
+	case 'n':
+		result.WriteByte('\n')
+	case 'r':
+		result.WriteByte('\r')
+	case 't':
+		result.WriteByte('\t')
+	case '\\', '"':
+		result.WriteByte(character)
+	default:
+		// An escape the format does not define stays as it was written, rather
+		// than losing its backslash.
+		result.WriteByte('\\')
+		result.WriteByte(character)
+	}
+}
+
+// parseBareValue ends the value at a comment, which must be preceded by a
+// space so that a '#' inside a value is kept.
+func parseBareValue(value string) string {
 	for index, character := range value {
-		if character == '#' && index > 0 && (value[index-1] == ' ' || value[index-1] == '\t') {
-			value = value[:index]
-			break
+		if character != '#' || index == 0 {
+			continue
+		}
+		if previous := value[index-1]; previous == ' ' || previous == '\t' {
+			return strings.TrimSpace(value[:index])
 		}
 	}
-	return strings.TrimSpace(value), nil
+	return strings.TrimSpace(value)
 }
 
 func validateDotEnvSuffix(suffix string) error {

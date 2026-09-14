@@ -114,68 +114,110 @@ func looksLikeTarget(target string) bool {
 
 // parseDocument reads every request of a file, together with the diagnostics
 // that describe what could not be read.
+// documentParser accumulates what reading a document produces: the requests,
+// the diagnostics, the variables declared along the way, and the name a comment
+// left for the request that follows it.
+type documentParser struct {
+	options     ParseOptions
+	variables   map[string]string
+	suites      []HttpSuite
+	diagnostics []Diagnostic
+	pendingName string
+}
+
 func parseDocument(source string, options ParseOptions) ([]HttpSuite, []Diagnostic) {
-	suites := []HttpSuite{}
-	diagnostics := []Diagnostic{}
-	pendingName := ""
 	variables := maps.Clone(options.Variables)
 	if variables == nil {
 		variables = make(map[string]string)
 	}
-
+	parser := &documentParser{
+		options:     options,
+		variables:   variables,
+		suites:      []HttpSuite{},
+		diagnostics: []Diagnostic{},
+	}
 	for _, current := range splitDocument(source) {
-		switch current.kind {
-		case blockVariable:
-			name, value, ok := parseVariableDeclaration(current.text)
-			if !ok {
-				diagnostics = append(diagnostics, diagnosticAt(current.line, "invalid variable declaration"))
-				continue
-			}
-			variables[name] = value
+		parser.readBlock(current)
+	}
+	return parser.suites, parser.diagnostics
+}
 
-		case blockComment:
-			if name := getNameFromComment(current.text); name != "" {
-				pendingName = name
-			}
+func (parser *documentParser) readBlock(current block) {
+	switch current.kind {
+	case blockVariable:
+		parser.readVariable(current)
+	case blockComment:
+		parser.readComment(current)
+	case blockRequest:
+		parser.readRequest(current)
+	}
+}
 
-		case blockRequest:
-			suite := newSuiteFromText(current.text)
-			if !suite.isRecognizedRequest() {
-				diagnostics = append(diagnostics, diagnosticAt(current.line, "unrecognized content"))
-				continue
-			}
-			if pendingName != "" {
-				suite.Name = pendingName
-				pendingName = ""
-			}
-			// The body is loaded before substitution so that the file can use
-			// variables too.
-			if err := loadExternalBody(&suite, options.baseDirectory); err != nil {
-				diagnostic := blockingDiagnosticAt(current.line, err.Error())
-				diagnostics = append(diagnostics, diagnostic)
-				suite.Diagnostics = append(suite.Diagnostics, diagnostic)
-			}
-			applyGraphQL(&suite)
-			resolution := resolveSuiteVariables(&suite, variables)
-			suite.SecretValues = resolveSecretVariables(options.SecretVariables, variables)
-			for _, name := range resolution.Missing {
-				diagnostic := blockingDiagnosticAt(current.line, "undefined variable: "+name)
-				diagnostics = append(diagnostics, diagnostic)
-				suite.Diagnostics = append(suite.Diagnostics, diagnostic)
-			}
-			for _, cycle := range resolution.Cycles {
-				diagnostic := blockingDiagnosticAt(current.line, "cyclic variable reference: "+cycle)
-				diagnostics = append(diagnostics, diagnostic)
-				suite.Diagnostics = append(suite.Diagnostics, diagnostic)
-			}
-			if suite.Name == "" {
-				suite.Name = strings.TrimSpace(suite.Method + " " + suite.Uri)
-			}
-			suites = append(suites, suite)
-		}
+func (parser *documentParser) readVariable(current block) {
+	name, value, ok := parseVariableDeclaration(current.text)
+	if !ok {
+		parser.diagnostics = append(parser.diagnostics,
+			diagnosticAt(current.line, "invalid variable declaration"))
+		return
+	}
+	parser.variables[name] = value
+}
+
+// readComment keeps a name for the request that follows it, which is how a
+// request is named at all.
+func (parser *documentParser) readComment(current block) {
+	if name := getNameFromComment(current.text); name != "" {
+		parser.pendingName = name
+	}
+}
+
+func (parser *documentParser) readRequest(current block) {
+	suite := newSuiteFromText(current.text)
+	if !suite.isRecognizedRequest() {
+		parser.diagnostics = append(parser.diagnostics,
+			diagnosticAt(current.line, "unrecognized content"))
+		return
+	}
+	if parser.pendingName != "" {
+		suite.Name = parser.pendingName
+		parser.pendingName = ""
 	}
 
-	return suites, diagnostics
+	// The body is loaded before substitution so that the file can use variables
+	// too.
+	if err := loadExternalBody(&suite, parser.options.baseDirectory); err != nil {
+		parser.report(&suite, current.line, err.Error())
+	}
+	applyGraphQL(&suite)
+	parser.substitute(&suite, current.line)
+
+	if suite.Name == "" {
+		suite.Name = strings.TrimSpace(suite.Method + " " + suite.Uri)
+	}
+	parser.suites = append(parser.suites, suite)
+}
+
+// substitute fills in the variables the request uses and reports the ones it
+// cannot.
+func (parser *documentParser) substitute(suite *HttpSuite, line int) {
+	resolution := resolveSuiteVariables(suite, parser.variables)
+	suite.SecretValues = resolveSecretVariables(parser.options.SecretVariables, parser.variables)
+
+	for _, name := range resolution.Missing {
+		parser.report(suite, line, "undefined variable: "+name)
+	}
+	for _, cycle := range resolution.Cycles {
+		parser.report(suite, line, "cyclic variable reference: "+cycle)
+	}
+}
+
+// report records a blocking diagnostic twice: once for the document, and once
+// on the request it belongs to, so a pane showing a single request still sees
+// the reason it cannot run.
+func (parser *documentParser) report(suite *HttpSuite, line int, message string) {
+	diagnostic := blockingDiagnosticAt(line, message)
+	parser.diagnostics = append(parser.diagnostics, diagnostic)
+	suite.Diagnostics = append(suite.Diagnostics, diagnostic)
 }
 
 func newSuiteFromText(text string) HttpSuite {

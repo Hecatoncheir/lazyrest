@@ -3,6 +3,23 @@ version: "2"
 linters:
   # The standard set: errcheck, govet, ineffassign, staticcheck, unused.
   default: standard
+  enable:
+    # A function above this is hard to hold in your head at once. The bound is
+    # set just above what the tree currently needs, so it cannot creep back up
+    # without someone deciding to raise it. What sits near the bound is a hand
+    # written scanner, the flag parsing in main, and one read loop: branchy by
+    # nature, where splitting would add indirection rather than clarity.
+    - gocognit
+  settings:
+    gocognit:
+      min-complexity: 25
+  exclusions:
+    rules:
+      # A table driven test is long by design, and its length is not the kind
+      # of complexity this bound is about.
+      - path: _test\.go
+        linters:
+          - gocognit
 
 formatters:
   enable:
