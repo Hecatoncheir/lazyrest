@@ -230,8 +230,21 @@ func (widget *Widget) line(frame runnerstream.Frame) string {
 		builder.WriteString("+")
 	}
 	builder.WriteString("[-] ")
+	// What a protocol says about the frame comes before the payload: the topic
+	// a message arrived on is read more often than the bytes it carried.
+	for _, attribute := range frame.Attributes {
+		builder.WriteString("[gray]")
+		builder.WriteString(tview.Escape(attribute.Name + "=" + widget.redactedAttribute(attribute.Value)))
+		builder.WriteString("[-] ")
+	}
 	builder.WriteString(widget.payload(frame))
 	return builder.String()
+}
+
+// redactedAttribute hides secrets in metadata too. A topic or a routing key is
+// built from the same variables a body is, so it can carry one just as easily.
+func (widget *Widget) redactedAttribute(value string) string {
+	return visibleControls(parserhttp.RedactSecrets(value, widget.secrets))
 }
 
 func directionMark(direction runnerstream.Direction) string {

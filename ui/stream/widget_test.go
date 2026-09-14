@@ -213,3 +213,65 @@ func TestWidgetStillShowsBinaryAsHexAlongsideANull(t *testing.T) {
 		t.Fatalf("text = %q, want hex", text)
 	}
 }
+
+// A payload without the topic it arrived on hides the part that matters most.
+func TestWidgetShowsFrameAttributes(t *testing.T) {
+	log := NewLog(10, 1<<20)
+	log.Append(runnerstream.Frame{
+		At:      at(1),
+		Opcode:  runnerstream.Text,
+		Payload: []byte(`{"celsius":21}`),
+		Attributes: []runnerstream.Attribute{
+			{Name: "topic", Value: "sensors/1/temp"},
+			{Name: "qos", Value: "1"},
+		},
+	})
+
+	widget := buildWidget(t, log)
+	text := widget.Element.GetText(true)
+
+	for _, expected := range []string{"topic=sensors/1/temp", "qos=1"} {
+		if !strings.Contains(text, expected) {
+			t.Errorf("text = %q, want %q", text, expected)
+		}
+	}
+	// Order is the protocol's, not a map's.
+	if strings.Index(text, "topic=") > strings.Index(text, "qos=") {
+		t.Errorf("attributes are reordered: %q", text)
+	}
+	// They belong before the payload, which is read less often.
+	if strings.Index(text, "qos=") > strings.Index(text, "celsius") {
+		t.Errorf("attributes follow the payload: %q", text)
+	}
+}
+
+// A topic is built from the same variables a body is, so it can carry a secret
+// just as easily.
+func TestWidgetRedactsSecretsInAttributes(t *testing.T) {
+	log := NewLog(10, 1<<20)
+	log.Append(runnerstream.Frame{
+		At:         at(1),
+		Opcode:     runnerstream.Text,
+		Payload:    []byte("{}"),
+		Attributes: []runnerstream.Attribute{{Name: "topic", Value: "devices/super-secret-id/state"}},
+	})
+
+	widget := NewWidget()
+	widget.Build(Parameters{Theme: theme.NewDefault()})
+	widget.SetSecretValues([]string{"super-secret-id"})
+	widget.SetLog(log)
+
+	if text := widget.Element.GetText(true); strings.Contains(text, "super-secret-id") {
+		t.Fatalf("the secret reached the screen through an attribute: %q", text)
+	}
+}
+
+func TestFrameAttributeLookup(t *testing.T) {
+	frame := runnerstream.Frame{Attributes: []runnerstream.Attribute{{Name: "topic", Value: "a/b"}}}
+	if value, found := frame.Attribute("topic"); !found || value != "a/b" {
+		t.Fatalf("Attribute(topic) = %q, %v", value, found)
+	}
+	if _, found := frame.Attribute("qos"); found {
+		t.Fatal("Attribute reported a value that was never recorded")
+	}
+}

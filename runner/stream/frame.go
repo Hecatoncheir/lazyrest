@@ -57,6 +57,15 @@ func (opcode Opcode) String() string {
 	}
 }
 
+// Attribute is what a protocol says about a frame beyond its bytes: the topic
+// an MQTT message arrived on, its quality of service, a routing key. It is a
+// slice rather than a map so the order a protocol considers natural survives
+// to the screen.
+type Attribute struct {
+	Name  string
+	Value string
+}
+
 // Frame is one message in either direction. Payload is raw: redaction and
 // escaping belong to whoever renders or exports it, never to the transport.
 type Frame struct {
@@ -67,6 +76,21 @@ type Frame struct {
 	// Truncated marks a frame cut short by the configured byte limit, the way
 	// runner.Response.Truncated marks a bounded body.
 	Truncated bool
+	// Attributes hold what the payload alone does not say. A byte oriented
+	// transport leaves this empty; a message broker fills it, because a payload
+	// without the topic it arrived on hides the part that matters most.
+	Attributes []Attribute
+}
+
+// Attribute returns the value recorded under name, if the protocol recorded
+// one.
+func (frame Frame) Attribute(name string) (string, bool) {
+	for _, attribute := range frame.Attributes {
+		if attribute.Name == name {
+			return attribute.Value, true
+		}
+	}
+	return "", false
 }
 
 // Session is what the UI drives. Frames is closed when the connection ends,
