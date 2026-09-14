@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Fixed
+- The frame composer leaves the screen once the frame is sent, instead of staying drawn over the log.
+- A frame occupies exactly one row in the log. A payload ending in CRLF used to add a blank row, so the rows no longer matched the frames.
+- A `.socket` body expands `\r`, `\n`, and `\t`. The parser trims the trailing newline off a body, so a file could not otherwise end a message the way a line oriented protocol requires; the bundled Redis example depended on it.
+
 ## [v0.27.0] - 2026-09-14
 
 ### Added

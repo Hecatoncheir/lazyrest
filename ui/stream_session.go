@@ -96,13 +96,17 @@ func (application *Application) runStream(
 	})
 
 	// The body of a stream request is what it says on connecting: a
-	// subscription is normally the first thing sent. Escapes are not expanded
-	// here, unlike in the composer, because a file can hold a real newline and
-	// an input field cannot.
+	// subscription is normally the first thing sent.
 	if strings.TrimSpace(suite.Body) != "" {
 		opening := runnerstream.Frame{Opcode: runnerstream.Text, Payload: []byte(suite.Body)}
 		if suite.Transport == parserhttp.TransportTCP {
+			// The parser trims the trailing newline off a body, so a file
+			// cannot express the CRLF a line oriented protocol ends on. The
+			// escapes are expanded here for the same reason they are in the
+			// composer. A WebSocket message needs no terminator and must keep
+			// the escapes its JSON contains, so it is sent as written.
 			opening.Opcode = runnerstream.Bytes
+			opening.Payload = []byte(expandEscapes(suite.Body))
 		}
 		if err := session.Send(ctx, opening); err != nil {
 			application.Element.QueueUpdateDraw(func() {

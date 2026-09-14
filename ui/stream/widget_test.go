@@ -157,3 +157,21 @@ func TestWidgetMarksATruncatedFrame(t *testing.T) {
 		t.Fatalf("text = %q, want a truncated size marker", text)
 	}
 }
+
+// A frame must occupy exactly one row. A payload ending in CRLF used to add a
+// blank row, so the log no longer lined up with the frames in it.
+func TestWidgetKeepsOneFramePerLine(t *testing.T) {
+	log := NewLog(10, 1<<20)
+	log.Append(runnerstream.Frame{At: at(1), Opcode: runnerstream.Bytes, Payload: []byte("+PONG\r\n")})
+	log.Append(runnerstream.Frame{At: at(2), Opcode: runnerstream.Bytes, Payload: []byte("+OK\r\n")})
+
+	widget := buildWidget(t, log)
+	text := strings.TrimRight(widget.Element.GetText(true), "\n")
+
+	if lines := strings.Split(text, "\n"); len(lines) != 2 {
+		t.Fatalf("rendered %d lines for 2 frames:\n%s", len(lines), text)
+	}
+	if !strings.Contains(text, `+PONG\r\n`) {
+		t.Fatalf("text = %q, want the terminator shown rather than applied", text)
+	}
+}

@@ -259,7 +259,7 @@ func (widget *Widget) payload(frame runnerstream.Frame) string {
 		return "[gray]" + tview.Escape(hexPreview(frame.Payload)) + "[-]"
 	}
 
-	text := parserhttp.RedactSecrets(string(frame.Payload), widget.secrets)
+	text := visibleControls(parserhttp.RedactSecrets(string(frame.Payload), widget.secrets))
 	if looksLikeJSON(text) {
 		// syntax.Highlight escapes its own output; escaping again would show
 		// the tags rather than apply them.
@@ -295,6 +295,15 @@ func hexPreview(payload []byte) string {
 		parts[index] = fmt.Sprintf("%02x", value)
 	}
 	return strings.Join(parts, " ") + suffix
+}
+
+// visibleControls keeps one frame on one line. A line oriented protocol ends
+// every message with a newline, and letting those through would break the log
+// into rows that no longer correspond to frames.
+var controlReplacer = strings.NewReplacer("\r", `\r`, "\n", `\n`, "\t", `\t`)
+
+func visibleControls(text string) string {
+	return controlReplacer.Replace(text)
 }
 
 func looksLikeJSON(text string) bool {

@@ -142,6 +142,7 @@ func (application *Application) closeOverlay() {
 	application.Pages.HidePage(themePickerPage)
 	application.Pages.HidePage(environmentPickerPage)
 	application.Pages.HidePage(saveResponsePage)
+	application.Pages.HidePage(sendFramePage)
 	application.Model.update(func(state *State) {
 		state.Overlay = OverlayNone
 	})

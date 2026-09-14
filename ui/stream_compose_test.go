@@ -2,6 +2,7 @@ package ui
 
 import (
 	"context"
+	"strings"
 	"testing"
 	"time"
 
@@ -190,5 +191,60 @@ func TestTUIStreamSendsNothingWhenTheBodyIsEmpty(t *testing.T) {
 	case frame := <-session.sent:
 		t.Fatalf("an empty body was sent as a frame: %q", frame.Payload)
 	case <-time.After(300 * time.Millisecond):
+	}
+}
+
+// The earlier test asserted on the model, which reported the overlay closed
+// while the page was still drawn. Assert on what is actually on screen.
+func TestTUIStreamComposerLeavesTheScreenAfterSending(t *testing.T) {
+	application, session, screen := startStreamFor(t, streamSuite())
+
+	screen.InjectKey(tcell.KeyRune, 's', tcell.ModNone)
+	waitForScreenText(t, application, screen, "Send frame")
+
+	application.Element.QueueUpdateDraw(func() {
+		application.SendFrame.SetText("ping")
+		application.sendFrame()
+	})
+	nextSent(t, session)
+
+	deadline := time.Now().Add(5 * time.Second)
+	for time.Now().Before(deadline) {
+		if !strings.Contains(applicationText(application, screen), "Send frame") {
+			return
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	t.Fatal("the composer is still drawn after the frame was sent")
+}
+
+// The parser trims the trailing newline off a body, so a .socket file cannot
+// express the CRLF a line oriented protocol ends on. Escapes cover for that.
+func TestTUIStreamExpandsEscapesInARawSocketBody(t *testing.T) {
+	suite := parserhttp.HttpSuite{
+		Name:      "cache",
+		Method:    "SOCKET",
+		Uri:       "tcp://127.0.0.1:6379",
+		Transport: parserhttp.TransportTCP,
+		Body:      `PING\r\n`,
+	}
+	_, session, _ := startStreamFor(t, suite)
+
+	frame := nextSent(t, session)
+	if string(frame.Payload) != "PING\r\n" {
+		t.Fatalf("payload = %q, want a real CRLF", frame.Payload)
+	}
+}
+
+// A WebSocket message needs no terminator, and expanding escapes would corrupt
+// JSON that legitimately contains one.
+func TestTUIStreamLeavesAWebSocketBodyAsWritten(t *testing.T) {
+	suite := streamSuite()
+	suite.Body = `{"text":"line\nbreak"}`
+	_, session, _ := startStreamFor(t, suite)
+
+	frame := nextSent(t, session)
+	if string(frame.Payload) != `{"text":"line\nbreak"}` {
+		t.Fatalf("payload = %q, want the escape left as written", frame.Payload)
 	}
 }
