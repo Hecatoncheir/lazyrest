@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [v0.28.1] - 2026-09-14
+
+### Changed
+- The bundled run skill documents how to type into the frame composer. A whole string sent at once outruns the field taking focus, and the frame goes out truncated while still looking like a frame.
+
+No application code changed since v0.28.0. The binaries differ only in the stamped version, so there is nothing to gain by upgrading.
+
 ## [v0.28.0] - 2026-09-14
 
 ### Added
