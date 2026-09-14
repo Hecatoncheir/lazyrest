@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [v0.28.0] - 2026-09-14
+
 ### Added
 - The frame composer remembers what has been sent. `Up` and `Down` walk back through earlier frames and return to the draft, so a subscription can be resent after a reconnect without retyping it. The history is bounded, drops consecutive repeats, keeps what was typed rather than what went on the wire, and is never written to disk.
 
