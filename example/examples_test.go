@@ -174,3 +174,38 @@ func TestStompExamplesEndOnANullEscape(t *testing.T) {
 		t.Fatalf("found %d STOMP examples, want one per transport", found)
 	}
 }
+
+// A free standing comment after a body is swallowed by that body: only a
+// variable or the next request ends one. An example that reads correctly can
+// therefore ship a comment as part of its payload, and still parse cleanly.
+func TestExampleBodiesCarryNoComments(t *testing.T) {
+	paths, err := filepath.Glob("*.http")
+	if err != nil {
+		t.Fatal(err)
+	}
+	socketPaths, err := filepath.Glob("*.socket")
+	if err != nil {
+		t.Fatal(err)
+	}
+	paths = append(paths, socketPaths...)
+
+	parser, err := parserhttp.NewParser()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer parser.Close()
+
+	for _, path := range paths {
+		result, err := parser.ParseFileWithOptions(context.Background(), path, parserhttp.ParseOptions{})
+		if err != nil {
+			t.Fatalf("%s: %v", path, err)
+		}
+		for _, suite := range result.Suites {
+			for _, line := range strings.Split(suite.Body, "\n") {
+				if strings.HasPrefix(strings.TrimSpace(line), "#") {
+					t.Errorf("%s: the body of %q swallowed a comment: %q", path, suite.Name, line)
+				}
+			}
+		}
+	}
+}

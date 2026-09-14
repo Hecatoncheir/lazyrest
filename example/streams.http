@@ -1,4 +1,11 @@
+# Streams opened from a request file. A ws:// or wss:// URL is a WebSocket.
+#
+# Only \0 is expanded for a WebSocket, so a payload that is JSON keeps its own
+# escapes. A STOMP broker over a WebSocket — RabbitMQ with the
+# rabbitmq_web_stomp plugin — serves one at ws://host:15674/ws.
+
 @streamUrl = "wss://ws.postman-echo.com/raw"
+@webStompUrl = "ws://127.0.0.1:15674/ws"
 
 # @name Watch an echo stream
 WEBSOCKET {{streamUrl}}
@@ -7,12 +14,6 @@ Origin: https://ws.postman-echo.com
 {
   "hello": "from lazyrest"
 }
-
-# A STOMP broker over a WebSocket: RabbitMQ with the rabbitmq_web_stomp plugin
-# serves one at ws://host:15674/ws. Only \0 is expanded for a WebSocket, so a
-# payload that is JSON keeps its own escapes.
-
-@webStompUrl = "ws://127.0.0.1:15674/ws"
 
 # @name Connect to a broker over Web-STOMP
 WEBSOCKET {{webStompUrl}}

@@ -12,11 +12,37 @@ import (
 // bodyPreview renders the body of a request as one highlighted line, since a
 // list row cannot show more than that.
 func (widget *Suites) bodyPreview(suite http.HttpSuite) string {
-	body := strings.Join(strings.Fields(suite.Redact(suite.Body)), " ")
+	source := suite.Redact(suite.Body)
+	if suite.Transport.IsStream() {
+		source = framePreview(source)
+	}
+	body := strings.Join(strings.Fields(source), " ")
 	if body == "" {
 		return ""
 	}
 	return syntax.Highlight(body, syntax.LanguageForBodyType(suite.BodyType), widget.syntax)
+}
+
+// framePreview reduces a frame to its first line. For a text protocol that
+// line is the command — CONNECT, SUBSCRIBE, SEND — and squashing the headers
+// in after it fills the row with what the request pane already shows properly,
+// one line at a time.
+func framePreview(body string) string {
+	trimmed := strings.TrimLeft(body, "\r\n")
+	if trimmed == "" {
+		return ""
+	}
+	// A JSON payload carries no command on its first line, so a lone brace
+	// would say less than the squashed text it replaced.
+	if first := trimmed[0]; first == '{' || first == '[' {
+		return body
+	}
+	line, rest, split := strings.Cut(trimmed, "\n")
+	line = strings.TrimRight(line, "\r")
+	if split && strings.TrimSpace(rest) != "" {
+		return line + " …"
+	}
+	return line
 }
 
 // listRow holds both forms of a row: one with the method coloured, and a plain

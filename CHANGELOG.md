@@ -9,6 +9,7 @@ All notable changes to this project will be documented in this file.
 - A stream body and the frame composer expand `\0`, so a frame can end on the null byte STOMP requires. This makes RabbitMQ reachable over its STOMP plugin, and over Web-STOMP as a `ws://` request, alongside any other STOMP broker. A WebSocket expands only `\0`: JSON has no `\0` escape of its own, while `\n` inside a JSON string must stay two characters.
 
 ### Fixed
+- A request list row shows a stream frame's command rather than its whole frame squashed onto one line. The request pane already showed the frame properly, a line at a time.
 - A frame carrying a null byte is shown as text with a visible `\0` rather than dropping the whole frame into hex, which made a text protocol unreadable.
 - An overlay that is a text field receives what is typed. A global binding on a printable key used to win over the field, so `q` closed the overlay and `:` opened the command palette; neither a STOMP header nor a path holding those characters could be entered. `Esc` still cancels and `Ctrl+C` still quits.
 
