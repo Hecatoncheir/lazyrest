@@ -5,9 +5,12 @@ import (
 	"sync"
 
 	"github.com/Hecatoncheir/lazyrest/environment"
+	parserhttp "github.com/Hecatoncheir/lazyrest/parser/http"
+	runnerstream "github.com/Hecatoncheir/lazyrest/runner/stream"
 	"github.com/Hecatoncheir/lazyrest/ui/footer"
 	"github.com/Hecatoncheir/lazyrest/ui/layout"
 	"github.com/Hecatoncheir/lazyrest/ui/producer"
+	uistream "github.com/Hecatoncheir/lazyrest/ui/stream"
 	"github.com/Hecatoncheir/lazyrest/ui/suite"
 	"github.com/Hecatoncheir/lazyrest/ui/suites"
 	"github.com/Hecatoncheir/lazyrest/ui/theme"
@@ -30,6 +33,7 @@ type Application struct {
 	Suites            *suites.Suites
 	Suite             *suite.Suite
 	Producer          *producer.Producer
+	Stream            *uistream.Widget
 	Workspace         *workspace.Workspace
 	Layout            *layout.Layout
 	Footer            *footer.Footer
@@ -46,6 +50,10 @@ type Application struct {
 	theme                theme.Theme
 	loadEnvironment      func(string, environment.Config) (environment.Environment, error)
 	scanFiles            func(context.Context) tree.ScanResult
+	dialStream           func(context.Context, parserhttp.HttpSuite) (runnerstream.Session, error)
+	streamMutex          sync.Mutex
+	streamCancel         context.CancelFunc
+	streamSession        runnerstream.Session
 	previousFocus        tview.Primitive
 	screen               tcell.Screen
 	pendingExport        *producer.ResponseExport

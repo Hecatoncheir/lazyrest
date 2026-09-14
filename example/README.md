@@ -7,7 +7,9 @@ go run . example
 ```
 
 The `.http` files demonstrate named requests, JSON/XML/GraphQL bodies,
-recursive variables, and a request that uses what an earlier one answered. The `.hurl` files demonstrate response assertions and a
+recursive variables, and a request that uses what an earlier one answered. `streams.http` demonstrates a WebSocket request, and `cache.socket` a raw
+TCP request against a local Redis.
+The `.hurl` files demonstrate response assertions and a
 multi-request workflow with a captured value. Hurl examples require the
 `hurl` executable.
 

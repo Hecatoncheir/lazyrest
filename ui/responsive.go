@@ -24,12 +24,16 @@ func (application *Application) updateResponsiveUI(screen tcell.Screen) {
 }
 
 func (application *Application) focusedMainPane() tview.Primitive {
-	for _, primitive := range []tview.Primitive{
+	panes := []tview.Primitive{
 		application.HttpFilesTree.Element,
 		application.Suites.Element,
 		application.Suite.Element,
 		application.Producer.Element,
-	} {
+	}
+	if application.Stream != nil {
+		panes = append(panes, application.Stream.Element)
+	}
+	for _, primitive := range panes {
 		if primitive != nil && primitive.HasFocus() {
 			return primitive
 		}

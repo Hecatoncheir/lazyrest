@@ -1,0 +1,9 @@
+@streamUrl = "wss://ws.postman-echo.com/raw"
+
+# @name Watch an echo stream
+WEBSOCKET {{streamUrl}}
+Origin: https://ws.postman-echo.com
+
+{
+  "hello": "from lazyrest"
+}

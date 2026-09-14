@@ -129,6 +129,23 @@ func (widget *Workspace) render() {
 	}
 }
 
+// SetResponseElement swaps what fills the response slot. A stream shows a live
+// frame log there rather than a single response, and the layout is untouched:
+// the slot keeps its proportions and its place in every layout mode, so the
+// responsive behaviour does not have to learn about streams.
+func (widget *Workspace) SetResponseElement(element tview.Primitive) {
+	if element == nil || widget.producerElement == element {
+		return
+	}
+	widget.producerElement = element
+	widget.render()
+}
+
+// ResponseElement is what currently fills the response slot.
+func (widget *Workspace) ResponseElement() tview.Primitive {
+	return widget.producerElement
+}
+
 func (widget *Workspace) ApplySettings(uiTheme theme.Theme) {
 	widget.Element.(*tview.Flex).SetBackgroundColor(uiTheme.Background)
 	widget.suitesArea.SetBackgroundColor(uiTheme.Background)

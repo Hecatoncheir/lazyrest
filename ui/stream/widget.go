@@ -3,14 +3,17 @@ package stream
 import (
 	"fmt"
 	"strings"
+	"sync"
 	"unicode/utf8"
 
+	"github.com/Hecatoncheir/lazyrest/keymap"
 	"github.com/Hecatoncheir/lazyrest/locale"
 	parserhttp "github.com/Hecatoncheir/lazyrest/parser/http"
 	runnerstream "github.com/Hecatoncheir/lazyrest/runner/stream"
 	"github.com/Hecatoncheir/lazyrest/ui/syntax"
 	"github.com/Hecatoncheir/lazyrest/ui/theme"
 
+	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 )
 
@@ -24,19 +27,25 @@ const hexPreviewBytes = 48
 type Parameters struct {
 	Theme            theme.Theme
 	Locale           *locale.Translator
+	Keybindings      *keymap.Bindings
+	OnEscapeCallback func()
 	MaxVisibleFrames int
 }
 
 type Widget struct {
 	Element *tview.TextView
 
-	theme      theme.ProducerTheme
-	syntax     syntax.Palette
-	locale     *locale.Translator
-	log        *Log
-	secrets    []string
-	following  bool
-	maxVisible int
+	theme       theme.ProducerTheme
+	syntax      syntax.Palette
+	locale      *locale.Translator
+	stateMutex  sync.RWMutex
+	log         *Log
+	secrets     []string
+	following   bool
+	maxVisible  int
+	keybindings *keymap.Bindings
+	onEscape    func()
+	failure     error
 }
 
 func NewWidget() *Widget {
@@ -47,7 +56,12 @@ func (widget *Widget) Build(parameters Parameters) tview.Primitive {
 	if parameters.Locale == nil {
 		parameters.Locale = locale.English()
 	}
+	if parameters.Keybindings == nil {
+		parameters.Keybindings = keymap.Default()
+	}
 	widget.locale = parameters.Locale
+	widget.keybindings = parameters.Keybindings
+	widget.onEscape = parameters.OnEscapeCallback
 	widget.theme = parameters.Theme.Producer
 	widget.syntax = parameters.Theme.Syntax
 	widget.maxVisible = parameters.MaxVisibleFrames
@@ -64,14 +78,59 @@ func (widget *Widget) Build(parameters Parameters) tview.Primitive {
 	element.SetBorderColor(widget.theme.Border)
 	element.SetTitleColor(widget.theme.Title)
 
+	element.SetInputCapture(widget.onInput)
+
 	widget.Element = element
 	widget.updateTitle()
 	widget.Render()
 	return element
 }
 
+// onInput keeps the pane's keys configurable like every other pane's.
+func (widget *Widget) onInput(event *tcell.EventKey) *tcell.EventKey {
+	switch {
+	case widget.keybindings.Matches(keymap.Back, event):
+		if widget.onEscape != nil {
+			widget.onEscape()
+		}
+		return nil
+	case widget.keybindings.Matches(keymap.StreamFollow, event):
+		widget.ToggleFollowing()
+		return nil
+	case widget.keybindings.Matches(keymap.StreamClear, event):
+		widget.ClearLog()
+		return nil
+	}
+	return event
+}
+
+// ClearLog empties the log without touching the connection: a reader clearing
+// the screen is not asking to hang up.
+func (widget *Widget) ClearLog() {
+	widget.stateMutex.Lock()
+	log := widget.log
+	widget.failure = nil
+	widget.stateMutex.Unlock()
+	if log != nil {
+		log.Clear()
+	}
+	widget.Render()
+}
+
+// SetError shows why a connection could not be opened or why it ended badly.
+func (widget *Widget) SetError(failure error) {
+	widget.stateMutex.Lock()
+	widget.failure = failure
+	widget.following = true
+	widget.stateMutex.Unlock()
+	widget.updateTitle()
+	widget.Render()
+}
+
 func (widget *Widget) SetLog(log *Log) {
+	widget.stateMutex.Lock()
 	widget.log = log
+	widget.stateMutex.Unlock()
 	widget.Render()
 }
 
@@ -79,25 +138,34 @@ func (widget *Widget) SetLog(log *Log) {
 // carries credentials as readily as a response body does, so redaction happens
 // here as it does when Producer renders history.
 func (widget *Widget) SetSecretValues(secrets []string) {
+	widget.stateMutex.Lock()
+	defer widget.stateMutex.Unlock()
 	widget.secrets = secrets
 }
 
-func (widget *Widget) Following() bool { return widget.following }
+// Following is safe to call from any goroutine; everything that draws is not.
+func (widget *Widget) Following() bool {
+	widget.stateMutex.RLock()
+	defer widget.stateMutex.RUnlock()
+	return widget.following
+}
 
 func (widget *Widget) SetFollowing(following bool) {
+	widget.stateMutex.Lock()
 	widget.following = following
+	widget.stateMutex.Unlock()
 	widget.updateTitle()
 	widget.Render()
 }
 
-func (widget *Widget) ToggleFollowing() { widget.SetFollowing(!widget.following) }
+func (widget *Widget) ToggleFollowing() { widget.SetFollowing(!widget.Following()) }
 
 func (widget *Widget) updateTitle() {
 	if widget.Element == nil || widget.locale == nil {
 		return
 	}
 	state := widget.locale.Text("stream_paused")
-	if widget.following {
+	if widget.Following() {
 		state = widget.locale.Text("stream_following")
 	}
 	widget.Element.SetTitle(fmt.Sprintf(" %s — %s ", widget.locale.Text("stream"), state))
@@ -109,7 +177,7 @@ func (widget *Widget) Render() {
 	if widget.Element == nil {
 		return
 	}
-	if !widget.following {
+	if !widget.Following() {
 		return
 	}
 	widget.Element.SetText(widget.text())
@@ -117,6 +185,12 @@ func (widget *Widget) Render() {
 }
 
 func (widget *Widget) text() string {
+	widget.stateMutex.RLock()
+	defer widget.stateMutex.RUnlock()
+
+	if widget.failure != nil {
+		return "[red]" + tview.Escape(parserhttp.RedactSecrets(widget.failure.Error(), widget.secrets)) + "[-]"
+	}
 	if widget.log == nil || widget.log.Len() == 0 {
 		return tview.Escape(widget.locale.Text("stream_waiting"))
 	}

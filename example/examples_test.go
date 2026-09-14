@@ -73,3 +73,60 @@ func TestHurlExamplesAreRunnableSessions(t *testing.T) {
 		})
 	}
 }
+
+func TestSocketExamplesParseAsRawStreams(t *testing.T) {
+	paths, err := filepath.Glob("*.socket")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(paths) == 0 {
+		t.Fatal("no socket examples found")
+	}
+
+	parser, err := parserhttp.NewParser()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer parser.Close()
+
+	for _, path := range paths {
+		result, err := parser.ParseFileWithOptions(context.Background(), path, parserhttp.ParseOptions{})
+		if err != nil {
+			t.Fatalf("%s: %v", path, err)
+		}
+		if len(result.Diagnostics) != 0 {
+			t.Errorf("%s: %v", path, result.Diagnostics)
+		}
+		if len(result.Suites) == 0 {
+			t.Fatalf("%s: no requests parsed", path)
+		}
+		for _, suite := range result.Suites {
+			if suite.Transport != parserhttp.TransportTCP {
+				t.Errorf("%s: %q transport = %v, want tcp", path, suite.Name, suite.Transport)
+			}
+		}
+	}
+}
+
+// A WebSocket lives in a .http file, so the variable in its URL has to be
+// substituted before the transport is derived from the scheme.
+func TestHTTPExamplesDeriveTheWebSocketTransport(t *testing.T) {
+	parser, err := parserhttp.NewParser()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer parser.Close()
+
+	result, err := parser.ParseFileWithOptions(context.Background(), "streams.http", parserhttp.ParseOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(result.Suites) == 0 {
+		t.Fatal("no requests parsed")
+	}
+	for _, suite := range result.Suites {
+		if suite.Transport != parserhttp.TransportWebSocket {
+			t.Errorf("%q transport = %v, want websocket (uri %q)", suite.Name, suite.Transport, suite.Uri)
+		}
+	}
+}

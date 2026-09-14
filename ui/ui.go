@@ -9,6 +9,7 @@ import (
 	"github.com/Hecatoncheir/lazyrest/ui/footer"
 	"github.com/Hecatoncheir/lazyrest/ui/layout"
 	"github.com/Hecatoncheir/lazyrest/ui/producer"
+	uistream "github.com/Hecatoncheir/lazyrest/ui/stream"
 	"github.com/Hecatoncheir/lazyrest/ui/suite"
 	"github.com/Hecatoncheir/lazyrest/ui/suites"
 	"github.com/Hecatoncheir/lazyrest/ui/theme"
@@ -21,6 +22,7 @@ import (
 func Run(rootDirectoryPath string, config Config) error {
 	applicationWidget := BuildApplication(rootDirectoryPath, config)
 	applicationWidget.Start()
+	defer applicationWidget.stopStream()
 	defer applicationWidget.stopFileWatcher()
 	defer applicationWidget.stopFooterProgress()
 	defer applicationWidget.Producer.WaitForHistory()
@@ -126,6 +128,19 @@ func BuildApplication(rootDirectoryPath string, config Config) *Application {
 	}
 	producerWidget.Build(producerParameters)
 	applicationWidget.Producer = producerWidget
+
+	// Stream shares the response slot with Producer: a request file holds
+	// ordinary requests and streams side by side, and only one of them is ever
+	// on screen.
+	streamWidget := uistream.NewWidget()
+	streamWidget.Build(uistream.Parameters{
+		Theme:            uiTheme,
+		Locale:           config.Locale,
+		Keybindings:      config.Keybindings,
+		OnEscapeCallback: onStreamEscape(applicationWidget),
+	})
+	applicationWidget.Stream = streamWidget
+	applicationWidget.dialStream = dialStreamSuite(config)
 
 	// Workspace
 	workspaceWidget := workspace.New()

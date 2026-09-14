@@ -8,6 +8,15 @@ import (
 func onSuiteRun(application *Application) func(suite http.HttpSuite) {
 	applicationElement := application.Element
 	return func(suite http.HttpSuite) {
+		// A stream has no terminal response, so it takes the response slot
+		// rather than Producer's one shot path.
+		if suite.Transport.IsStream() {
+			application.startStream(suite)
+			return
+		}
+		application.stopStream()
+		application.showResponsePane()
+
 		application.Model.update(func(state *State) {
 			state.Request = TaskState{Phase: PhaseLoading}
 		})

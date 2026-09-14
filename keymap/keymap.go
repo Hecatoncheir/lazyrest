@@ -55,6 +55,8 @@ const (
 	HistoryNext      Action = "history_next"
 	CommandPalette   Action = "command_palette"
 	ReloadConfig     Action = "reload_config"
+	StreamFollow     Action = "stream_follow"
+	StreamClear      Action = "stream_clear"
 )
 
 var defaults = map[Action][]string{
@@ -98,6 +100,8 @@ var defaults = map[Action][]string{
 	HistoryPrevious:  {"["},
 	HistoryNext:      {"]"},
 	CommandPalette:   {":", "ctrl+p"},
+	StreamFollow:     {"f"},
+	StreamClear:      {"c"},
 	ReloadConfig:     {"ctrl+r"},
 }
 
@@ -251,6 +255,7 @@ func (bindings *Bindings) validateConflicts() error {
 		{"suites", append(append([]Action{}, global...), Open, Back, Search, MoveDown, MoveUp)},
 		{"suite", append(append([]Action{}, global...), Run, Back)},
 		{"producer", append(append([]Action{}, global...), Back, Search, SearchNext, SearchPrevious, HistoryPrevious, HistoryNext, ToggleBody, ToggleHeaders, ToggleRequest, RerunRequest, CopyResponseBody, CopyResponse, CopyAsCurl, SaveResponse, SaveFullResponse)},
+		{"stream", append(append([]Action{}, global...), Back, StreamFollow, StreamClear)},
 		{"search", []Action{SearchFinish}},
 		{"overlay", overlay},
 		{"captured responses", append(append([]Action{}, overlay...), ClearCaptured)},

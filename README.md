@@ -29,6 +29,7 @@
 - Automatic private `.env` loading, public/private environment profiles, and recursive `{{variable}}` substitution shared with Hurl.
 - Cookies carried from one request to the next, with control over redirects and certificate checks.
 - GraphQL requests encoded the way servers expect, with a variables block and errors surfaced from `200` responses.
+- WebSocket streams run from `.http` files and raw TCP streams from `.socket` files, with a live frame log, follow/pause, and redacted payloads.
 - `.hurl` files listed one entry at a time, each run with the entries it depends on.
 - Syntax highlighting for JSON, XML, and GraphQL across the panes, and HTTP methods coloured by what they do.
 - Response headers, protocol metadata, Pretty/Raw bodies, and clipboard/file export.
