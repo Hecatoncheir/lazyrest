@@ -98,22 +98,7 @@ jobs:
         run: go test -race ./...
 
       - name: Run fuzz smoke tests
-        run: |
-          set -euo pipefail
-          # The targets are discovered rather than listed, so a new one cannot
-          # be added to the tree and silently never fuzzed.
-          fuzz_targets=$(go test ./... -list='^Fuzz' | awk '
-            /^ok[ \t]/ { for (i = 1; i <= count; i++) print $2, targets[i]; count = 0; next }
-            /^Fuzz/    { targets[++count] = $1 }
-          ')
-          if [ -z "$fuzz_targets" ]; then
-            echo "no fuzz targets discovered" >&2
-            exit 1
-          fi
-          printf '%s\n' "$fuzz_targets"
-          while read -r package_name fuzz_target; do
-            go test "$package_name" -run=^$ -fuzz="^${fuzz_target}$" -fuzztime=2s -parallel=2
-          done <<<"$fuzz_targets"
+        run: .github/scripts/fuzz.sh 2s 2
 
       - name: Build project
         run: go build -v ./...
@@ -140,22 +125,7 @@ jobs:
           cache-dependency-path: go.sum
 
       - name: Run scheduled fuzz tests
-        run: |
-          set -euo pipefail
-          # The targets are discovered rather than listed, so a new one cannot
-          # be added to the tree and silently never fuzzed.
-          fuzz_targets=$(go test ./... -list='^Fuzz' | awk '
-            /^ok[ \t]/ { for (i = 1; i <= count; i++) print $2, targets[i]; count = 0; next }
-            /^Fuzz/    { targets[++count] = $1 }
-          ')
-          if [ -z "$fuzz_targets" ]; then
-            echo "no fuzz targets discovered" >&2
-            exit 1
-          fi
-          printf '%s\n' "$fuzz_targets"
-          while read -r package_name fuzz_target; do
-            go test "$package_name" -run=^$ -fuzz="^${fuzz_target}$" -fuzztime=30s -parallel=4
-          done <<<"$fuzz_targets"
+        run: .github/scripts/fuzz.sh 30s 4
 
   binaries:
     needs: build

@@ -14,14 +14,16 @@ does not cover:
 - Test (one test): `go test ./ui -run TestTUIChainsRequestsThroughAnEarlierResponse`
 - Terminal integration tests: `go test ./ui -run TUI`
 - Fuzz one target: `go test ./parser/http -run=^$ -fuzz=^FuzzResolveVariables$ -fuzztime=2s`
+- Fuzz everything the way CI does: `.github/scripts/fuzz.sh 2s 2`
 - Run against the bundled samples: `go run . example`
 
 CI enforces more than `go test -race ./...`. It also fails on anything
 `gofmt -l .` prints, on a `go mod tidy` that leaves a diff, on `govulncheck`,
 on a two second smoke run of every fuzz target, and on a `CGO_ENABLED=0` build
-of all five release targets. The workflow discovers the fuzz targets with
-`go test ./... -list='^Fuzz'` rather than listing them, so a new target needs
-no CI change; a discovery that comes back empty fails the job instead of
+of all five release targets. Both fuzz jobs call
+`.github/scripts/fuzz.sh <fuzztime> <parallel>`, which discovers the targets
+with `go test ./... -list='^Fuzz'` rather than listing them, so a new target
+needs no CI change; a discovery that comes back empty fails the run instead of
 quietly fuzzing nothing.
 
 ## Invariants
