@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [v0.27.1] - 2026-09-14
+
 ### Fixed
 - The frame composer leaves the screen once the frame is sent, instead of staying drawn over the log.
 - A frame occupies exactly one row in the log. A payload ending in CRLF used to add a blank row, so the rows no longer matched the frames.
