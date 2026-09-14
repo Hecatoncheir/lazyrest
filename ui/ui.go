@@ -60,7 +60,7 @@ func BuildApplication(rootDirectoryPath string, config Config) *Application {
 	applicationWidget.loadEnvironment = environment.Load
 
 	// HttpFilesTree
-	httpFilesExtensions := []string{".http", ".hurl"}
+	httpFilesExtensions := []string{".http", ".hurl", ".socket"}
 	httpFilesTreeWidget := tree.New()
 	httpFilesTreeParameters := tree.Parameters{
 		RootDirectoryPath:    rootDirectoryPath,

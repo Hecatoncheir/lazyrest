@@ -42,6 +42,7 @@ func (parser *Parser) ParseFileWithOptions(ctx context.Context, filePath string,
 	suites, diagnostics := parseDocument(string(source), options)
 	for index := range suites {
 		suites[index].SourceFilePath = filepath.Clean(filePath)
+		suites[index].Transport = TransportForRequest(suites[index].Uri, filePath)
 	}
 	return ParseResult{Suites: suites, Diagnostics: diagnostics}, nil
 }

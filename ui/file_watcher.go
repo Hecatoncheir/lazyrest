@@ -189,5 +189,5 @@ func watchRequestFiles(ctx context.Context, root string, ignored []string, onRea
 
 func isRequestFile(path string) bool {
 	extension := strings.ToLower(filepath.Ext(path))
-	return extension == ".http" || extension == ".hurl"
+	return extension == ".http" || extension == ".hurl" || extension == ".socket"
 }

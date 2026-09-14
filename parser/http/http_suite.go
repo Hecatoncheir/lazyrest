@@ -17,6 +17,9 @@ type HttpSuite struct {
 	Body     string
 	BodyType string
 	IsHurl   bool
+	// Transport is derived from the request URI and the file extension. A
+	// stream transport is run by runner/stream, never by runner.Runner.
+	Transport Transport
 	// SourceFilePath scopes captured responses to the request file they came
 	// from. It belongs to the current session and is not persisted in history.
 	SourceFilePath string `json:"-"`

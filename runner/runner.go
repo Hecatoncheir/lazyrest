@@ -17,6 +17,10 @@ import (
 	"time"
 )
 
+// ErrStreamTransport reports a long lived connection handed to the one shot
+// runner.
+var ErrStreamTransport = errors.New("this request opens a stream, not a single response")
+
 type ProgressCallback func(current, total int64)
 
 const (
@@ -166,6 +170,12 @@ func NewFromSuiteWithConfig(suite parser.HttpSuite, config Config) Runner {
 func (runner *Runner) Execute(ctx context.Context, onProgress ProgressCallback) (Response, error) {
 	if err := runner.suite.ValidateForExecution(); err != nil {
 		return Response{}, err
+	}
+	// A stream has no terminal response and must not be bounded by the run
+	// timeout applied below. runner/stream owns those connections; reaching
+	// here with one means the caller routed it wrongly.
+	if runner.suite.Transport.IsStream() {
+		return Response{}, fmt.Errorf("%w: %s", ErrStreamTransport, runner.suite.Transport)
 	}
 	if ctx == nil {
 		ctx = context.Background()
