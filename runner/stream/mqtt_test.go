@@ -245,3 +245,31 @@ func TestMQTTSessionOutlivesTheDialTimeout(t *testing.T) {
 		t.Fatalf("payload = %q", got)
 	}
 }
+
+// Zero is what a broker assumes, and the row is narrow: saying it costs six
+// characters and pushes the payload onto a line of its own.
+func TestMQTTSessionOmitsTheDefaultQoS(t *testing.T) {
+	broker := startBroker(t)
+	session := dialBroker(t, broker, MQTTConfig{
+		Subscriptions: []MQTTSubscription{{Topic: "plain/#"}, {Topic: "careful/#", QoS: 2}},
+	})
+	nextFrame(t, session.Frames()) // connack
+
+	plain := nextFrame(t, session.Frames())
+	if _, found := plain.Attribute("qos"); found {
+		t.Errorf("a default quality of service was reported: %+v", plain.Attributes)
+	}
+	careful := nextFrame(t, session.Frames())
+	if qos, _ := careful.Attribute("qos"); qos != "2" {
+		t.Errorf("qos = %q, want 2 kept because it is not the default", qos)
+	}
+
+	broker.deliver(t, "plain/message", "body")
+	message := nextFrame(t, session.Frames())
+	if _, found := message.Attribute("qos"); found {
+		t.Errorf("a default quality of service was reported on a message: %+v", message.Attributes)
+	}
+	if topic, _ := message.Attribute("topic"); topic != "plain/message" {
+		t.Errorf("topic = %q", topic)
+	}
+}

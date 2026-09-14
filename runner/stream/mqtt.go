@@ -180,18 +180,28 @@ func (session *MQTTSession) subscribe(ctx context.Context) error {
 		return err
 	}
 	for _, subscription := range session.config.Subscriptions {
+		attributes := []Attribute{
+			{Name: "packet", Value: "suback"},
+			{Name: "topic", Value: subscription.Topic},
+		}
 		session.emit(Frame{
-			At:        time.Now(),
-			Direction: Received,
-			Opcode:    Event,
-			Attributes: []Attribute{
-				{Name: "packet", Value: "suback"},
-				{Name: "topic", Value: subscription.Topic},
-				{Name: "qos", Value: strconv.Itoa(int(subscription.QoS))},
-			},
+			At:         time.Now(),
+			Direction:  Received,
+			Opcode:     Event,
+			Attributes: appendQoS(attributes, subscription.QoS),
 		})
 	}
 	return nil
+}
+
+// appendQoS records the quality of service only when it is not the default.
+// Zero is what a broker assumes, and a topic leaves little room on a row: six
+// characters saying nothing push the payload onto a line of its own.
+func appendQoS(attributes []Attribute, qos byte) []Attribute {
+	if qos == 0 {
+		return attributes
+	}
+	return append(attributes, Attribute{Name: "qos", Value: strconv.Itoa(int(qos))})
 }
 
 func (session *MQTTSession) publishFrame(direction Direction, publish *paho.Publish) Frame {
@@ -201,10 +211,8 @@ func (session *MQTTSession) publishFrame(direction Direction, publish *paho.Publ
 		payload = payload[:session.config.MaxFrameBytes]
 		truncated = true
 	}
-	attributes := []Attribute{
-		{Name: "topic", Value: publish.Topic},
-		{Name: "qos", Value: strconv.Itoa(int(publish.QoS))},
-	}
+	attributes := []Attribute{{Name: "topic", Value: publish.Topic}}
+	attributes = appendQoS(attributes, publish.QoS)
 	if publish.Retain {
 		attributes = append(attributes, Attribute{Name: "retain", Value: "true"})
 	}
