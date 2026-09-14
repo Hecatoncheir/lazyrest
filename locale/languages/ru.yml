@@ -177,3 +177,8 @@ no_command_results: "Нет команд для %q — нажмите Esc, чт�
 confirm_clear_history: "Нажмите %s ещё раз, чтобы удалить историю (%d) · %s отмена"
 confirm_clear_captured: "Нажмите %s ещё раз, чтобы удалить сохранённые ответы (%d) · %s отмена"
 clear_cancelled: "Очистка отменена"
+stream: "Поток"
+stream_following: "слежение"
+stream_paused: "пауза"
+stream_waiting: "Ожидание кадров..."
+stream_frames_dropped: "отброшено предыдущих кадров: %d"
