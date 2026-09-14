@@ -6,35 +6,22 @@ this file covers what is easiest to get wrong.
 
 ## Commands
 
-- Build: `go build ./...`
-- Test: `go test ./...`
-- Test (race, what CI runs): `go test -race ./...`
+`AGENTS.md` carries the everyday commands — build, test, race test, vet, lint,
+format, `go mod tidy` — and is the place to change them. These are the ones it
+does not cover:
+
 - Test (one package): `go test -v ./parser/http`
 - Test (one test): `go test ./ui -run TestTUIChainsRequestsThroughAnEarlierResponse`
 - Terminal integration tests: `go test ./ui -run TUI`
 - Fuzz one target: `go test ./parser/http -run=^$ -fuzz=^FuzzResolveVariables$ -fuzztime=2s`
-- Lint: `golangci-lint run ./...` (the set is pinned in `.golangci.yml`)
-- Vet: `go vet ./...`
-- Format: `gofmt -w .`
-- Run: `go run . example`
+- Run against the bundled samples: `go run . example`
 
-Beyond the tests, CI fails on anything `gofmt -l .` prints, on a `go mod tidy`
-that leaves a diff, on `govulncheck`, on a two second smoke run of every fuzz
-target, and on a `CGO_ENABLED=0` build of all five release targets. Run the
-formatter and `go mod tidy` before handing work back.
-
-### Fuzz targets
-
-Every target is smoke run for two seconds on each push and for thirty seconds
-on the weekly schedule. Both lists live in `.github/workflows/go-test.yml`; a
-new target has to be added to both or it never runs.
-
-| Package       | Targets                                                                                       |
-| ------------- | --------------------------------------------------------------------------------------------- |
-| `parser/http` | `FuzzHTTPDocumentSyntax`, `FuzzResolveVariables`, `FuzzResolveResponseReferences`, `FuzzSecretRedaction` |
-| `parser/hurl` | `FuzzSplitEntries`                                                                              |
-| `environment` | `FuzzParseDotEnvValue`                                                                          |
-| `ui/producer` | `FuzzShellQuote`                                                                                |
+CI enforces more than `go test -race ./...`. It also fails on anything
+`gofmt -l .` prints, on a `go mod tidy` that leaves a diff, on `govulncheck`,
+on a two second smoke run of every fuzz target, and on a `CGO_ENABLED=0` build
+of all five release targets. The fuzz targets are named twice in
+`.github/workflows/go-test.yml`, once in the push job and once in the weekly
+job; a target missing from either list silently never runs there.
 
 ## Invariants
 
@@ -46,8 +33,9 @@ new target has to be added to both or it never runs.
   cookie jar and the response store live for the session; persisted history is
   redacted and bounded before writing. Explicit response export writes the same
   redacted body shown by Producer to a user-selected `0600` file.
-- Every package has tests. `golangci-lint` reports zero issues; keep it that
-  way rather than adding exclusions.
+- Every package holding logic has tests. `ui/symbols`, which is four glyph
+  constants, is the only package without them. `golangci-lint` reports zero
+  issues; keep it that way rather than adding exclusions.
 
 ## Architecture
 
